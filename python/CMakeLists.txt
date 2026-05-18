@@ -21,11 +21,11 @@ find_package(nanobind CONFIG REQUIRED)
 # ── Armadillo ─────────────────────────────────────────────────────────────────
 find_package(Armadillo REQUIRED)
 
-# ── libqe headers (relative to this CMakeLists.txt) ──────────────────────────
-set(LIBQE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../inst/include")
+# ── libqe headers — canonical location at repo root include/ ─────────────────
+set(LIBQE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 if(NOT EXISTS "${LIBQE_INCLUDE_DIR}/libqe/libqe.hpp")
     message(FATAL_ERROR "libqe headers not found at ${LIBQE_INCLUDE_DIR}. "
-            "Run cmake from inside libqe/python/.")
+            "Expected ../include/libqe/libqe.hpp relative to libqe/python/.")
 endif()
 
 # ── binding module ────────────────────────────────────────────────────────────

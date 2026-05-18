@@ -1,0 +1,16 @@
+@echo off
+REM configure.win — run by R CMD INSTALL on Windows before compilation
+REM
+REM Copies canonical C++ headers from repo-level include\libqe\ into
+REM inst\include\libqe\ so R's LinkingTo mechanism can find them.
+
+set HEADER_SRC=..\include\libqe
+set HEADER_DST=inst\include\libqe
+
+if exist "%HEADER_SRC%" (
+    echo ** libqe configure: copying headers from %HEADER_SRC% to %HEADER_DST%
+    if not exist "%HEADER_DST%" mkdir "%HEADER_DST%"
+    copy /Y "%HEADER_SRC%\*.hpp" "%HEADER_DST%\" > nul
+) else (
+    echo ** libqe configure: %HEADER_SRC% not found -- assuming headers already present in %HEADER_DST%
+)

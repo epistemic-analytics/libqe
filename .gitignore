@@ -1,10 +1,18 @@
-src/*.o
-src/*.so
-src/*.dll
-src/RcppExports.cpp
-R/RcppExports.R
+# R package build artefacts (now under R/)
+R/src/*.o
+R/src/*.so
+R/src/*.dll
+R/src/RcppExports.cpp
+R/R/RcppExports.R
+
+# R/inst/include/libqe/*.hpp are tracked in git (copies of include/libqe/).
+# Canonical source: include/libqe/  — CI enforces they stay in sync.
+
+# General R artefacts
 *.Rcheck/
 *.tar.gz
 .Rproj.user/
+
+# Python
 **/__pycache__/
 python/build/

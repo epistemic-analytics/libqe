@@ -6,11 +6,13 @@ Authors@R: c(person("Cody L", "Marquart", role = c("aut", "cre"), email = "cody.
 Maintainer: Cody L Marquart <cody.marquart@wisc.edu>
 Version: 0.1.0
 Description: Header-only C++ library providing shared computational primitives for
-    quantitative ethnography packages (rENA, tma, and others). Exposes four modules
-    via inst/include/libqe/: adjacency vector utilities, normalization, ENA modeling
-    and node positioning, and stanza/tensor-based accumulation. R packages consume
-    this via LinkingTo; Python packages consume it via pybind11. This package also
-    exports Rcpp-wrapped versions of every function for direct testing and use in R.
+    quantitative ethnography packages (rENA, tma, and others). Canonical headers
+    live in include/libqe/ at the repository root; the configure script copies them
+    into inst/include/libqe/ at install time so R packages can consume them via
+    LinkingTo. Python and Julia bindings point directly at include/libqe/. Exposes
+    four modules: adjacency vector utilities, normalization, ENA modeling and node
+    positioning, and stanza/tensor-based accumulation. Also exports Rcpp-wrapped
+    versions of every function for direct use and testing in R.
 License: GPL-3
 URL: https://gitlab.com/epistemic-analytics/qe-packages/libqe
 BugReports: https://gitlab.com/epistemic-analytics/qe-packages/libqe/-/issues
