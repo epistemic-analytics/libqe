@@ -185,6 +185,20 @@ arma::mat lq_stanza_window(arma::mat codes,
     return qe::stanza_window(codes, window_back, window_forward, binary);
 }
 
+//' Compute a column-major linear index into a multi-dimensional array
+//'
+//' Equivalent to tma's calculate_1d_index(). Throws if lengths of `indices`
+//' and `dims` differ.
+//'
+//' @param indices 0-based integer vector of per-dimension indices
+//' @param dims    Integer vector of array dimensions
+//' @return Scalar integer linear index
+//' @export
+// [[Rcpp::export]]
+int lq_calculate_1d_index(std::vector<int> indices, std::vector<int> dims) {
+    return qe::calculate_1d_index(indices, dims);
+}
+
 //' Ground/response accumulation for one unit (tma model)
 //'
 //' @param codes      Numeric matrix for the full context (n_rows x n_codes)
