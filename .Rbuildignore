@@ -1,0 +1,5 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^python$
+^\.gitlab-ci\.yml$
+^\.github$

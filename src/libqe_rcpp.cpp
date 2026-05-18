@@ -1,0 +1,205 @@
+// [[Rcpp::depends(RcppArmadillo)]]
+#include <RcppArmadillo.h>
+#include <libqe/libqe.hpp>
+
+using namespace Rcpp;
+
+// =============================================================================
+// Adjacency utilities
+// =============================================================================
+
+//' Upper-triangle index pairs
+//' @param len Number of codes (side length of square matrix)
+//' @param row -1 = both rows, 0 = row indices only, 1 = col indices only
+//' @export
+// [[Rcpp::export]]
+arma::umat lq_tri_indices(int len, int row = -1) {
+    return qe::tri_indices(len, row);
+}
+
+//' Pairwise products → upper-triangle vector
+//' @param v Numeric vector of code values
+//' @export
+// [[Rcpp::export]]
+arma::rowvec lq_vector_to_upper_tri(arma::mat v) {
+    return qe::vector_to_upper_tri(v);
+}
+
+//' Fold a directed (n*n) vector into an undirected upper-triangle vector
+//' @param v Numeric vector of length n*n
+//' @export
+// [[Rcpp::export]]
+arma::rowvec lq_directed_to_upper_tri(arma::vec v) {
+    return qe::directed_to_upper_tri(v);
+}
+
+//' Flatten an adjacency matrix to a connection vector
+//' @param x Numeric matrix
+//' @param full TRUE = full n*n (directed); FALSE = upper triangle (undirected)
+//' @export
+// [[Rcpp::export]]
+arma::rowvec lq_adjacency_matrix_to_vector(arma::mat x, bool full = true) {
+    return qe::adjacency_matrix_to_vector(x, full);
+}
+
+//' Code-name pairs for upper-triangle positions ("A & B")
+//' @param v Character vector of code names
+//' @export
+// [[Rcpp::export]]
+std::vector<std::string> lq_svector_to_upper_tri(std::vector<std::string> v) {
+    return qe::svector_to_upper_tri(v);
+}
+
+// =============================================================================
+// Normalization
+// =============================================================================
+
+//' Row-wise L2 (sphere) normalization
+//' @param m Numeric matrix
+//' @export
+// [[Rcpp::export]]
+arma::mat lq_sphere_norm(arma::mat m) {
+    return qe::sphere_norm(m);
+}
+
+//' Max-norm scaling (divide all rows by the largest row L2 norm)
+//' @param m Numeric matrix
+//' @export
+// [[Rcpp::export]]
+arma::mat lq_skip_sphere_norm(arma::mat m) {
+    return qe::skip_sphere_norm(m);
+}
+
+// =============================================================================
+// Modeling
+// =============================================================================
+
+//' Center data (subtract column means)
+//' @param values Numeric matrix
+//' @export
+// [[Rcpp::export]]
+arma::mat lq_center_data(arma::mat values) {
+    return qe::center_data(values);
+}
+
+//' Pearson correlation with CI between ENA points and centroids
+//' @param points  Numeric matrix (units x dims)
+//' @param centroids Numeric matrix (units x dims)
+//' @param conf_level Confidence level (default 0.95)
+//' @export
+// [[Rcpp::export]]
+arma::mat lq_ena_correlation(arma::mat points, arma::mat centroids,
+                              double conf_level = 0.95) {
+    return qe::ena_correlation(points, centroids, conf_level);
+}
+
+//' Least-squares node positions for undirected ENA
+//' @param adj_mats Numeric matrix of line weights (units x connections)
+//' @param t        Numeric matrix of rotated points (units x dims)
+//' @param num_dims Number of dimensions
+//' @return List with nodes, centroids, weights, points
+//' @export
+// [[Rcpp::export]]
+List lq_lws_lsq_positions(arma::mat adj_mats, arma::mat t, int num_dims) {
+    qe::NodePositions r = qe::lws_lsq_positions(adj_mats, t, num_dims);
+    return List::create(
+        _("nodes")     = r.nodes,
+        _("centroids") = r.centroids,
+        _("weights")   = r.weights,
+        _("points")    = r.points
+    );
+}
+
+//' Least-squares node positions for directed ENA
+//' @param line_weights Numeric matrix (units x connections)
+//' @param points       Numeric matrix of rotated points (units x dims)
+//' @param num_dims     Number of dimensions
+//' @return List with nodes, centroids, weights, points
+//' @export
+// [[Rcpp::export]]
+List lq_directed_node_positions(arma::mat line_weights, arma::mat points,
+                                 int num_dims) {
+    qe::NodePositions r = qe::directed_node_positions(line_weights, points, num_dims);
+    return List::create(
+        _("nodes")     = r.nodes,
+        _("centroids") = r.centroids,
+        _("weights")   = r.weights,
+        _("points")    = r.points
+    );
+}
+
+//' Directed node positions with paired ground+response rows combined
+//' @param line_weights Numeric matrix (units x connections)
+//' @param points       Numeric matrix of rotated points (units x dims)
+//' @param num_dims     Number of dimensions
+//' @return List with nodes, centroids, weights, points
+//' @export
+// [[Rcpp::export]]
+List lq_directed_node_positions_ground_response(arma::mat line_weights,
+                                                 arma::mat points,
+                                                 int num_dims) {
+    qe::NodePositions r = qe::directed_node_positions_ground_response(
+        line_weights, points, num_dims);
+    return List::create(
+        _("nodes")     = r.nodes,
+        _("centroids") = r.centroids,
+        _("weights")   = r.weights,
+        _("points")    = r.points
+    );
+}
+
+// =============================================================================
+// Accumulation
+// =============================================================================
+
+//' Core adjacency matrix for one ground+response pair
+//' @param ground          Numeric row vector of ground (context) code values
+//' @param response        Numeric row vector of response code values
+//' @param response_weight Scalar weight applied to the response self-connection
+//' @param ordered         TRUE = directed; FALSE = undirected
+//' @export
+// [[Rcpp::export]]
+arma::mat lq_calculate_adjacency_matrix(arma::rowvec ground, arma::rowvec response,
+                                         double response_weight = 1.0,
+                                         bool ordered = true) {
+    return qe::calculate_adjacency_matrix(ground, response, response_weight, ordered);
+}
+
+//' Traditional stanza-window accumulation (rENA model)
+//'
+//' For each row k in a single conversation's code matrix, accumulates
+//' co-occurrences over a back/forward window and returns the upper-triangle
+//' connection vector.
+//'
+//' @param codes          Numeric matrix (rows = lines, cols = codes) for ONE conversation
+//' @param window_back    Number of prior lines in window (default 1); use .Machine$integer.max for Inf
+//' @param window_forward Number of subsequent lines (default 0)
+//' @param binary         If TRUE, binarise non-zero connection counts
+//' @return Numeric matrix (same n_rows, choose_two(n_codes) columns)
+//' @export
+// [[Rcpp::export]]
+arma::mat lq_stanza_window(arma::mat codes,
+                            int window_back    = 1,
+                            int window_forward = 0,
+                            bool binary        = true) {
+    return qe::stanza_window(codes, window_back, window_forward, binary);
+}
+
+//' Ground/response accumulation for one unit (tma model)
+//'
+//' @param codes      Numeric matrix for the full context (n_rows x n_codes)
+//' @param unit_rows  0-based integer vector of rows belonging to this unit
+//' @param decay_fn   R function mapping a numeric distance vector to weights
+//' @param ordered    TRUE = directed; FALSE = undirected (upper-tri)
+//' @return Numeric vector of connection counts
+//' @export
+// [[Rcpp::export]]
+arma::rowvec lq_accumulate_unit(arma::mat codes, std::vector<int> unit_rows,
+                                  Function decay_fn, bool ordered = false) {
+    auto cpp_decay = [&](arma::vec distances) -> arma::vec {
+        NumericVector d = wrap(distances);
+        NumericVector w = decay_fn(d);
+        return as<arma::vec>(w);
+    };
+    return qe::accumulate_unit(codes, unit_rows, cpp_decay, ordered);
+}

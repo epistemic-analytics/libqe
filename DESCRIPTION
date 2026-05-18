@@ -1,0 +1,27 @@
+Package: libqe
+Title: Shared C++ Core for Quantitative Ethnography Packages
+Type: Package
+Author: Cody L Marquart [aut, cre]
+Authors@R: c(person("Cody L", "Marquart", role = c("aut", "cre"), email = "cody.marquart@wisc.edu", comment = c(ORCID = "0000-0002-3387-6792")))
+Maintainer: Cody L Marquart <cody.marquart@wisc.edu>
+Version: 0.1.0
+Description: Header-only C++ library providing shared computational primitives for
+    quantitative ethnography packages (rENA, tma, and others). Exposes four modules
+    via inst/include/libqe/: adjacency vector utilities, normalization, ENA modeling
+    and node positioning, and stanza/tensor-based accumulation. R packages consume
+    this via LinkingTo; Python packages consume it via pybind11. This package also
+    exports Rcpp-wrapped versions of every function for direct testing and use in R.
+License: GPL-3
+URL: https://gitlab.com/epistemic-analytics/qe-packages/libqe
+BugReports: https://gitlab.com/epistemic-analytics/qe-packages/libqe/-/issues
+Encoding: UTF-8
+Depends: R (>= 4.1.0)
+LinkingTo: Rcpp, RcppArmadillo
+Imports:
+    Rcpp
+Suggests:
+    testthat (>= 2.1.0),
+    rENA,
+    tma
+RoxygenNote: 7.3.3
+NeedsCompilation: yes
