@@ -1,0 +1,21 @@
+[build-system]
+requires = ["scikit-build-core>=0.4", "nanobind>=1.9"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "pylibqe"
+version = "0.1.0"
+description = "Python bindings for libqe — low-level ENA math (adjacency, normalization, modeling, accumulation)"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["numpy"]
+
+[project.optional-dependencies]
+dev = ["pytest", "numpy"]
+
+[tool.scikit-build]
+cmake.source-dir = "."
+wheel.packages = ["pylibqe"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
