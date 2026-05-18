@@ -203,3 +203,69 @@ arma::rowvec lq_accumulate_unit(arma::mat codes, std::vector<int> unit_rows,
     };
     return qe::accumulate_unit(codes, unit_rows, cpp_decay, ordered);
 }
+
+//' Ground/response accumulation for one unit — returns unit vector and per-row matrix
+//'
+//' Equivalent to tma's accumulate_network() but without R-env-var setup.
+//' The decay function receives a distance vector (response=0, older rows
+//' have larger values) and returns a weight vector of the same length.
+//'
+//' @param codes      Numeric matrix (n_rows x n_codes)
+//' @param unit_rows  0-based integer vector of rows belonging to this unit
+//' @param decay_fn   R function(distances) -> weights
+//' @param ordered    TRUE = directed (full p^2); FALSE = undirected (upper-tri)
+//' @return List with `networks` (vector) and `row_networks` (matrix)
+//' @export
+// [[Rcpp::export]]
+List lq_accumulate_unit_with_rows(arma::mat codes, std::vector<int> unit_rows,
+                                   Function decay_fn, bool ordered = false) {
+    auto cpp_decay = [&](int unit_row, arma::uvec ground_indices) -> arma::vec {
+        arma::vec dists(ground_indices.n_elem);
+        for (arma::uword k = 0; k < ground_indices.n_elem; ++k)
+            dists[k] = static_cast<double>(unit_row - ground_indices[k]);
+        return as<arma::vec>(wrap(decay_fn(wrap(dists))));
+    };
+    qe::UnitNetworks r = qe::accumulate_unit_with_rows(codes, unit_rows, cpp_decay, ordered);
+    return List::create(
+        _("networks")     = r.networks,
+        _("row_networks") = r.row_networks
+    );
+}
+
+//' Tensor-based multi-modal accumulation for one unit (tma model)
+//'
+//' Pure-C++ port of tma's apply_tensor().  Accepts 0-based index vectors
+//' for sender/receiver/mode dimensions and a pre-converted integer context
+//' lookup matrix.
+//'
+//' @param tensor         Numeric vector (column-major flat tensor)
+//' @param dims           Integer vector of tensor dimensions
+//' @param dims_sender    0-based sender axis indices
+//' @param dims_receiver  0-based receiver axis indices
+//' @param dims_mode      0-based mode axis indices
+//' @param context_lookup Integer matrix (n_context_rows x n_factors), 0-based
+//' @param unit_rows      0-based response-row indices for this unit
+//' @param codes          Numeric matrix (n_context_rows x n_codes)
+//' @param times          Numeric vector of timestamps per context row
+//' @param ordered        TRUE = directed; FALSE = undirected
+//' @return List with `connection_counts` (vector) and `row_connection_counts` (matrix)
+//' @export
+// [[Rcpp::export]]
+List lq_apply_tensor(arma::vec tensor,
+                     std::vector<int> dims,
+                     std::vector<int> dims_sender,
+                     std::vector<int> dims_receiver,
+                     std::vector<int> dims_mode,
+                     arma::imat context_lookup,
+                     std::vector<int> unit_rows,
+                     arma::mat codes,
+                     arma::vec times,
+                     bool ordered = true) {
+    qe::TensorNetworks r = qe::apply_tensor_unit(
+        tensor, dims, dims_sender, dims_receiver, dims_mode,
+        context_lookup, unit_rows, codes, times, ordered);
+    return List::create(
+        _("connection_counts")     = r.connection_counts,
+        _("row_connection_counts") = r.row_connection_counts
+    );
+}

@@ -167,6 +167,189 @@ inline arma::rowvec accumulate_unit(
     return arma::vectorise(g_w_vec).t();
 }
 
+// ---------------------------------------------------------------------------
+// Extended ground/response accumulation — returns per-row connection data
+// ---------------------------------------------------------------------------
+
+struct UnitNetworks {
+    arma::rowvec networks;      // flat connection vector (p^2 or choose_two(p))
+    arma::mat    row_networks;  // per-response-row full p^2 matrix (n_unit_rows x p^2)
+};
+
+// Like accumulate_unit() but also returns the per-response-row connection
+// matrix needed by tma's accumulate_network().
+//
+// `decay_fn(unit_row, ground_indices)` → weight vector of length
+// ground_indices.n_elem.  The two-argument form lets callers (e.g. the tma
+// Rcpp wrapper) set R environment variables before calling the actual R
+// decay function, without any R-specific code leaking into libqe.
+inline UnitNetworks accumulate_unit_with_rows(
+    const arma::mat&                              codes,
+    const std::vector<int>&                       unit_rows,
+    std::function<arma::vec(int, arma::uvec)>     decay_fn,
+    bool ordered = false
+) {
+    int code_cnt    = codes.n_cols;
+    int n_unit_rows = unit_rows.size();
+
+    arma::mat g_w_mat(code_cnt, code_cnt, arma::fill::zeros);
+    arma::mat row_networks(n_unit_rows, code_cnt * code_cnt, arma::fill::zeros);
+
+    for (int i = 0; i < n_unit_rows; ++i) {
+        int unit_row = unit_rows[i];
+
+        arma::uvec ground_indices = arma::regspace<arma::uvec>(0, 1, unit_row);
+        arma::vec  decay_weights  = decay_fn(unit_row, ground_indices);
+
+        arma::mat    ground_codes = codes.rows(ground_indices);
+        arma::mat    weighted     = ground_codes.each_col() % decay_weights;
+        arma::rowvec g_summed     = arma::sum(weighted);
+        arma::rowvec g_no_resp    = g_summed - weighted.tail_rows(1).row(0);
+
+        arma::rowvec response = codes.row(unit_row);
+        arma::mat    conn     = calculate_adjacency_matrix(g_no_resp, response, 1.0, ordered);
+        g_w_mat += conn;
+        row_networks.row(i) = arma::vectorise(conn).t();
+    }
+
+    UnitNetworks result;
+    if (!ordered)
+        result.networks = directed_to_upper_tri(arma::vectorise(g_w_mat));
+    else
+        result.networks = arma::vectorise(g_w_mat).t();
+    result.row_networks = row_networks;
+    return result;
+}
+
+// ---------------------------------------------------------------------------
+// Tensor-based multi-modal accumulation (tma model)
+// ---------------------------------------------------------------------------
+
+// Compute the linear index into a column-major multi-dimensional array.
+// Equivalent to calculate_1d_index() in tma/code.cpp.
+inline int calculate_1d_index(const std::vector<int>& indices,
+                               const std::vector<int>& dims) {
+    if (indices.size() != dims.size())
+        throw std::invalid_argument("Number of indices must match number of dimensions.");
+    size_t linear = 0, stride = 1;
+    for (size_t v = 0; v < indices.size(); ++v) {
+        linear += static_cast<size_t>(indices[v]) * stride;
+        stride *= static_cast<size_t>(dims[v]);
+    }
+    return static_cast<int>(linear);
+}
+
+struct TensorNetworks {
+    arma::rowvec connection_counts;      // unit-level flat vector (p^2)
+    arma::mat    row_connection_counts;  // per-response-row (n_unit_rows x p^2)
+};
+
+// Pure-C++ port of tma's apply_tensor() inner logic.
+//
+// `tensor`         — flat column-major array (window and weight values)
+// `dims`           — dimensions of the tensor
+// `dims_sender`    — tensor axis indices for sender factors
+// `dims_receiver`  — tensor axis indices for receiver factors (overridden to
+//                    response values when looking up ground-row windows)
+// `dims_mode`      — tensor axis indices for mode factors
+// `context_lookup` — integer matrix (n_context_rows x n_factors), 0-based
+// `unit_rows`      — 0-based response-row indices for this unit
+// `codes`          — full context code matrix (n_context_rows x n_codes)
+// `times`          — timestamp per context row
+// `ordered`        — true → directed full matrix; false → undirected upper-tri
+inline TensorNetworks apply_tensor_unit(
+    const arma::vec&        tensor,
+    const std::vector<int>& dims,
+    const std::vector<int>& dims_sender,
+    const std::vector<int>& dims_receiver,
+    const std::vector<int>& dims_mode,
+    const arma::imat&       context_lookup,
+    const std::vector<int>& unit_rows,
+    const arma::mat&        codes,
+    const arma::vec&        times,
+    bool ordered = true
+) {
+    const int  WINDOW_DIM  = 1;
+    const int  WEIGHT_DIM  = 0;
+    const bool IS_DEFAULT  = (dims.size() == 1 && dims[0] == 2);
+
+    int code_cnt    = codes.n_cols;
+    int n_unit_rows = static_cast<int>(unit_rows.size());
+    int ctx_cols    = static_cast<int>(context_lookup.n_cols);
+
+    arma::mat g_w_mat(code_cnt, code_cnt, arma::fill::zeros);
+    arma::mat row_conn(n_unit_rows, code_cnt * code_cnt, arma::fill::zeros);
+
+    int response_win    = 0;
+    int response_weight = 0;
+    if (IS_DEFAULT) {
+        response_win    = static_cast<int>(tensor[1]);
+        response_weight = static_cast<int>(tensor[0]);
+    }
+
+    for (int i = 0; i < n_unit_rows; ++i) {
+        int    ri            = unit_rows[i];
+        double response_time = times[ri];
+
+        std::vector<int> resp_ctx(ctx_cols + 1);
+        for (int j = 0; j < ctx_cols; ++j) resp_ctx[j] = context_lookup(ri, j);
+        resp_ctx[ctx_cols] = WINDOW_DIM;
+
+        if (!IS_DEFAULT)
+            response_win = static_cast<int>(tensor[calculate_1d_index(resp_ctx, dims)]);
+
+        std::vector<int>    gri_v;
+        std::vector<double> grw_v;
+        arma::rowvec g_ws(code_cnt, arma::fill::zeros);
+
+        if (ri > 0) {
+            for (int gr = ri - 1; gr >= 0; --gr) {
+                std::vector<int> row_v(ctx_cols + 1);
+                for (int j = 0; j < ctx_cols; ++j) row_v[j] = context_lookup(gr, j);
+                row_v[ctx_cols] = WINDOW_DIM;
+                for (int dim : dims_receiver) row_v[dim] = resp_ctx[dim];
+
+                double row_win = static_cast<double>(response_win);
+                if (!IS_DEFAULT)
+                    row_win = tensor[calculate_1d_index(row_v, dims)];
+
+                if (times[gr] + row_win > response_time) {
+                    gri_v.push_back(gr);
+                    row_v[ctx_cols] = WEIGHT_DIM;
+                    double row_wgt = static_cast<double>(response_weight);
+                    if (!IS_DEFAULT)
+                        row_wgt = tensor[calculate_1d_index(row_v, dims)];
+                    grw_v.push_back(row_wgt);
+                }
+            }
+
+            if (!gri_v.empty()) {
+                arma::uvec gri_u(gri_v.size());
+                for (size_t k = 0; k < gri_v.size(); ++k) gri_u[k] = gri_v[k];
+                arma::mat    gc  = codes.rows(gri_u);
+                arma::colvec wts = arma::conv_to<arma::colvec>::from(grw_v);
+                g_ws = arma::sum(gc.each_col() % wts, 0);
+            }
+        }
+
+        if (!IS_DEFAULT) {
+            resp_ctx[ctx_cols] = WEIGHT_DIM;
+            response_weight = static_cast<int>(tensor[calculate_1d_index(resp_ctx, dims)]);
+        }
+
+        arma::rowvec row_vec = codes.row(ri);
+        arma::mat resp = calculate_adjacency_matrix(
+            g_ws, row_vec, static_cast<double>(response_weight), ordered);
+        g_w_mat += resp;
+        row_conn.row(i) = arma::vectorise(resp).t();
+    }
+
+    TensorNetworks result;
+    result.connection_counts     = arma::vectorise(g_w_mat).t();
+    result.row_connection_counts = row_conn;
+    return result;
+}
+
 } // namespace qe
 
 #endif // LIBQE_ACCUMULATION_HPP
