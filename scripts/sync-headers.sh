@@ -1,12 +1,18 @@
 #!/bin/sh
 # sync-headers.sh — copy canonical headers into R/inst/include/libqe/
 #
-# Run this manually (or from CI) whenever include/libqe/*.hpp changes.
-# R's LinkingTo mechanism requires headers to live in inst/include/ of the
-# installed package; this script keeps that copy up to date.
+# R's LinkingTo mechanism requires headers in inst/include/ of the installed
+# package.  The configure script handles this automatically when installing
+# directly from the repo (R CMD INSTALL R/).  This script is needed for:
 #
-# Usage (from repo root):  ./scripts/sync-headers.sh
-#           or in CI:      sh scripts/sync-headers.sh
+#   1. Building a distributable source tarball:
+#        sh scripts/sync-headers.sh && R CMD build R/
+#
+#   2. Local devtools installs (devtools copies to a temp dir, so the
+#      configure script cannot find ../include/):
+#        sh scripts/sync-headers.sh && Rscript -e "devtools::install('R')"
+#
+# Usage (from repo root):  sh scripts/sync-headers.sh
 
 set -e
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
