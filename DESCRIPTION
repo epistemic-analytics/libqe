@@ -20,8 +20,6 @@ LinkingTo: Rcpp, RcppArmadillo
 Imports:
     Rcpp
 Suggests:
-    testthat (>= 2.1.0),
-    rENA,
-    tma
+    testthat (>= 2.1.0)
 RoxygenNote: 7.3.3
 NeedsCompilation: yes
