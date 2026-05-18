@@ -83,3 +83,77 @@ test_that("accumulate_unit: output length is n_codes^2 when ordered", {
     out <- lq_accumulate_unit(codes, unit_rows, decay_fn, TRUE)
     expect_length(out, 3^2)
 })
+
+# --- rows_to_co_occurrences ---
+
+test_that("rows_to_co_occurrences: output dimensions are n_rows x choose_two(n_codes)", {
+    codes <- matrix(c(1, 1, 0,
+                      1, 0, 1), nrow = 2, byrow = TRUE)
+    out <- lq_rows_to_co_occurrences(codes, TRUE)
+    expect_equal(dim(out), c(2L, 3L))  # choose(3,2) = 3
+})
+
+test_that("rows_to_co_occurrences: binary=TRUE binarises non-zero products", {
+    codes <- matrix(c(2, 3, 0,
+                      1, 0, 1), nrow = 2, byrow = TRUE)
+    out <- lq_rows_to_co_occurrences(codes, TRUE)
+    # Row 1: 2*3=6>0 -> 1; 2*0=0; 3*0=0
+    expect_equal(as.vector(out[1, ]), c(1, 0, 0))
+})
+
+test_that("rows_to_co_occurrences: binary=FALSE preserves product magnitudes", {
+    codes <- matrix(c(2, 3, 0), nrow = 1)
+    out <- lq_rows_to_co_occurrences(codes, FALSE)
+    # pairs: c1&c2=6, c1&c3=0, c2&c3=0
+    expect_equal(as.vector(out[1, ]), c(6, 0, 0))
+})
+
+test_that("rows_to_co_occurrences: all-zero codes produce all-zero output", {
+    codes <- matrix(0, nrow = 4, ncol = 3)
+    out   <- lq_rows_to_co_occurrences(codes, TRUE)
+    expect_true(all(out == 0))
+})
+
+test_that("rows_to_co_occurrences: each row is independent (no cross-row accumulation)", {
+    # Row 1 has only c1 active; row 2 has only c2 active.
+    # Neither row should show a c1&c2 co-occurrence.
+    codes <- matrix(c(1, 0, 0,
+                      0, 1, 0), nrow = 2, byrow = TRUE)
+    out <- lq_rows_to_co_occurrences(codes, FALSE)
+    expect_true(all(out == 0))
+})
+
+# --- rolling_window_sum ---
+
+test_that("rolling_window_sum: window_size=1 returns the codes matrix unchanged", {
+    codes <- matrix(c(1, 0,
+                      0, 1,
+                      1, 1), nrow = 3, byrow = TRUE)
+    out <- lq_rolling_window_sum(codes, 1L)
+    expect_equal(out, codes)
+})
+
+test_that("rolling_window_sum: window_size=2 sums current and prior row", {
+    codes <- matrix(c(1, 0,
+                      0, 1,
+                      1, 0), nrow = 3, byrow = TRUE)
+    out <- lq_rolling_window_sum(codes, 2L)
+    expect_equal(as.vector(out[1, ]), c(1, 0))  # row 1: just itself
+    expect_equal(as.vector(out[2, ]), c(1, 1))  # rows 1+2
+    expect_equal(as.vector(out[3, ]), c(1, 1))  # rows 2+3
+})
+
+test_that("rolling_window_sum: window larger than available rows clamps to row 0", {
+    codes <- matrix(c(1, 0,
+                      1, 1), nrow = 2, byrow = TRUE)
+    out <- lq_rolling_window_sum(codes, 10L)
+    # Row 2: all rows summed = (2,1)
+    expect_equal(as.vector(out[2, ]), c(2, 1))
+})
+
+test_that("rolling_window_sum: output dimensions match input", {
+    set.seed(99)
+    codes <- matrix(runif(12), nrow = 4, ncol = 3)
+    out   <- lq_rolling_window_sum(codes, 2L)
+    expect_equal(dim(out), dim(codes))
+})

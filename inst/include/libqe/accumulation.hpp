@@ -350,6 +350,47 @@ inline TensorNetworks apply_tensor_unit(
     return result;
 }
 
+// ---------------------------------------------------------------------------
+// Per-row co-occurrence and rolling window (rENA accumulation primitives)
+// ---------------------------------------------------------------------------
+
+// Per-row upper-triangle co-occurrence.
+// For each row, computes vector_to_upper_tri(row) and optionally binarizes.
+// Output: n_rows x choose_two(n_codes).
+// Equivalent to rows_to_co_occurrences() in rENA/ena.cpp.
+inline arma::mat rows_to_co_occurrences(
+    const arma::mat& codes,
+    bool binary = true
+) {
+    int n_rows = codes.n_rows;
+    int n_tri  = choose_two(codes.n_cols);
+    arma::mat out(n_rows, n_tri, arma::fill::zeros);
+    for (int row = 0; row < n_rows; ++row)
+        out.row(row) = vector_to_upper_tri(codes.row(row));
+    if (binary) out.elem(arma::find(out > 0)).ones();
+    return out;
+}
+
+// Rolling backward window sum of raw code matrix.
+// For each row k, sums rows [max(0, k - window_size + 1), k].
+// Returns a matrix of the same shape as `codes` (no upper-tri transform).
+// window_size <= 0 is treated as 1 (current row only).
+// Equivalent to ref_window_lag() in rENA/ena.cpp.
+inline arma::mat rolling_window_sum(
+    const arma::mat& codes,
+    int window_size = 1
+) {
+    int n_rows = codes.n_rows;
+    arma::mat out(n_rows, codes.n_cols, arma::fill::zeros);
+    for (int row = 0; row < n_rows; ++row) {
+        int earliest = (window_size > 0)
+            ? std::max(0, row - (window_size - 1))
+            : row;  // guard: window_size <= 0 -> single row
+        out.row(row) = arma::sum(codes.rows(earliest, row));
+    }
+    return out;
+}
+
 } // namespace qe
 
 #endif // LIBQE_ACCUMULATION_HPP

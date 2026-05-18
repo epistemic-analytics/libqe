@@ -199,6 +199,37 @@ int lq_calculate_1d_index(std::vector<int> indices, std::vector<int> dims) {
     return qe::calculate_1d_index(indices, dims);
 }
 
+//' Per-row upper-triangle co-occurrence matrix
+//'
+//' For each row in \code{codes}, computes the pairwise code products
+//' (upper-triangle) and optionally binarizes. Output has
+//' \code{choose(n_codes, 2)} columns.
+//'
+//' @param codes  Numeric matrix (rows = observations, cols = codes)
+//' @param binary If TRUE, binarise non-zero co-occurrences (default TRUE)
+//' @return Numeric matrix (n_rows x choose_two(n_codes))
+//' @export
+// [[Rcpp::export]]
+arma::mat lq_rows_to_co_occurrences(arma::mat codes, bool binary = true) {
+    return qe::rows_to_co_occurrences(codes, binary);
+}
+
+//' Rolling backward window sum of a code matrix
+//'
+//' For each row k, sums the raw code values over rows
+//' \code{[max(0, k - window_size + 1), k]}. Returns a matrix of the same
+//' shape as \code{codes}. \code{window_size <= 0} is treated as 1
+//' (current row only).
+//'
+//' @param codes       Numeric matrix (rows = observations, cols = codes)
+//' @param window_size Number of rows to look back (default 1)
+//' @return Numeric matrix (same dimensions as \code{codes})
+//' @export
+// [[Rcpp::export]]
+arma::mat lq_rolling_window_sum(arma::mat codes, int window_size = 1) {
+    return qe::rolling_window_sum(codes, window_size);
+}
+
 //' Ground/response accumulation for one unit (tma model)
 //'
 //' @param codes      Numeric matrix for the full context (n_rows x n_codes)
