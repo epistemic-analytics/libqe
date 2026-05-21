@@ -72,6 +72,148 @@ inline double normal_quantile(double p) {
 }
 
 // ---------------------------------------------------------------------------
+// Internal helpers: regularized incomplete beta + t-distribution quantile
+// ---------------------------------------------------------------------------
+//
+// These live in qe::detail so they don't pollute the public qe namespace.
+// They are used by group_ci() and are not part of the public API.
+
+namespace detail {
+
+// Lentz continued-fraction evaluation for the regularized incomplete beta.
+// Ported from Numerical Recipes in C, §6.4.
+inline double betacf(double a, double b, double x) {
+    const int    MAXIT = 200;
+    const double EPS   = std::numeric_limits<double>::epsilon();
+    const double FPMIN = std::numeric_limits<double>::min() / EPS;
+    double qab = a + b, qap = a + 1.0, qam = a - 1.0;
+    double c = 1.0;
+    double d = 1.0 - qab * x / qap;
+    if (std::abs(d) < FPMIN) d = FPMIN;
+    d = 1.0 / d;
+    double h = d;
+    for (int m = 1; m <= MAXIT; ++m) {
+        const int m2 = 2 * m;
+        // even step
+        double aa = static_cast<double>(m) * (b - static_cast<double>(m)) * x
+                    / ((qam + m2) * (a + m2));
+        d = 1.0 + aa * d; if (std::abs(d) < FPMIN) d = FPMIN;
+        c = 1.0 + aa / c; if (std::abs(c) < FPMIN) c = FPMIN;
+        d = 1.0 / d; h *= d * c;
+        // odd step
+        aa = -(a + static_cast<double>(m)) * (qab + static_cast<double>(m)) * x
+             / ((a + m2) * (qap + m2));
+        d = 1.0 + aa * d; if (std::abs(d) < FPMIN) d = FPMIN;
+        c = 1.0 + aa / c; if (std::abs(c) < FPMIN) c = FPMIN;
+        d = 1.0 / d;
+        const double del = d * c;
+        h *= del;
+        if (std::abs(del - 1.0) <= EPS) break;
+    }
+    return h;
+}
+
+// Regularized incomplete beta I_x(a, b).
+inline double betai(double a, double b, double x) {
+    if (x <= 0.0) return 0.0;
+    if (x >= 1.0) return 1.0;
+    const double lbab = std::lgamma(a + b) - std::lgamma(a) - std::lgamma(b);
+    const double bt   = std::exp(lbab + a * std::log(x) + b * std::log(1.0 - x));
+    if (x < (a + 1.0) / (a + b + 2.0))
+        return bt * betacf(a, b, x) / a;
+    return 1.0 - bt * betacf(b, a, 1.0 - x) / b;
+}
+
+// Quantile function (inverse CDF) for the t-distribution with `df` degrees
+// of freedom.  Uses the relation:
+//
+//   P(T ≤ t | df)  =  1 - I_x(df/2, 1/2) / 2,   x = df / (df + t^2)
+//
+// Inverted via Newton–Raphson on I_x with bisection fallback; normal-quantile
+// plus one Cornish–Fisher correction term provides the starting guess.
+inline double t_quantile(double p, double df) {
+    const double INF = std::numeric_limits<double>::infinity();
+    if (p <= 0.0) return -INF;
+    if (p >= 1.0) return  INF;
+    if (p == 0.5) return  0.0;
+    if (df <= 0.0) return INF;   // df = 0 → t-distribution undefined → treat as ∞
+
+    // Work with pp > 0.5 for numerical stability; negate at the end if needed.
+    const bool   flip = (p < 0.5);
+    const double pp   = flip ? 1.0 - p : p;
+    const double a    = 0.5 * df;
+    const double bv   = 0.5;
+
+    // We need x in (0,1) such that I_x(a, bv) = 2*(1-pp).
+    const double target = 2.0 * (1.0 - pp);
+
+    // Initial guess via normal quantile + single Cornish–Fisher correction.
+    const double z  = normal_quantile(pp);
+    const double t0 = z + (z * z * z + z) / (4.0 * df);
+    double x = df / (df + t0 * t0);
+    x = std::max(1e-12, std::min(1.0 - 1e-12, x));
+
+    // Newton–Raphson with a bisection bracket.
+    // f(x) = I_x(a,bv) - target;  f'(x) = x^(a-1)*(1-x)^(bv-1) / B(a,bv)
+    const double lbab = std::lgamma(a + bv) - std::lgamma(a) - std::lgamma(bv);
+    double xlo = 0.0, xhi = 1.0;
+    for (int iter = 0; iter < 100; ++iter) {
+        const double fx = betai(a, bv, x) - target;
+        // betai is increasing in x, so fx < 0 → x too small → raise lower bound
+        if (fx < 0.0) xlo = x; else xhi = x;
+
+        // Derivative: may underflow near boundaries — fall back to bisection.
+        const double log_fpx = lbab + (a - 1.0) * std::log(x)
+                                     + (bv - 1.0) * std::log(1.0 - x);
+        const double fpx = (log_fpx > -700.0) ? std::exp(log_fpx) : 0.0;
+
+        double x_new;
+        if (fpx > 0.0) {
+            x_new = x - fx / fpx;
+            if (x_new <= xlo || x_new >= xhi)
+                x_new = 0.5 * (xlo + xhi);
+        } else {
+            x_new = 0.5 * (xlo + xhi);
+        }
+
+        if (std::abs(x_new - x) < 1e-13 * x) break;
+        x = x_new;
+    }
+
+    const double t_val = std::sqrt(df * (1.0 - x) / x);
+    return flip ? -t_val : t_val;
+}
+
+// ---------------------------------------------------------------------------
+// IQR helper — matches R's quantile(type = 7) (Hyndman–Fan #7), which is
+// identical to numpy's np.percentile(method="linear").
+//
+// For a sorted n-element vector and probability p:
+//   h    = (n - 1) * p
+//   lo   = floor(h),  frac = h - lo
+//   Q(p) = sorted[lo] * (1 - frac) + sorted[lo+1] * frac
+// ---------------------------------------------------------------------------
+
+inline double quantile_type7(const arma::vec& sorted, double p) {
+    const int n = static_cast<int>(sorted.n_elem);
+    if (n == 0) return std::numeric_limits<double>::quiet_NaN();
+    if (n == 1) return sorted[0];
+    const double h    = (n - 1) * p;
+    const int    lo   = static_cast<int>(std::floor(h));
+    const double frac = h - lo;
+    if (lo + 1 >= n) return sorted[n - 1];          // guard: p == 1.0
+    return sorted[lo] * (1.0 - frac) + sorted[lo + 1] * frac;
+}
+
+// Interquartile range for a column vector — uses the same type-7 quantile as R.
+inline double iqr(const arma::vec& col) {
+    const arma::vec s = arma::sort(col);
+    return quantile_type7(s, 0.75) - quantile_type7(s, 0.25);
+}
+
+} // namespace detail
+
+// ---------------------------------------------------------------------------
 // Correlation
 // ---------------------------------------------------------------------------
 
@@ -102,6 +244,88 @@ inline arma::mat ena_correlation(arma::mat points, arma::mat centroids,
         out(i, 0) = r;
         out(i, 1) = std::tanh(z - sigma * qq);
         out(i, 2) = std::tanh(z + sigma * qq);
+    }
+    return out;
+}
+
+// ---------------------------------------------------------------------------
+// Group confidence interval
+// ---------------------------------------------------------------------------
+
+// Confidence interval for the mean of a group of ENA unit points.
+//
+// For each dimension, computes:
+//   mean  ± t_{α/2, n-1}  ×  (sample SD / sqrt(n))
+//
+// where α = 1 - conf_level and degrees-of-freedom = n - 1.
+//
+// Returns an n_dims × 3 matrix: columns are [mean, ci_lower, ci_upper].
+// When n == 1 the CI bounds are ±Inf; when n == 0 all entries are NaN.
+inline arma::mat group_ci(const arma::mat& points, double conf_level = 0.95) {
+    const int n      = static_cast<int>(points.n_rows);
+    const int n_dims = static_cast<int>(points.n_cols);
+
+    arma::mat out(n_dims, 3);
+    out.fill(std::numeric_limits<double>::quiet_NaN());
+
+    if (n == 0) return out;
+
+    const double df     = static_cast<double>(n - 1);
+    const double t_crit = detail::t_quantile(1.0 - (1.0 - conf_level) / 2.0, df);
+    const double INF    = std::numeric_limits<double>::infinity();
+
+    for (int d = 0; d < n_dims; ++d) {
+        const arma::vec col = points.col(d);
+        const double mu = arma::mean(col);
+        out(d, 0) = mu;
+        if (n == 1) {
+            // t_crit = Inf and se = 0 would give NaN; explicitly set ±Inf
+            out(d, 1) = -INF;
+            out(d, 2) =  INF;
+        } else {
+            const double se = arma::stddev(col) / std::sqrt(static_cast<double>(n));
+            out(d, 1) = mu - t_crit * se;
+            out(d, 2) = mu + t_crit * se;
+        }
+    }
+    return out;
+}
+
+// ---------------------------------------------------------------------------
+// Outlier interval
+// ---------------------------------------------------------------------------
+
+// Outlier interval for a group of ENA unit points using the Tukey fence
+// threshold (1.5 × IQR by default).
+//
+// For each dimension d:
+//   half_width[d] = iqr_factor * IQR(points[:, d])
+//   lower[d]      = -half_width[d]
+//   upper[d]      = +half_width[d]
+//
+// The interval is symmetric around 0 — matching rENA's formula:
+//   outlier.interval.values = matrix(...) * c(-1, 1)
+// where the matrix is built from c(IQR(dim1), IQR(dim2), ...) * iqr_factor.
+//
+// IQR uses R's default type-7 / Hyndman–Fan #7 quantile, which is identical
+// to numpy's np.percentile(method="linear").
+//
+// Returns an n_dims × 2 matrix: columns are [lower, upper].
+// When n == 0, all entries are NaN.
+// When n == 1, IQR == 0, so lower == upper == 0.
+inline arma::mat outlier_ci(const arma::mat& points, double iqr_factor = 1.5) {
+    const int n_dims = static_cast<int>(points.n_cols);
+    arma::mat out(n_dims, 2, arma::fill::zeros);
+
+    if (points.n_rows == 0) {
+        out.fill(std::numeric_limits<double>::quiet_NaN());
+        return out;
+    }
+
+    for (int d = 0; d < n_dims; ++d) {
+        const double half_width = iqr_factor * detail::iqr(points.col(d));
+        out(d, 0) = -half_width;
+        out(d, 1) =  half_width;
     }
     return out;
 }

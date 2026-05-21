@@ -9,7 +9,7 @@ package, built with CMake + scikit-build-core.
 |---|---|
 | `pylibqe.adjacency` | `choose_two`, `tri_indices`, `vector_to_upper_tri`, `directed_to_upper_tri`, `adjacency_matrix_to_vector`, `svector_to_upper_tri` |
 | `pylibqe.normalization` | `sphere_norm`, `skip_sphere_norm` |
-| `pylibqe.modeling` | `center_data`, `ena_correlation`, `lws_lsq_positions`, `directed_node_positions`, `directed_node_positions_ground_response`, `NodePositions` |
+| `pylibqe.modeling` | `group_ci`, `outlier_ci`, `center_data`, `ena_correlation`, `lws_lsq_positions`, `directed_node_positions`, `directed_node_positions_ground_response`, `NodePositions` |
 | `pylibqe.accumulation` | `calculate_adjacency_matrix`, `stanza_window`, `rows_to_co_occurrences`, `rolling_window_sum`, `calculate_1d_index` |
 
 ## Build dependencies

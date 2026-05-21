@@ -4,6 +4,102 @@ import pytest
 from pylibqe import modeling, NodePositions
 
 
+class TestGroupCI:
+    def test_output_shape(self):
+        rng = np.random.default_rng(10)
+        pts = rng.standard_normal((20, 2))
+        out = modeling.group_ci(pts, 0.95)
+        assert out.shape == (2, 3)
+
+    def test_lower_le_mean_le_upper(self):
+        rng = np.random.default_rng(11)
+        pts = rng.standard_normal((15, 3))
+        out = modeling.group_ci(pts, 0.95)
+        assert np.all(out[:, 1] <= out[:, 0] + 1e-12)   # lower <= mean
+        assert np.all(out[:, 0] <= out[:, 2] + 1e-12)   # mean  <= upper
+
+    def test_mean_column_matches_numpy(self):
+        rng = np.random.default_rng(12)
+        pts = rng.random((30, 2))
+        out = modeling.group_ci(pts, 0.95)
+        np.testing.assert_allclose(out[:, 0], np.mean(pts, axis=0), atol=1e-10)
+
+    def test_wider_conf_level_gives_wider_ci(self):
+        rng = np.random.default_rng(13)
+        pts = rng.standard_normal((20, 2))
+        lo = modeling.group_ci(pts, 0.80)
+        hi = modeling.group_ci(pts, 0.99)
+        assert np.all((hi[:, 2] - hi[:, 1]) > (lo[:, 2] - lo[:, 1]))
+
+    def test_n1_gives_inf_bounds(self):
+        pts = np.array([[1.5, 2.5]], dtype=np.float64)
+        out = modeling.group_ci(pts, 0.95)
+        assert np.isinf(out[0, 1])   # lower = -inf
+        assert np.isinf(out[0, 2])   # upper = +inf
+
+    def test_matches_scipy_ttest(self):
+        """CI bounds should match scipy.stats.t.interval for each dimension."""
+        stats = pytest.importorskip("scipy.stats")
+        rng = np.random.default_rng(14)
+        pts = rng.standard_normal((12, 2))
+        out = modeling.group_ci(pts, 0.95)
+        for d in range(2):
+            col  = pts[:, d]
+            n    = len(col)
+            lo, hi = stats.t.interval(0.95, df=n - 1,
+                                       loc=np.mean(col),
+                                       scale=stats.sem(col))
+            np.testing.assert_allclose(out[d, 1], lo, rtol=1e-7)
+            np.testing.assert_allclose(out[d, 2], hi, rtol=1e-7)
+
+    def test_ci_tightens_with_more_data(self):
+        rng = np.random.default_rng(15)
+        small = rng.standard_normal((5,  2))
+        large = rng.standard_normal((50, 2))
+        w_small = np.mean(modeling.group_ci(small, 0.95)[:, 2] - modeling.group_ci(small, 0.95)[:, 1])
+        w_large = np.mean(modeling.group_ci(large, 0.95)[:, 2] - modeling.group_ci(large, 0.95)[:, 1])
+        assert w_large < w_small
+
+
+class TestOutlierCI:
+    def test_output_shape(self):
+        rng = np.random.default_rng(20)
+        pts = rng.standard_normal((20, 3))
+        out = modeling.outlier_ci(pts, 1.5)
+        assert out.shape == (3, 2)
+
+    def test_symmetric_around_zero(self):
+        rng = np.random.default_rng(21)
+        pts = rng.standard_normal((30, 2))
+        out = modeling.outlier_ci(pts)
+        np.testing.assert_allclose(out[:, 0], -out[:, 1], atol=1e-14)
+
+    def test_matches_rena_iqr_formula(self):
+        """outlier_ci must exactly reproduce rENA's IQR * 1.5 calculation."""
+        rng = np.random.default_rng(42)
+        pts = rng.standard_normal((20, 2))
+        out = modeling.outlier_ci(pts, 1.5)
+        # numpy's linear percentile == R's type-7 quantile
+        q1 = np.percentile(pts, 25, axis=0, method="linear")
+        q3 = np.percentile(pts, 75, axis=0, method="linear")
+        half = (q3 - q1) * 1.5
+        np.testing.assert_allclose(out[:, 0], -half, rtol=1e-10)
+        np.testing.assert_allclose(out[:, 1],  half, rtol=1e-10)
+
+    def test_iqr_factor_scales_proportionally(self):
+        rng = np.random.default_rng(22)
+        pts = rng.standard_normal((25, 2))
+        out15 = modeling.outlier_ci(pts, 1.5)
+        out30 = modeling.outlier_ci(pts, 3.0)
+        np.testing.assert_allclose(out30, out15 * 2, atol=1e-14)
+
+    def test_n0_returns_nan(self):
+        pts = np.zeros((0, 2), dtype=np.float64)
+        out = modeling.outlier_ci(pts)
+        assert out.shape == (2, 2)
+        assert np.all(np.isnan(out))
+
+
 class TestCenterData:
     def test_column_means_become_zero(self):
         m = np.array([

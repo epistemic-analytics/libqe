@@ -82,6 +82,40 @@ arma::mat lq_center_data(arma::mat values) {
     return qe::center_data(values);
 }
 
+//' Confidence interval for the mean of a group of ENA unit points
+//'
+//' For each dimension computes a t-based CI:
+//' \code{mean ± t(α/2, n-1) × (SD / sqrt(n))} where \code{α = 1 - conf_level}.
+//'
+//' @param points     Numeric matrix (units x dims) — one row per unit in the group
+//' @param conf_level Confidence level (default 0.95)
+//' @return Numeric matrix (n_dims x 3): columns are [mean, ci_lower, ci_upper].
+//'   When \code{nrow(points) == 1} the CI bounds are \code{±Inf}.
+//' @export
+// [[Rcpp::export]]
+arma::mat lq_group_ci(arma::mat points, double conf_level = 0.95) {
+    return qe::group_ci(points, conf_level);
+}
+
+//' Outlier interval based on IQR (Tukey fence) for a group of ENA unit points
+//'
+//' For each dimension: \code{lower = -iqr_factor * IQR}, \code{upper = +iqr_factor * IQR}.
+//' Equivalent to rENA's:
+//' \preformatted{
+//'   oi <- c(IQR(pts[,1]), ...) * iqr_factor
+//'   matrix(rep(oi, 2), ncol = n_dims, byrow = TRUE) * c(-1, 1)
+//' }
+//' IQR uses R's default \code{type = 7} quantile.
+//'
+//' @param points     Numeric matrix (units x dims) — one row per unit in the group
+//' @param iqr_factor Multiplier applied to the IQR (default 1.5, the Tukey fence)
+//' @return Numeric matrix (n_dims x 2): columns are [lower, upper].
+//' @export
+// [[Rcpp::export]]
+arma::mat lq_outlier_ci(arma::mat points, double iqr_factor = 1.5) {
+    return qe::outlier_ci(points, iqr_factor);
+}
+
 //' Pearson correlation with CI between ENA points and centroids
 //' @param points  Numeric matrix (units x dims)
 //' @param centroids Numeric matrix (units x dims)

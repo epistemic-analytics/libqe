@@ -79,6 +79,36 @@ static nb::ndarray<nb::numpy, int64_t, nb::ndim<2>> from_umat(const arma::umat& 
     return nb::ndarray<nb::numpy, int64_t, nb::ndim<2>>(data, 2, shape, owner);
 }
 
+// int32 matrix type for context_lookup (arma::imat)
+using NpIMat = nb::ndarray<int32_t, nb::ndim<2>, nb::c_contig, nb::device::cpu>;
+
+// arma::imat → NpIMat input converter
+static arma::imat to_imat(NpIMat arr) {
+    arma::imat m(arr.shape(0), arr.shape(1));
+    for (size_t i = 0; i < arr.shape(0); ++i)
+        for (size_t j = 0; j < arr.shape(1); ++j)
+            m(i, j) = arr(i, j);
+    return m;
+}
+
+// arma::vec (column vector) → numpy 1-D
+static nb::ndarray<nb::numpy, double, nb::ndim<1>> from_vec(const arma::vec& v) {
+    size_t shape[1] = {v.n_elem};
+    double* data = new double[v.n_elem];
+    std::copy(v.begin(), v.end(), data);
+    nb::capsule owner(data, [](void* p) noexcept { delete[] static_cast<double*>(p); });
+    return nb::ndarray<nb::numpy, double, nb::ndim<1>>(data, 1, shape, owner);
+}
+
+// arma::uvec → numpy 1-D int64
+static nb::ndarray<nb::numpy, int64_t, nb::ndim<1>> from_uvec(const arma::uvec& v) {
+    size_t shape[1] = {v.n_elem};
+    int64_t* data = new int64_t[v.n_elem];
+    for (size_t i = 0; i < v.n_elem; ++i) data[i] = static_cast<int64_t>(v[i]);
+    nb::capsule owner(data, [](void* p) noexcept { delete[] static_cast<int64_t*>(p); });
+    return nb::ndarray<nb::numpy, int64_t, nb::ndim<1>>(data, 1, shape, owner);
+}
+
 // ── Module definition ─────────────────────────────────────────────────────────
 
 NB_MODULE(_pylibqe, m) {
@@ -193,6 +223,36 @@ NB_MODULE(_pylibqe, m) {
         "Pearson correlation + CI between unit points and centroids.\n"
         "Returns (n_dims × 3) array: columns are [r, ci_lower, ci_upper].");
 
+    mod.def("group_ci", [](NpMat points, double conf_level) {
+        return from_mat(qe::group_ci(to_mat(points), conf_level));
+    }, "points"_a, "conf_level"_a = 0.95,
+        "t-based confidence interval for the mean of a group of ENA unit points.\n\n"
+        "For each dimension computes: mean ± t(α/2, n-1) × (SD / sqrt(n))\n"
+        "where α = 1 - conf_level.\n\n"
+        "Parameters\n----------\n"
+        "points     : ndarray (n_units × n_dims)  — one row per unit in the group\n"
+        "conf_level : float  confidence level, e.g. 0.95 (default)\n\n"
+        "Returns (n_dims × 3) array: columns are [mean, ci_lower, ci_upper].\n"
+        "When n_units == 1 the CI bounds are ±inf.");
+
+    mod.def("outlier_ci", [](NpMat points, double iqr_factor) {
+        return from_mat(qe::outlier_ci(to_mat(points), iqr_factor));
+    }, "points"_a, "iqr_factor"_a = 1.5,
+        "Outlier interval based on IQR (Tukey fence) for a group of ENA unit points.\n\n"
+        "For each dimension d:\n"
+        "  lower[d] = -iqr_factor * IQR(points[:, d])\n"
+        "  upper[d] = +iqr_factor * IQR(points[:, d])\n\n"
+        "Symmetric around 0, matching rENA's formula:\n"
+        "  oi = IQR(each dim) * iqr_factor\n"
+        "  result = matrix([[−oi], [+oi]])\n\n"
+        "IQR uses type-7 / Hyndman-Fan #7 quantile (R default,\n"
+        "identical to numpy's percentile(method='linear')).\n\n"
+        "Parameters\n----------\n"
+        "points     : ndarray (n_units × n_dims)  — one row per unit\n"
+        "iqr_factor : float  multiplier applied to IQR (default 1.5)\n\n"
+        "Returns (n_dims × 2) array: columns are [lower, upper].\n"
+        "All entries are NaN when n_units == 0.");
+
     mod.def("lws_lsq_positions", [&make_py_np](NpMat adj_mats, NpMat t, int num_dims) {
         return make_py_np(qe::lws_lsq_positions(to_mat(adj_mats), to_mat(t), num_dims));
     }, "adj_mats"_a, "t"_a, "num_dims"_a,
@@ -210,6 +270,51 @@ NB_MODULE(_pylibqe, m) {
                 to_mat(line_weights), to_mat(points), num_dims));
         }, "line_weights"_a, "points"_a, "num_dims"_a,
         "Directed node positions with paired ground+response rows combined before solving.");
+
+    // Python-side UnitNetworks and TensorNetworks
+    struct PyUnitNetworks {
+        nb::object networks;      // 1-D ndarray — flat connection vector
+        nb::object row_networks;  // 2-D ndarray — per-response-row connections
+    };
+    struct PyTensorNetworks {
+        nb::object connection_counts;      // 1-D ndarray
+        nb::object row_connection_counts;  // 2-D ndarray
+    };
+
+    nb::class_<PyUnitNetworks>(m, "UnitNetworks",
+        "Result of accumulate_unit_with_rows.\n\n"
+        "Attributes\n----------\n"
+        "networks     : ndarray 1-D — flat connection vector (p^2 or choose_two(p))\n"
+        "row_networks : ndarray 2-D — per-response-row p^2 connection matrix")
+        .def_ro("networks",     &PyUnitNetworks::networks)
+        .def_ro("row_networks", &PyUnitNetworks::row_networks)
+        .def("__repr__", [](const PyUnitNetworks& u) {
+            auto rn = nb::cast<nb::ndarray<double, nb::ndim<2>>>(u.row_networks);
+            return std::string("<UnitNetworks networks len=")
+                + std::to_string(nb::cast<nb::ndarray<double, nb::ndim<1>>>(u.networks).shape(0))
+                + " row_networks=" + std::to_string(rn.shape(0))
+                + "x" + std::to_string(rn.shape(1)) + ">";
+        });
+
+    nb::class_<PyTensorNetworks>(m, "TensorNetworks",
+        "Result of apply_tensor_unit.\n\n"
+        "Attributes\n----------\n"
+        "connection_counts     : ndarray 1-D — unit-level flat vector (p^2)\n"
+        "row_connection_counts : ndarray 2-D — per-response-row p^2 matrix")
+        .def_ro("connection_counts",     &PyTensorNetworks::connection_counts)
+        .def_ro("row_connection_counts", &PyTensorNetworks::row_connection_counts)
+        .def("__repr__", [](const PyTensorNetworks& t) {
+            auto rcc = nb::cast<nb::ndarray<double, nb::ndim<2>>>(t.row_connection_counts);
+            auto cc  = nb::cast<nb::ndarray<double, nb::ndim<1>>>(t.connection_counts);
+            std::string s = "<TensorNetworks connection_counts len=";
+            s += std::to_string(cc.shape(0));
+            s += " row_connection_counts=";
+            s += std::to_string(rcc.shape(0));
+            s += "x";
+            s += std::to_string(rcc.shape(1));
+            s += ">";
+            return s;
+        });
 
     // ── accumulation ──────────────────────────────────────────────────────────
     auto acc = m.def_submodule("accumulation",
@@ -253,4 +358,77 @@ NB_MODULE(_pylibqe, m) {
     }, "indices"_a, "dims"_a,
         "Linear index into a column-major multi-dimensional array "
         "(equivalent to sub2ind with Fortran/column-major ordering).");
+
+    acc.def("accumulate_unit",
+        [](NpMat codes, std::vector<int> unit_rows, nb::object decay_fn, bool ordered) {
+            auto cpp_decay = [&decay_fn](arma::vec distances) -> arma::vec {
+                auto np_dist = from_vec(distances);
+                auto result  = decay_fn(np_dist);
+                return to_vec(nb::cast<NpVec>(result));
+            };
+            return from_rowvec(qe::accumulate_unit(
+                to_mat(codes), unit_rows, cpp_decay, ordered));
+        },
+        "codes"_a, "unit_rows"_a, "decay_fn"_a, "ordered"_a = false,
+        "Ground/response accumulation for one unit (tma model).\n\n"
+        "Parameters\n----------\n"
+        "codes     : ndarray (n_context_rows x n_codes)\n"
+        "unit_rows : list[int]  0-based row indices belonging to this unit\n"
+        "decay_fn  : callable(distances: ndarray 1-D) -> ndarray 1-D\n"
+        "            Maps distance vector to weight vector.\n"
+        "ordered   : bool  True = directed full matrix, False = undirected upper-tri\n\n"
+        "Returns ndarray 1-D — flat connection vector.");
+
+    acc.def("accumulate_unit_with_rows",
+        [](NpMat codes, std::vector<int> unit_rows, nb::object decay_fn, bool ordered) {
+            auto cpp_decay = [&decay_fn](int unit_row, arma::uvec ground_indices) -> arma::vec {
+                auto np_gi  = from_uvec(ground_indices);
+                auto result = decay_fn(unit_row, np_gi);
+                return to_vec(nb::cast<NpVec>(result));
+            };
+            qe::UnitNetworks r = qe::accumulate_unit_with_rows(
+                to_mat(codes), unit_rows, cpp_decay, ordered);
+            PyUnitNetworks p;
+            p.networks     = nb::cast(from_rowvec(r.networks));
+            p.row_networks = nb::cast(from_mat(r.row_networks));
+            return p;
+        },
+        "codes"_a, "unit_rows"_a, "decay_fn"_a, "ordered"_a = false,
+        "Ground/response accumulation returning per-row connection data (tma model).\n\n"
+        "decay_fn : callable(unit_row: int, ground_indices: ndarray int64 1-D) -> ndarray float64 1-D\n"
+        "Returns UnitNetworks with .networks (1-D) and .row_networks (2-D).");
+
+    acc.def("apply_tensor_unit",
+        [](NpVec tensor, std::vector<int> dims,
+           std::vector<int> dims_sender, std::vector<int> dims_receiver,
+           std::vector<int> dims_mode,
+           NpIMat context_lookup, std::vector<int> unit_rows,
+           NpMat codes, NpVec times, bool ordered) {
+            qe::TensorNetworks r = qe::apply_tensor_unit(
+                to_vec(tensor), dims, dims_sender, dims_receiver, dims_mode,
+                to_imat(context_lookup), unit_rows,
+                to_mat(codes), to_vec(times), ordered);
+            PyTensorNetworks p;
+            p.connection_counts     = nb::cast(from_rowvec(r.connection_counts));
+            p.row_connection_counts = nb::cast(from_mat(r.row_connection_counts));
+            return p;
+        },
+        "tensor"_a, "dims"_a,
+        "dims_sender"_a, "dims_receiver"_a, "dims_mode"_a,
+        "context_lookup"_a, "unit_rows"_a,
+        "codes"_a, "times"_a, "ordered"_a = true,
+        "Tensor-based multi-modal accumulation for one unit (tma model).\n\n"
+        "tensor         : ndarray 1-D  flat column-major tensor of weights/windows\n"
+        "dims           : list[int]    shape of the tensor\n"
+        "dims_sender    : list[int]    tensor axis indices for sender factors\n"
+        "dims_receiver  : list[int]    tensor axis indices for receiver factors\n"
+        "dims_mode      : list[int]    tensor axis indices for mode factors\n"
+        "context_lookup : ndarray int32 2-D  (n_rows x n_factors) factor indices\n"
+        "unit_rows      : list[int]    0-based response-row indices for this unit\n"
+        "codes          : ndarray 2-D  (n_rows x n_codes) code matrix\n"
+        "times          : ndarray 1-D  timestamp per context row\n"
+        "ordered        : bool         True = directed, False = undirected upper-tri\n\n"
+        "Returns TensorNetworks with .connection_counts (1-D) and .row_connection_counts (2-D).\n\n"
+        "Default mode: when dims=[2] and tensor has 2 elements [weight, window], uses\n"
+        "a simplified single-weight/window path (equivalent to tma's default tensor).");
 }

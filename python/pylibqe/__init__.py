@@ -22,6 +22,7 @@ All matrix inputs/outputs use numpy float64 arrays.
 
 from ._pylibqe import adjacency, normalization, modeling, accumulation
 from ._pylibqe.modeling import NodePositions
+from ._pylibqe import UnitNetworks, TensorNetworks
 
 __all__ = [
     "adjacency",
@@ -29,4 +30,6 @@ __all__ = [
     "modeling",
     "accumulation",
     "NodePositions",
+    "UnitNetworks",
+    "TensorNetworks",
 ]
