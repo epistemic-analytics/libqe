@@ -1,0 +1,100 @@
+stages:
+  - test
+  - publish
+
+# ── shared cache keys ─────────────────────────────────────────────────────────
+.pip-cache: &pip-cache
+  cache:
+    key: pip-$CI_COMMIT_REF_SLUG
+    paths: [.pip-cache]
+    policy: pull-push
+
+.conan-cache: &conan-cache
+  cache:
+    key: conan2-$CI_COMMIT_REF_SLUG
+    paths: [.conan2]
+    policy: pull-push
+
+variables:
+  # Conan 2 stores its home in $CONAN_HOME; pin it inside the project dir
+  # so GitLab's cache mechanism can pick it up.
+  CONAN_HOME: "$CI_PROJECT_DIR/.conan2"
+
+# ── R tests ───────────────────────────────────────────────────────────────────
+test:r:
+  stage: test
+  image: rocker/r-ver:4.5.0
+  before_script:
+    - apt-get update -qq
+    - apt-get install -y --no-install-recommends libarmadillo-dev
+    - Rscript -e "install.packages(
+        c('Rcpp', 'RcppArmadillo', 'testthat'),
+        repos = 'https://cloud.r-project.org', quiet = TRUE)"
+    # Ensure inst/include/ is populated before R CMD INSTALL runs configure.
+    # (configure handles this automatically when ../include/ exists, but the
+    # explicit sync makes the step visible in CI logs.)
+    - sh scripts/sync-headers.sh
+  script:
+    - bash scripts/check-headers-in-sync.sh
+    - R CMD INSTALL R/
+    - Rscript -e "testthat::test_local('R', reporter = 'progress')"
+
+# ── Python tests ──────────────────────────────────────────────────────────────
+test:python:
+  stage: test
+  image: python:3.12-slim
+  <<: *pip-cache
+  before_script:
+    - apt-get update -qq
+    - apt-get install -y --no-install-recommends
+        cmake libarmadillo-dev build-essential
+    - pip install --cache-dir .pip-cache nanobind scikit-build-core
+  script:
+    - cd python
+    - pip install --cache-dir ../.pip-cache -e ".[dev]"
+    - pytest tests/ -v
+
+# ── Conan package verification (every push) ───────────────────────────────────
+# Runs `conan create` locally (without uploading) to verify the recipe and
+# test package build cleanly on every branch push.
+test:conan:
+  stage: test
+  image: conanio/conan2:latest
+  <<: *conan-cache
+  before_script:
+    - conan profile detect --force
+  script:
+    - conan create . --test-folder=conan-test --build=missing
+
+# ── Publish to GitLab Package Registry (version tags only) ───────────────────
+#
+# Trigger: push a tag matching vMAJOR.MINOR.PATCH, e.g. v0.2.0
+#
+# The tag drives the package version via set_version() in conanfile.py.
+# Authentication uses the built-in CI_JOB_TOKEN — no personal access token
+# or deploy key needed.
+#
+# Consumers add the registry with:
+#   conan remote add gitlab \
+#     "https://gitlab.com/api/v4/packages/conan"
+#   conan remote login gitlab ci-job-token \
+#     --password <personal_access_token>
+publish:conan:
+  stage: publish
+  image: conanio/conan2:latest
+  <<: *conan-cache
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
+  before_script:
+    - conan profile detect --force
+    - conan remote add gitlab
+        "${CI_API_V4_URL}/packages/conan" --force
+    - conan remote login gitlab ci-job-token
+        --password "${CI_JOB_TOKEN}"
+  script:
+    # CI_COMMIT_TAG is e.g. "v0.2.0"; strip the leading 'v' for the version.
+    - export PKG_VERSION="${CI_COMMIT_TAG#v}"
+    - export PKG_USER="${CI_PROJECT_NAMESPACE}"
+    - conan create . --test-folder=conan-test --build=missing
+    - conan upload "libqe/${PKG_VERSION}@${PKG_USER}/stable"
+        --remote=gitlab --confirm
