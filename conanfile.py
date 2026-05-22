@@ -6,7 +6,7 @@ import os
 
 class LibqeConan(ConanFile):
     name         = "libqe"
-    version      = "0.1.0"
+    version      = "0.0.0"   # placeholder — set_version() always overrides this
     description  = "Header-only C++ core for Quantitative Ethnography packages (rENA, tma)"
     license      = "GPL-3.0-only"
     url          = "https://gitlab.com/epistemic-analytics/qe-packages/libqe"
@@ -22,11 +22,21 @@ class LibqeConan(ConanFile):
     # directly from the exported source tree.
     no_copy_source = True
 
-    # ── version override from GitLab CI tag ───────────────────────────────────
+    # ── version: single source of truth is R/DESCRIPTION ─────────────────────
+    # On a release tag (CI_COMMIT_TAG=v0.2.0) the tag wins.
+    # Everywhere else (local dev, branch CI) the version is read from
+    # R/DESCRIPTION so there is exactly one place to bump it.
     def set_version(self):
         tag = os.environ.get("CI_COMMIT_TAG", "")
         if tag.startswith("v") and tag[1:]:
             self.version = tag[1:]          # "v0.2.1" → "0.2.1"
+            return
+        desc = os.path.join(os.path.dirname(os.path.abspath(__file__)), "R", "DESCRIPTION")
+        with open(desc) as f:
+            for line in f:
+                if line.startswith("Version:"):
+                    self.version = line.split(":", 1)[1].strip()
+                    return
 
     # ── dependencies ─────────────────────────────────────────────────────────
     def requirements(self):
