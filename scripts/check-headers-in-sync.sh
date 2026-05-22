@@ -9,7 +9,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SRC="${REPO_ROOT}/include/libqe"
 DST="${REPO_ROOT}/R/inst/include/libqe"
 
-DIFF=$(diff -rq "${SRC}" "${DST}" 2>&1)
+DIFF=$(diff -rq --exclude='.gitkeep' "${SRC}" "${DST}" 2>&1)
 if [ -n "${DIFF}" ]; then
     echo "ERROR: include/libqe/ and R/inst/include/libqe/ are out of sync:"
     echo "${DIFF}"
