@@ -29,7 +29,8 @@ test:r:
     - apt-get install -y --no-install-recommends libarmadillo-dev
     - Rscript -e "install.packages(
         c('Rcpp', 'RcppArmadillo', 'testthat'),
-        repos = 'https://cloud.r-project.org', quiet = TRUE)"
+        repos = 'https://packagemanager.posit.co/cran/__linux__/noble/latest',
+        quiet = TRUE)"
     # Ensure inst/include/ is populated before R CMD INSTALL runs configure.
     # (configure handles this automatically when ../include/ exists, but the
     # explicit sync makes the step visible in CI logs.)
@@ -59,9 +60,12 @@ test:python:
 # test package build cleanly on every branch push.
 test:conan:
   stage: test
-  image: conanio/conan2:latest
+  image: ubuntu:24.04
   <<: *conan-cache
   before_script:
+    - apt-get update -qq
+    - apt-get install -y --no-install-recommends build-essential cmake ninja-build python3-pip
+    - pip3 install conan --break-system-packages
     - conan profile detect --force
   script:
     - conan create . --test-folder=conan-test --build=missing
@@ -81,11 +85,14 @@ test:conan:
 #     --password <personal_access_token>
 publish:conan:
   stage: publish
-  image: conanio/conan2:latest
+  image: ubuntu:24.04
   <<: *conan-cache
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
   before_script:
+    - apt-get update -qq
+    - apt-get install -y --no-install-recommends build-essential cmake ninja-build python3-pip
+    - pip3 install conan --break-system-packages
     - conan profile detect --force
     - conan remote add gitlab
         "${CI_API_V4_URL}/packages/conan" --force
