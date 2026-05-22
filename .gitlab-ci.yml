@@ -35,6 +35,9 @@ test:r:
     # (configure handles this automatically when ../include/ exists, but the
     # explicit sync makes the step visible in CI logs.)
     - sh scripts/sync-headers.sh
+    # RcppExports.cpp/.R are gitignored (generated artefacts); regenerate them
+    # here so R CMD INSTALL has the full registration table.
+    - Rscript -e "Rcpp::compileAttributes('R/')"
   script:
     - bash scripts/check-headers-in-sync.sh
     - R CMD INSTALL R/
