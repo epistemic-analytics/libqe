@@ -19,9 +19,11 @@ compiler.libcxx  = libc++
 build_type  = Release
 
 [options]
-# Armadillo: headers-only path — no compiled BLAS/LAPACK symbols emitted.
+# Armadillo: disable all optional compiled dependencies — none can be
+# cross-compiled to WASM and Armadillo's Conan recipe rejects the attempt.
 armadillo*:use_blas   = False
 armadillo*:use_lapack = False
+armadillo*:use_hdf5   = False
 
 [conf]
 tools.cmake.cmaketoolchain:generator = Ninja
