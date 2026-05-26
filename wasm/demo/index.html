@@ -251,7 +251,7 @@
             <label>names — comma-separated strings</label>
             <input id="svector-names" value="A, B, C, D">
           </div>
-          <button class="run-btn" onclick="runSvector()">Run</button>
+          <button class="run-btn" disabled onclick="runSvector()">Run</button>
           <pre class="output" id="out-svector"></pre>
         </div>
       </div>
@@ -267,7 +267,7 @@
           <div class="inputs-grid">
             <div class="input-row"><label>n (code count)</label><input id="tri-n" type="number" value="4"></div>
           </div>
-          <button class="run-btn" onclick="runTriIndices()">Run</button>
+          <button class="run-btn" disabled onclick="runTriIndices()">Run</button>
           <pre class="output" id="out-tri"></pre>
         </div>
       </div>
@@ -284,7 +284,7 @@
             <div class="input-row"><label>data (row vector, comma-sep)</label><input id="vut-data" value="1, 0, 1, 1"></div>
             <div class="input-row"><label>n_codes</label><input id="vut-n" type="number" value="4"></div>
           </div>
-          <button class="run-btn" onclick="runVectorToUpper()">Run</button>
+          <button class="run-btn" disabled onclick="runVectorToUpper()">Run</button>
           <pre class="output" id="out-vut"></pre>
         </div>
       </div>
@@ -301,7 +301,7 @@
             <label>data — flat N×N matrix, row-major (N=3 example: 9 values)</label>
             <input id="dut-data" value="0,1,2, 3,0,4, 5,6,0">
           </div>
-          <button class="run-btn" onclick="runDirToUpper()">Run</button>
+          <button class="run-btn" disabled onclick="runDirToUpper()">Run</button>
           <pre class="output" id="out-dut"></pre>
         </div>
       </div>
@@ -323,7 +323,7 @@
               <select id="amv-full"><option value="false">false (upper tri)</option><option value="true">true (all)</option></select>
             </div>
           </div>
-          <button class="run-btn" onclick="runAdjToVec()">Run</button>
+          <button class="run-btn" disabled onclick="runAdjToVec()">Run</button>
           <pre class="output" id="out-amv"></pre>
         </div>
       </div>
@@ -349,7 +349,7 @@
             <div class="input-row"><label>rows</label><input id="sn-rows" type="number" value="4"></div>
             <div class="input-row"><label>cols</label><input id="sn-cols" type="number" value="2"></div>
           </div>
-          <button class="run-btn" onclick="runSphereNorm()">Run</button>
+          <button class="run-btn" disabled onclick="runSphereNorm()">Run</button>
           <pre class="output" id="out-sn"></pre>
         </div>
       </div>
@@ -367,7 +367,7 @@
             <div class="input-row"><label>rows</label><input id="ssn-rows" type="number" value="3"></div>
             <div class="input-row"><label>cols</label><input id="ssn-cols" type="number" value="2"></div>
           </div>
-          <button class="run-btn" onclick="runSkipSphereNorm()">Run</button>
+          <button class="run-btn" disabled onclick="runSkipSphereNorm()">Run</button>
           <pre class="output" id="out-ssn"></pre>
         </div>
       </div>
@@ -393,7 +393,7 @@
             <div class="input-row"><label>rows</label><input id="cd-rows" type="number" value="3"></div>
             <div class="input-row"><label>cols</label><input id="cd-cols" type="number" value="2"></div>
           </div>
-          <button class="run-btn" onclick="runCenterData()">Run</button>
+          <button class="run-btn" disabled onclick="runCenterData()">Run</button>
           <pre class="output" id="out-cd"></pre>
         </div>
       </div>
@@ -412,7 +412,7 @@
             <div class="input-row"><label>cols</label><input id="gci-cols" type="number" value="2"></div>
             <div class="input-row"><label>conf_level</label><input id="gci-conf" type="number" step="0.01" value="0.95"></div>
           </div>
-          <button class="run-btn" onclick="runGroupCI()">Run</button>
+          <button class="run-btn" disabled onclick="runGroupCI()">Run</button>
           <pre class="output" id="out-gci"></pre>
         </div>
       </div>
@@ -431,7 +431,7 @@
             <div class="input-row"><label>cols</label><input id="oci-cols" type="number" value="2"></div>
             <div class="input-row"><label>iqr_factor (k)</label><input id="oci-k" type="number" step="0.1" value="1.5"></div>
           </div>
-          <button class="run-btn" onclick="runOutlierCI()">Run</button>
+          <button class="run-btn" disabled onclick="runOutlierCI()">Run</button>
           <pre class="output" id="out-oci"></pre>
         </div>
       </div>
@@ -453,7 +453,7 @@
             <div class="input-row"><label>t cols</label><input id="lws-t-c" type="number" value="2"></div>
             <div class="input-row"><label>num_dims</label><input id="lws-dims" type="number" value="2"></div>
           </div>
-          <button class="run-btn" onclick="runLwsLsq()">Run</button>
+          <button class="run-btn" disabled onclick="runLwsLsq()">Run</button>
           <pre class="output" id="out-lws"></pre>
         </div>
       </div>
@@ -475,7 +475,7 @@
             <div class="input-row"><label>pt cols</label><input id="dnp-pt-c" type="number" value="2"></div>
             <div class="input-row"><label>num_dims</label><input id="dnp-dims" type="number" value="2"></div>
           </div>
-          <button class="run-btn" onclick="runDirNodePos()">Run</button>
+          <button class="run-btn" disabled onclick="runDirNodePos()">Run</button>
           <pre class="output" id="out-dnp"></pre>
         </div>
       </div>
@@ -507,7 +507,7 @@
               <select id="sw-bin"><option value="true">true</option><option value="false">false</option></select>
             </div>
           </div>
-          <button class="run-btn" onclick="runStanza()">Run</button>
+          <button class="run-btn" disabled onclick="runStanza()">Run</button>
           <pre class="output" id="out-sw"></pre>
         </div>
       </div>
@@ -529,7 +529,7 @@
               <select id="rco-bin"><option value="true">true</option><option value="false">false</option></select>
             </div>
           </div>
-          <button class="run-btn" onclick="runRowsToCoOcc()">Run</button>
+          <button class="run-btn" disabled onclick="runRowsToCoOcc()">Run</button>
           <pre class="output" id="out-rco"></pre>
         </div>
       </div>
@@ -548,7 +548,7 @@
             <div class="input-row"><label>cols</label><input id="rws-cols" type="number" value="3"></div>
             <div class="input-row"><label>window_size</label><input id="rws-win" type="number" value="2"></div>
           </div>
-          <button class="run-btn" onclick="runRolling()">Run</button>
+          <button class="run-btn" disabled onclick="runRolling()">Run</button>
           <pre class="output" id="out-rws"></pre>
         </div>
       </div>
@@ -565,7 +565,7 @@
             <div class="input-row"><label>indices (comma-sep ints)</label><input id="c1d-idx" value="1, 2, 3"></div>
             <div class="input-row"><label>dims (comma-sep ints)</label><input id="c1d-dims" value="2, 3, 4"></div>
           </div>
-          <button class="run-btn" onclick="runCalc1d()">Run</button>
+          <button class="run-btn" disabled onclick="runCalc1d()">Run</button>
           <pre class="output" id="out-c1d"></pre>
         </div>
       </div>
@@ -767,8 +767,7 @@ window.runCalc1d = () => guard(() => {
     show('out-c1d', qe.calculate_1d_index(idx, dims));
 }, 'out-c1d');
 
-// Disable all buttons until WASM loads
-document.querySelectorAll('button.run-btn').forEach(b => b.disabled = true);
+// (buttons start disabled via HTML; enabled above after WASM loads)
 </script>
 </body>
 </html>
