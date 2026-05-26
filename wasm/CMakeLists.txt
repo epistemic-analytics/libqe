@@ -40,17 +40,22 @@ target_compile_definitions(libqe PRIVATE
 # --bind           — enable Embind
 # ALLOW_MEMORY_GROWTH — needed for dynamic Armadillo allocations
 # ENVIRONMENT      — target web + node so the module works in both
-set_target_properties(libqe PROPERTIES
-    SUFFIX ".js"
-    LINK_FLAGS [=[
-        -s MODULARIZE=1
-        -s EXPORT_NAME=LibQE
-        -s WASM=1
-        -s ALLOW_MEMORY_GROWTH=1
-        -s ENVIRONMENT=web,node
-        --bind
-        -O3
-    ]=]
+#
+# NOTE: Use target_link_options() rather than LINK_FLAGS property.
+# LINK_FLAGS treats its value as a raw string; bracket strings preserve
+# newlines verbatim, so flags run together without spaces at link time.
+# target_link_options() takes a CMake list — each argument becomes a
+# properly space-separated token on the linker command line.
+set_target_properties(libqe PROPERTIES SUFFIX ".js")
+
+target_link_options(libqe PRIVATE
+    -sMODULARIZE=1
+    -sEXPORT_NAME=LibQE
+    -sWASM=1
+    -sALLOW_MEMORY_GROWTH=1
+    "-sENVIRONMENT=web,node"
+    --bind
+    -O3
 )
 
 # ── output to dist/ ───────────────────────────────────────────────────────────
