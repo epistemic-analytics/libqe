@@ -16,5 +16,6 @@
 #include "normalization.hpp"
 #include "modeling.hpp"
 #include "accumulation.hpp"
+#include "rotation.hpp"
 
 #endif // LIBQE_HPP
