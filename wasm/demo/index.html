@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>libqe WASM — Interactive Demo</title>
+<style>
+  :root {
+    --bg:        #0f1117;
+    --surface:   #1a1d27;
+    --border:    #2e3347;
+    --accent:    #5b8af0;
+    --accent2:   #a78bfa;
+    --green:     #34d399;
+    --red:       #f87171;
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --code-bg:   #0d1117;
+    --tag-adj:   #1e3a5f;
+    --tag-norm:  #1e3a2e;
+    --tag-model: #3a2a1e;
+    --tag-acc:   #2a1e3a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 2rem 3rem;
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+  }
+
+  header h1 { font-size: 1.5rem; font-weight: 700; }
+  header h1 span { color: var(--accent); }
+  header p { color: var(--muted); font-size: 0.9rem; }
+
+  #status-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0.5rem 3rem;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.3s;
+  }
+  .dot.loading { background: #f59e0b; animation: pulse 1s infinite; }
+  .dot.ready   { background: var(--green); }
+  .dot.error   { background: var(--red); }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+  }
+
+  section h2 {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .cards { display: flex; flex-direction: column; gap: 1rem; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.15s;
+  }
+  .card-header:hover { border-bottom-color: var(--border); }
+  .card.open .card-header { border-bottom-color: var(--border); }
+
+  .fn-name {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .tag {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 4px;
+    color: #94a3b8;
+  }
+  .tag-adj   { background: var(--tag-adj); }
+  .tag-norm  { background: var(--tag-norm); }
+  .tag-model { background: var(--tag-model); }
+  .tag-acc   { background: var(--tag-acc); }
+
+  .fn-sig {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-left: auto;
+  }
+
+  .card-body {
+    display: none;
+    padding: 1rem;
+    gap: 0.75rem;
+    flex-direction: column;
+  }
+  .card.open .card-body { display: flex; }
+
+  .desc {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin-bottom: 0.25rem;
+  }
+
+  .input-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .input-row label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: 'SF Mono', monospace;
+  }
+
+  .inputs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.5rem;
+  }
+
+  input, select {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    padding: 0.4rem 0.6rem;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.82rem;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+
+  button.run-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 0.45rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    align-self: flex-start;
+    transition: opacity 0.15s;
+  }
+  button.run-btn:hover { opacity: 0.85; }
+  button.run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .output {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 0.75rem 1rem;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.8rem;
+    min-height: 2.5rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--green);
+    display: none;
+  }
+  .output.error { color: var(--red); }
+  .output.visible { display: block; }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.75rem;
+    padding: 2rem;
+    border-top: 1px solid var(--border);
+    margin-top: 2rem;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span>libqe</span> WASM</h1>
+  <p>Interactive demo — C++ Quantitative Ethnography functions compiled to WebAssembly</p>
+</header>
+
+<div id="status-bar">
+  <div class="dot loading" id="dot"></div>
+  <span id="status-text">Loading WASM module…</span>
+</div>
+
+<main>
+
+  <!-- ── Adjacency ─────────────────────────────────────────────────────── -->
+  <section>
+    <h2>Adjacency</h2>
+    <div class="cards">
+
+      <div class="card" id="card-svector_to_upper_tri">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="fn-name">svector_to_upper_tri</span>
+          <span class="tag tag-adj">adjacency</span>
+          <span class="fn-sig">(names[]) → string[]</span>
+        </div>
+        <div class="card-body">
+          <p class="desc">Generate every unique ordered pair label from a list of code names.</p>
+          <div class="input-row">
+            <label>names — comma-separated strings</label>
+            <input id="svector-names" value="A, B, C, D">
+          </div>
+          <button class="run-btn" onclick="runSvector()">Run</button>
+          <pre class="output" id="out-svector"></pre>
+        </div>
+      </div>
+
+      <div class="card" id="card-tri_indices">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="fn-name">tri_indices</span>
+          <span class="tag tag-adj">adjacency</span>
+          <span class="fn-sig">(n) → {rows, cols}</span>
+        </div>
+        <div class="card-body">
+          <p class="desc">Return the row and column index arrays for the upper triangle of an n×n matrix (choose-two pairs).</p>
+          <div class="inputs-grid">
+            <div class="input-row"><label>n (code count)</label><input id="tri-n" type="number" value="4"></div>
+          </div>
+          <button class="run-btn" onclick="runTriIndices()">Run</button>
+          <pre class="output" id="out-tri"></pre>
+        </div>
+      </div>
+
+      <div class="card" id="card-vector_to_upper_tri">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="fn-name">vector_to_upper_tri</span>
+          <span class="tag tag-adj">adjacency</span>
+          <span class="fn-sig">(data, n_codes) → Float64Array</span>
+        </div>
+        <div class="card-body">
+          <p class="desc">Fold a flat row-vector of n_codes values into the upper-triangle co-occurrence values.</p>
+          <div class="inputs-grid">
+            <div class="input-row"><label>data (row vector, comma-sep)</label><input id="vut-data" value="1, 0, 1, 1"></div>
+            <div class="input-row"><label>n_codes</label><input id="vut-n" type="number" value="4"></div>
+          </div>
+          <button class="run-btn" onclick="runVectorToUpper()">Run</button>
+          <pre class="output" id="out-vut"></pre>
+        </div>
+      </div>
+
+      <div class="card" id="card-directed_to_upper_tri">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="fn-name">directed_to_upper_tri</span>
+          <span class="tag tag-adj">adjacency</span>
+          <span class="fn-sig">(data) → Float64Array</span>
+        </div>
+        <div class="card-body">
+          <p class="desc">Collapse a flat N×N directed adjacency matrix (row-major) into its upper-triangle by summing symmetric pairs.</p>
+          <div class="input-row">
+            <label>data — flat N×N matrix, row-major (N=3 example: 9 values)</label>
+            <input id="dut-data" value="0,1,2, 3,0,4, 5,6,0">
+          </div>
+          <button class="run-btn" onclick="runDirToUpper()">Run</button>
+          <pre class="output" id="out-dut"></pre>
+        </div>
+      </div>
+
+      <div class="card" id="card-adjacency_matrix_to_vector">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="fn-name">adjacency_matrix_to_vector</span>
+          <span class="tag tag-adj">adjacency</span>
+          <span class="fn-sig">(data, rows, cols, full) → Float64Array</span>
+        </div>
+        <div class="card-body">
+          <p class="desc">Flatten an adjacency matrix to a vector. When full=false only the upper triangle is returned.</p>
+          <div class="inputs-grid">
+            <div class="input-row"><label>data (row-major, comma-sep)</label><input id="amv-data" value="0,1,2, 1,0,3, 2,3,0"></div>
+            <div class="input-row"><label>rows</label><input id="amv-rows" type="number" value="3"></div>
+            <div class="input-row"><label>cols</label><input id="amv-cols" type="number" value="3"></div>
+            <div class="input-row">
+              <label>full</label>
+              <select id="amv-full"><option value="false">false (upper tri)</option><option value="true">true (all)</option></select>
+            </div>
+          </div>
+          <button class="run-btn" onclick="runAdjToVec()">Run</button>
+          <pre class="output" id="out-amv"></pre>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── Normalization ──────────────────────────────────────────────────── -->
+  <section>
+    <h2>Normalization</h2>
+    <div class="cards">
+
+      <div class="card" id="card-sphere_norm">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="fn-name">sphere_norm</span>
+          <span class="tag tag-norm">normalization</span>
+          <span class="fn-sig">(data, rows, cols) → {data, rows, cols}</span>
+        </div>
+        <div class="card-body">
+          <p class="desc">Normalize each row to unit L2 norm (project onto the unit sphere). Zero rows become zero.</p>
+          <div class="inputs-grid">
+            <div class="input-row"><label>data (row-major)</label><input id="sn-data" value="3,4, 1,0, 0,0, 6,8"></div>
+            <div class="input-row"><label>rows</label><input id="sn-rows" type="number" value="4"></div>
+            <div class="input-row"><label>cols</label><input id="sn-cols" type="number" value="2"></div>
+          </div>
+          <button class="run-btn" onclick="runSphereNorm()">Run</button>
+          <pre class="output" id="out-sn"></pre>
+        </div>
+      </div>
+
+      <div class="card" id="card-skip_sphere_norm">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="fn-name">skip_sphere_norm</span>
+          <span class="tag tag-norm">normalization</span>
+          <span class="fn-sig">(data, rows, cols) → {data, rows, cols}</span>
+        </div>
+        <div class="card-body">
+          <p class="desc">Same as sphere_norm but skips rows that are already normalized (avoids double-normalizing).</p>
+          <div class="inputs-grid">
+            <div class="input-row"><label>data (row-major)</label><input id="ssn-data" value="1,0, 0,1, 0.6,0.8"></div>
+            <div class="input-row"><label>rows</label><input id="ssn-rows" type="number" value="3"></div>
+            <div class="input-row"><label>cols</label><input id="ssn-cols" type="number" value="2"></div>
+          </div>
+          <button class="run-btn" onclick="runSkipSphereNorm()">Run</button>
+          <pre class="output" id="out-ssn"></pre>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── Modeling ───────────────────────────────────────────────────────── -->
+  <section>
+    <h2>Modeling</h2>
+    <div class="cards">
+
+      <div class="card" id="card-center_data">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="fn-name">center_data</span>
+          <span class="tag tag-model">modeling</span>
+          <span class="fn-sig">(data, rows, cols) → {data, rows, cols}</span>
+        </div>
+        <div class="card-body">
+          <p class="desc">Subtract column means so each dimension has zero mean (centering step before SVD/PCA).</p>
+          <div class="inputs-grid">
+            <div class="input-row"><label>data (row-major)</label><input id="cd-data" value="1,2, 3,4, 5,6"></div>
+            <div class="input-row"><label>rows</label><input id="cd-rows" type="number" value="3"></div>
+            <div class="input-row"><label>cols</label><input id="cd-cols" type="number" value="2"></div>
+          </div>
+          <button class="run-btn" onclick="runCenterData()">Run</button>
+          <pre class="output" id="out-cd"></pre>
+        </div>
+      </div>
+
+      <div class="card" id="card-group_ci">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="fn-name">group_ci</span>
+          <span class="tag tag-model">modeling</span>
+          <span class="fn-sig">(data, rows, cols, conf) → {data[n_dims×3], rows, cols}</span>
+        </div>
+        <div class="card-body">
+          <p class="desc">Compute per-dimension [mean, ci_lower, ci_upper] for a set of points (rows) using a t-distribution confidence interval.</p>
+          <div class="inputs-grid">
+            <div class="input-row"><label>data (row-major, points × dims)</label><input id="gci-data" value="1,2, 3,4, 5,6, 2,3, 4,5"></div>
+            <div class="input-row"><label>rows</label><input id="gci-rows" type="number" value="5"></div>
+            <div class="input-row"><label>cols</label><input id="gci-cols" type="number" value="2"></div>
+            <div class="input-row"><label>conf_level</label><input id="gci-conf" type="number" step="0.01" value="0.95"></div>
+          </div>
+          <button class="run-btn" onclick="runGroupCI()">Run</button>
+          <pre class="output" id="out-gci"></pre>
+        </div>
+      </div>
+
+      <div class="card" id="card-outlier_ci">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="fn-name">outlier_ci</span>
+          <span class="tag tag-model">modeling</span>
+          <span class="fn-sig">(data, rows, cols, iqr_factor) → {data[n_dims×2], rows, cols}</span>
+        </div>
+        <div class="card-body">
+          <p class="desc">IQR-based outlier bounds per dimension: [lower, upper] = [Q1 − k·IQR, Q3 + k·IQR].</p>
+          <div class="inputs-grid">
+            <div class="input-row"><label>data (row-major)</label><input id="oci-data" value="1,10, 2,20, 3,15, 100,5, 2,18"></div>
+            <div class="input-row"><label>rows</label><input id="oci-rows" type="number" value="5"></div>
+            <div class="input-row"><label>cols</label><input id="oci-cols" type="number" value="2"></div>
+            <div class="input-row"><label>iqr_factor (k)</label><input id="oci-k" type="number" step="0.1" value="1.5"></div>
+          </div>
+          <button class="run-btn" onclick="runOutlierCI()">Run</button>
+          <pre class="output" id="out-oci"></pre>
+        </div>
+      </div>
+
+      <div class="card" id="card-lws_lsq_positions">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="fn-name">lws_lsq_positions</span>
+          <span class="tag tag-model">modeling</span>
+          <span class="fn-sig">(adj, t, num_dims) → {nodes, centroids, weights, points}</span>
+        </div>
+        <div class="card-body">
+          <p class="desc">Least-squares weighted node positions from an adjacency matrix and unit vector trajectories. Returns four matrices.</p>
+          <div class="inputs-grid">
+            <div class="input-row"><label>adj data (n_pairs × n_units, row-major)</label><input id="lws-adj" value="1,0, 0,1, 1,1"></div>
+            <div class="input-row"><label>adj rows</label><input id="lws-adj-r" type="number" value="3"></div>
+            <div class="input-row"><label>adj cols</label><input id="lws-adj-c" type="number" value="2"></div>
+            <div class="input-row"><label>t data (n_pairs × n_dims, row-major)</label><input id="lws-t" value="1,0, 0,1, 0.707,0.707"></div>
+            <div class="input-row"><label>t rows</label><input id="lws-t-r" type="number" value="3"></div>
+            <div class="input-row"><label>t cols</label><input id="lws-t-c" type="number" value="2"></div>
+            <div class="input-row"><label>num_dims</label><input id="lws-dims" type="number" value="2"></div>
+          </div>
+          <button class="run-btn" onclick="runLwsLsq()">Run</button>
+          <pre class="output" id="out-lws"></pre>
+        </div>
+      </div>
+
+      <div class="card" id="card-directed_node_positions">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="fn-name">directed_node_positions</span>
+          <span class="tag tag-model">modeling</span>
+          <span class="fn-sig">(lw, pt, num_dims) → {nodes, centroids, weights, points}</span>
+        </div>
+        <div class="card-body">
+          <p class="desc">Node positions for directed networks; takes lineweight matrix and point matrix, returns same structure as lws_lsq_positions.</p>
+          <div class="inputs-grid">
+            <div class="input-row"><label>lw data (lineweights, row-major)</label><input id="dnp-lw" value="1,0, 0,1, 1,1"></div>
+            <div class="input-row"><label>lw rows</label><input id="dnp-lw-r" type="number" value="3"></div>
+            <div class="input-row"><label>lw cols</label><input id="dnp-lw-c" type="number" value="2"></div>
+            <div class="input-row"><label>pt data (points, row-major)</label><input id="dnp-pt" value="1,0, 0,1, 0.5,0.5"></div>
+            <div class="input-row"><label>pt rows</label><input id="dnp-pt-r" type="number" value="3"></div>
+            <div class="input-row"><label>pt cols</label><input id="dnp-pt-c" type="number" value="2"></div>
+            <div class="input-row"><label>num_dims</label><input id="dnp-dims" type="number" value="2"></div>
+          </div>
+          <button class="run-btn" onclick="runDirNodePos()">Run</button>
+          <pre class="output" id="out-dnp"></pre>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── Accumulation ───────────────────────────────────────────────────── -->
+  <section>
+    <h2>Accumulation</h2>
+    <div class="cards">
+
+      <div class="card" id="card-stanza_window">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="fn-name">stanza_window</span>
+          <span class="tag tag-acc">accumulation</span>
+          <span class="fn-sig">(data, rows, cols, back, fwd, binary) → {data, rows, cols}</span>
+        </div>
+        <div class="card-body">
+          <p class="desc">Sliding stanza window accumulation over a binary code matrix. Each row accumulates co-occurrences within a backward/forward window.</p>
+          <div class="inputs-grid">
+            <div class="input-row"><label>data (rows × codes, row-major)</label><input id="sw-data" value="1,1,0, 1,0,1, 0,1,1, 1,1,1"></div>
+            <div class="input-row"><label>rows</label><input id="sw-rows" type="number" value="4"></div>
+            <div class="input-row"><label>cols (n_codes)</label><input id="sw-cols" type="number" value="3"></div>
+            <div class="input-row"><label>window_back</label><input id="sw-back" type="number" value="2"></div>
+            <div class="input-row"><label>window_forward</label><input id="sw-fwd" type="number" value="0"></div>
+            <div class="input-row">
+              <label>binary</label>
+              <select id="sw-bin"><option value="true">true</option><option value="false">false</option></select>
+            </div>
+          </div>
+          <button class="run-btn" onclick="runStanza()">Run</button>
+          <pre class="output" id="out-sw"></pre>
+        </div>
+      </div>
+
+      <div class="card" id="card-rows_to_co_occurrences">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="fn-name">rows_to_co_occurrences</span>
+          <span class="tag tag-acc">accumulation</span>
+          <span class="fn-sig">(data, rows, cols, binary) → {data, rows, cols}</span>
+        </div>
+        <div class="card-body">
+          <p class="desc">Convert a binary code matrix directly to a co-occurrence matrix (outer product per row, accumulated).</p>
+          <div class="inputs-grid">
+            <div class="input-row"><label>data (row-major)</label><input id="rco-data" value="1,1,0, 1,0,1, 0,1,1"></div>
+            <div class="input-row"><label>rows</label><input id="rco-rows" type="number" value="3"></div>
+            <div class="input-row"><label>cols</label><input id="rco-cols" type="number" value="3"></div>
+            <div class="input-row">
+              <label>binary</label>
+              <select id="rco-bin"><option value="true">true</option><option value="false">false</option></select>
+            </div>
+          </div>
+          <button class="run-btn" onclick="runRowsToCoOcc()">Run</button>
+          <pre class="output" id="out-rco"></pre>
+        </div>
+      </div>
+
+      <div class="card" id="card-rolling_window_sum">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="fn-name">rolling_window_sum</span>
+          <span class="tag tag-acc">accumulation</span>
+          <span class="fn-sig">(data, rows, cols, window_size) → {data, rows, cols}</span>
+        </div>
+        <div class="card-body">
+          <p class="desc">Row-wise rolling sum: each output row is the sum of the preceding window_size rows (inclusive).</p>
+          <div class="inputs-grid">
+            <div class="input-row"><label>data (row-major)</label><input id="rws-data" value="1,2,3, 4,5,6, 7,8,9, 1,1,1"></div>
+            <div class="input-row"><label>rows</label><input id="rws-rows" type="number" value="4"></div>
+            <div class="input-row"><label>cols</label><input id="rws-cols" type="number" value="3"></div>
+            <div class="input-row"><label>window_size</label><input id="rws-win" type="number" value="2"></div>
+          </div>
+          <button class="run-btn" onclick="runRolling()">Run</button>
+          <pre class="output" id="out-rws"></pre>
+        </div>
+      </div>
+
+      <div class="card" id="card-calculate_1d_index">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="fn-name">calculate_1d_index</span>
+          <span class="tag tag-acc">accumulation</span>
+          <span class="fn-sig">(indices[], dims[]) → int</span>
+        </div>
+        <div class="card-body">
+          <p class="desc">Flatten a multi-dimensional index to a 1D column-major offset. indices=[1,2,3], dims=[2,3,4] → 1 + 2·2 + 3·6 = 23.</p>
+          <div class="inputs-grid">
+            <div class="input-row"><label>indices (comma-sep ints)</label><input id="c1d-idx" value="1, 2, 3"></div>
+            <div class="input-row"><label>dims (comma-sep ints)</label><input id="c1d-dims" value="2, 3, 4"></div>
+          </div>
+          <button class="run-btn" onclick="runCalc1d()">Run</button>
+          <pre class="output" id="out-c1d"></pre>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer>libqe — GPL-3.0 · <a href="https://gitlab.com/epistemic-analytics/qe-packages/libqe" style="color:var(--accent)">gitlab.com/epistemic-analytics/qe-packages/libqe</a></footer>
+
+<script type="module">
+// ── Load WASM ─────────────────────────────────────────────────────────────────
+import loadLibQE from '../dist/libqe.js';
+
+let qe = null;
+
+const dot  = document.getElementById('dot');
+const msg  = document.getElementById('status-text');
+
+try {
+    qe = await loadLibQE();
+    dot.className = 'dot ready';
+    msg.textContent = 'WASM module loaded — all functions ready';
+    document.querySelectorAll('button.run-btn').forEach(b => b.disabled = false);
+} catch (e) {
+    dot.className = 'dot error';
+    msg.textContent = `Failed to load: ${e.message}`;
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+
+window.toggleCard = function(header) {
+    header.closest('.card').classList.toggle('open');
+};
+
+function show(id, value, isError = false) {
+    const el = document.getElementById(id);
+    el.classList.add('visible');
+    el.classList.toggle('error', isError);
+    el.textContent = typeof value === 'string' ? value : fmtVal(value);
+}
+
+function fmtVal(v) {
+    if (v instanceof Float64Array || v instanceof Int32Array || Array.isArray(v)) {
+        return '[' + Array.from(v).map(x => +x.toFixed(6)).join(', ') + ']';
+    }
+    if (typeof v === 'object' && v !== null) {
+        return JSON.stringify(v, (k, val) =>
+            (val instanceof Float64Array || val instanceof Int32Array)
+                ? Array.from(val).map(x => +x.toFixed(6))
+                : val
+        , 2);
+    }
+    return String(v);
+}
+
+function parseFloats(str) {
+    return new Float64Array(str.split(',').map(s => parseFloat(s.trim())));
+}
+function parseInts(str) {
+    return str.split(',').map(s => parseInt(s.trim(), 10));
+}
+function parseStrings(str) {
+    return str.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+function guard(fn, outId) {
+    if (!qe) { show(outId, 'WASM not loaded yet', true); return; }
+    try { fn(); }
+    catch (e) { show(outId, e.message ?? String(e), true); }
+}
+
+// ── Adjacency ─────────────────────────────────────────────────────────────────
+
+window.runSvector = () => guard(() => {
+    const names = parseStrings(document.getElementById('svector-names').value);
+    show('out-svector', qe.svector_to_upper_tri(names));
+}, 'out-svector');
+
+window.runTriIndices = () => guard(() => {
+    const n = parseInt(document.getElementById('tri-n').value, 10);
+    show('out-tri', qe.tri_indices(n));
+}, 'out-tri');
+
+window.runVectorToUpper = () => guard(() => {
+    const data   = parseFloats(document.getElementById('vut-data').value);
+    const n      = parseInt(document.getElementById('vut-n').value, 10);
+    show('out-vut', qe.vector_to_upper_tri(data, n));
+}, 'out-vut');
+
+window.runDirToUpper = () => guard(() => {
+    const data = parseFloats(document.getElementById('dut-data').value);
+    show('out-dut', qe.directed_to_upper_tri(data));
+}, 'out-dut');
+
+window.runAdjToVec = () => guard(() => {
+    const data = parseFloats(document.getElementById('amv-data').value);
+    const rows = parseInt(document.getElementById('amv-rows').value, 10);
+    const cols = parseInt(document.getElementById('amv-cols').value, 10);
+    const full = document.getElementById('amv-full').value === 'true';
+    show('out-amv', qe.adjacency_matrix_to_vector(data, rows, cols, full));
+}, 'out-amv');
+
+// ── Normalization ─────────────────────────────────────────────────────────────
+
+window.runSphereNorm = () => guard(() => {
+    const data = parseFloats(document.getElementById('sn-data').value);
+    const rows = parseInt(document.getElementById('sn-rows').value, 10);
+    const cols = parseInt(document.getElementById('sn-cols').value, 10);
+    show('out-sn', qe.sphere_norm(data, rows, cols));
+}, 'out-sn');
+
+window.runSkipSphereNorm = () => guard(() => {
+    const data = parseFloats(document.getElementById('ssn-data').value);
+    const rows = parseInt(document.getElementById('ssn-rows').value, 10);
+    const cols = parseInt(document.getElementById('ssn-cols').value, 10);
+    show('out-ssn', qe.skip_sphere_norm(data, rows, cols));
+}, 'out-ssn');
+
+// ── Modeling ──────────────────────────────────────────────────────────────────
+
+window.runCenterData = () => guard(() => {
+    const data = parseFloats(document.getElementById('cd-data').value);
+    const rows = parseInt(document.getElementById('cd-rows').value, 10);
+    const cols = parseInt(document.getElementById('cd-cols').value, 10);
+    show('out-cd', qe.center_data(data, rows, cols));
+}, 'out-cd');
+
+window.runGroupCI = () => guard(() => {
+    const data = parseFloats(document.getElementById('gci-data').value);
+    const rows = parseInt(document.getElementById('gci-rows').value, 10);
+    const cols = parseInt(document.getElementById('gci-cols').value, 10);
+    const conf = parseFloat(document.getElementById('gci-conf').value);
+    show('out-gci', qe.group_ci(data, rows, cols, conf));
+}, 'out-gci');
+
+window.runOutlierCI = () => guard(() => {
+    const data = parseFloats(document.getElementById('oci-data').value);
+    const rows = parseInt(document.getElementById('oci-rows').value, 10);
+    const cols = parseInt(document.getElementById('oci-cols').value, 10);
+    const k    = parseFloat(document.getElementById('oci-k').value);
+    show('out-oci', qe.outlier_ci(data, rows, cols, k));
+}, 'out-oci');
+
+window.runLwsLsq = () => guard(() => {
+    const adjD = parseFloats(document.getElementById('lws-adj').value);
+    const adjR = parseInt(document.getElementById('lws-adj-r').value, 10);
+    const adjC = parseInt(document.getElementById('lws-adj-c').value, 10);
+    const tD   = parseFloats(document.getElementById('lws-t').value);
+    const tR   = parseInt(document.getElementById('lws-t-r').value, 10);
+    const tC   = parseInt(document.getElementById('lws-t-c').value, 10);
+    const dims = parseInt(document.getElementById('lws-dims').value, 10);
+    show('out-lws', qe.lws_lsq_positions(adjD, adjR, adjC, tD, tR, tC, dims));
+}, 'out-lws');
+
+window.runDirNodePos = () => guard(() => {
+    const lwD  = parseFloats(document.getElementById('dnp-lw').value);
+    const lwR  = parseInt(document.getElementById('dnp-lw-r').value, 10);
+    const lwC  = parseInt(document.getElementById('dnp-lw-c').value, 10);
+    const ptD  = parseFloats(document.getElementById('dnp-pt').value);
+    const ptR  = parseInt(document.getElementById('dnp-pt-r').value, 10);
+    const ptC  = parseInt(document.getElementById('dnp-pt-c').value, 10);
+    const dims = parseInt(document.getElementById('dnp-dims').value, 10);
+    show('out-dnp', qe.directed_node_positions(lwD, lwR, lwC, ptD, ptR, ptC, dims));
+}, 'out-dnp');
+
+// ── Accumulation ──────────────────────────────────────────────────────────────
+
+window.runStanza = () => guard(() => {
+    const data = parseFloats(document.getElementById('sw-data').value);
+    const rows = parseInt(document.getElementById('sw-rows').value, 10);
+    const cols = parseInt(document.getElementById('sw-cols').value, 10);
+    const back = parseInt(document.getElementById('sw-back').value, 10);
+    const fwd  = parseInt(document.getElementById('sw-fwd').value, 10);
+    const bin  = document.getElementById('sw-bin').value === 'true';
+    show('out-sw', qe.stanza_window(data, rows, cols, back, fwd, bin));
+}, 'out-sw');
+
+window.runRowsToCoOcc = () => guard(() => {
+    const data = parseFloats(document.getElementById('rco-data').value);
+    const rows = parseInt(document.getElementById('rco-rows').value, 10);
+    const cols = parseInt(document.getElementById('rco-cols').value, 10);
+    const bin  = document.getElementById('rco-bin').value === 'true';
+    show('out-rco', qe.rows_to_co_occurrences(data, rows, cols, bin));
+}, 'out-rco');
+
+window.runRolling = () => guard(() => {
+    const data = parseFloats(document.getElementById('rws-data').value);
+    const rows = parseInt(document.getElementById('rws-rows').value, 10);
+    const cols = parseInt(document.getElementById('rws-cols').value, 10);
+    const win  = parseInt(document.getElementById('rws-win').value, 10);
+    show('out-rws', qe.rolling_window_sum(data, rows, cols, win));
+}, 'out-rws');
+
+window.runCalc1d = () => guard(() => {
+    const idx  = parseInts(document.getElementById('c1d-idx').value);
+    const dims = parseInts(document.getElementById('c1d-dims').value);
+    show('out-c1d', qe.calculate_1d_index(idx, dims));
+}, 'out-c1d');
+
+// Disable all buttons until WASM loads
+document.querySelectorAll('button.run-btn').forEach(b => b.disabled = true);
+</script>
+</body>
+</html>
