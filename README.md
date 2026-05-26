@@ -55,30 +55,6 @@ libqe/
 Edit headers in `include/libqe/` only. The R `configure` script and
 `scripts/sync-headers.sh` propagate them.
 
-## Using libqe in an R package (`LinkingTo`)
-
-This is the standard pattern used by RcppArmadillo and BH.
-
-**`DESCRIPTION`**
-```
-LinkingTo: Rcpp, RcppArmadillo, libqe
-Imports: Rcpp
-```
-
-**`src/your_code.cpp`**
-```cpp
-// [[Rcpp::depends(RcppArmadillo, libqe)]]
-#include <RcppArmadillo.h>
-#include <libqe/libqe.hpp>
-
-// use qe::stanza_window(), qe::lws_lsq_positions(), etc.
-```
-
-Install libqe from the repository before installing the downstream package:
-```r
-install.packages("libqe", repos = "https://rena.qe-libs.org")
-```
-
 ## Installing the R package
 
 ```r
@@ -89,6 +65,10 @@ install.packages("libqe", repos = "https://rena.qe-libs.org")
 R CMD INSTALL R/
 ```
 
+The R package also ships the `libqe` headers for downstream packages via
+`LinkingTo`. See [R/README.md](R/README.md) for the full function reference
+and `LinkingTo` usage.
+
 ## Installing the Python package
 
 ```bash
@@ -96,19 +76,10 @@ cd python
 pip install -e ".[dev]"
 ```
 
-See [python/README.md](python/README.md) for full build requirements and usage.
+See [python/README.md](python/README.md) for build requirements and the full
+API reference.
 
 ## Installing the Julia package
-
-**Requirements:** Julia ≥ 1.9, CMake ≥ 3.18, CxxWrap 0.15, Armadillo.
-
-```bash
-# macOS — Armadillo via Homebrew (Accelerate provides BLAS automatically)
-brew install armadillo
-
-# Linux — system Armadillo + BLAS/LAPACK
-apt-get install libarmadillo-dev libblas-dev liblapack-dev
-```
 
 ```julia
 # one-time: install CxxWrap so CMake can find libcxxwrap-julia
@@ -119,54 +90,18 @@ using Pkg; Pkg.add("CxxWrap")
 cd julia
 cmake -B build -DCMAKE_BUILD_TYPE=Release .
 cmake --build build
-cmake --install build      # installs libqe_julia.{so,dylib} into LibQE/lib/
+cmake --install build      # copies libqe_julia.{so,dylib} into LibQE/lib/
 ```
-
-Then load the package in Julia:
 
 ```julia
 using Pkg; Pkg.develop(path="julia/LibQE")
 using LibQE
-
-LibQE.svector_to_upper_tri(["A", "B", "C"])
-# → ["A & B", "A & C", "B & C"]
-
-codes = Float64[1 1 0; 1 0 1; 0 1 1]   # 3 rows × 3 codes
-LibQE.stanza_window(codes; window_back=2)
-# → 3×3 Matrix{Float64}  (choose_two(3) = 3 connection columns)
 ```
 
 The CMake build picks up the canonical headers from `include/` when run from
 the repo; in CI / out-of-tree builds it falls back to a `find_package(libqe)`
-provided by Conan.
-
-### Julia API summary
-
-| Function | Returns | Notes |
-|----------|---------|-------|
-| `svector_to_upper_tri(names)` | `Vector{String}` | `"A & B"` pair labels |
-| `tri_indices(len; row=-1)` | `2 × n_pairs Matrix{Int32}` | Upper-tri (i,j) pairs |
-| `vector_to_upper_tri(v)` | `Vector{Float64}` | Code vector → connection vector |
-| `directed_to_upper_tri(v)` | `Vector{Float64}` | n² directed → upper-tri |
-| `adjacency_matrix_to_vector(m; full=true)` | `Vector{Float64}` | Matrix → flat vector |
-| `sphere_norm(m)` | `Matrix{Float64}` | Row-wise L2 normalization |
-| `skip_sphere_norm(m)` | `Matrix{Float64}` | Max-norm scaling |
-| `center_data(m)` | `Matrix{Float64}` | Subtract column means |
-| `group_ci(pts; conf_level=0.95)` | `n_dims×3 Matrix` | `[mean, lower, upper]` — matches rENA `t.test` |
-| `outlier_ci(pts; iqr_factor=1.5)` | `n_dims×2 Matrix` | `[lower, upper]` — matches rENA IQR formula |
-| `ena_correlation(pts, centroids; conf_level=0.95)` | `n_units×3 Matrix` | `[r, lower, upper]` |
-| `lws_lsq_positions(adj, t, dims)` | `NamedTuple` | Undirected ENA node positions |
-| `directed_node_positions(lw, pts, dims)` | `NamedTuple` | Directed ENA node positions |
-| `calculate_adjacency_matrix(ground, response; ...)` | `Matrix{Float64}` | Core adjacency math |
-| `stanza_window(codes; window_back, window_forward, binary)` | `Matrix{Float64}` | rENA accumulation |
-| `rows_to_co_occurrences(codes; binary=true)` | `Matrix{Float64}` | Per-row co-occurrence |
-| `rolling_window_sum(codes; window_size=1)` | `Matrix{Float64}` | Rolling backward sum |
-| `calculate_1d_index(indices, dims)` | `Int` | Column-major linear index (0-based) |
-| `accumulate_unit(codes, unit_rows, decay_fn; ordered)` | `Vector{Float64}` | tma ground/response accumulation |
-| `accumulate_unit_with_rows(codes, unit_rows, decay_fn; ordered)` | `NamedTuple` | As above + per-row networks |
-
-All matrix inputs are `Matrix{Float64}` (Julia column-major = Armadillo column-major,
-so inputs are zero-copy across the C++ boundary).
+provided by Conan. See [julia/README.md](julia/README.md) for build
+prerequisites, platform notes, and the full API reference.
 
 ## Using libqe via Conan (C++ consumers)
 
