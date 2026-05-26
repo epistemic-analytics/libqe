@@ -348,3 +348,129 @@ List lq_apply_tensor(arma::vec tensor,
         _("row_connection_counts") = r.row_connection_counts
     );
 }
+
+// =============================================================================
+// Rotation
+// =============================================================================
+
+// Pack a RotationResult into the list shape that matches rENA's ENARotationSet
+// payload (rotation + eigenvalues + column names). Column names are attached
+// to the rotation matrix as dimnames so downstream R code can index by them.
+// Eigenvalues are returned as a plain numeric vector (not an Nx1 matrix) to
+// match what rENA's `pcaResults$sdev^2` produces.
+static List pack_rotation_result(const qe::RotationResult& r) {
+    NumericMatrix rotation = wrap(r.rotation);
+    CharacterVector col_names(r.column_names.begin(), r.column_names.end());
+    rotation.attr("dimnames") = List::create(R_NilValue, col_names);
+    NumericVector eigenvalues(r.eigenvalues.begin(), r.eigenvalues.end());
+    return List::create(
+        _("rotation")     = rotation,
+        _("eigenvalues")  = eigenvalues,
+        _("column_names") = col_names
+    );
+}
+
+//' SVD rotation (matches prcomp(retx=F, scale=F, center=F, tol=0))
+//'
+//' Caller is responsible for centering upstream. Eigenvalues are stored as
+//' \code{sdev^2} (variance) to match rENA's \code{ena.svd}.
+//'
+//' @param points Numeric matrix (n_units x n_dims)
+//' @return List with \code{rotation} (n_dims x n_dims), \code{eigenvalues}
+//'   (length n_dims, = sdev^2), and \code{column_names} ("SVD1", "SVD2", ...)
+//' @export
+// [[Rcpp::export]]
+List lq_ena_svd(arma::mat points) {
+    return pack_rotation_result(qe::ena_svd(points));
+}
+
+//' Project a matrix onto the hyperplane orthogonal to a unit-norm axis
+//'
+//' Computes \code{data - (data \%*\% axis) \%*\% t(axis)}. The caller is
+//' responsible for ensuring \code{axis} is unit-norm.
+//'
+//' @param data Numeric matrix (n_units x n_dims)
+//' @param axis Numeric vector of length n_dims, unit-norm
+//' @return Numeric matrix of the same shape as \code{data}
+//' @export
+// [[Rcpp::export]]
+arma::mat lq_deflate(arma::mat data, arma::vec axis) {
+    return qe::deflate(data, axis);
+}
+
+//' Orthogonal SVD — orthonormalize named axes via QR, fill the rest from SVD
+//'
+//' Mirrors rENA's \code{orthogonal_svd()} in \code{ena.rotate.by.mean.R}:
+//' the named axes in the output are the orthonormalized Q columns, not the
+//' original \code{weights} columns. Use \code{lq_complete_rotation} to keep
+//' the named axes verbatim.
+//'
+//' @param data         Numeric matrix (n_units x n_dims)
+//' @param weights      Numeric matrix (n_dims x k); columns are the named axes
+//' @param named_labels Character vector of length k
+//' @return List with \code{rotation}, \code{eigenvalues}, \code{column_names}
+//' @export
+// [[Rcpp::export]]
+List lq_orthogonal_svd(arma::mat data,
+                        arma::mat weights,
+                        std::vector<std::string> named_labels) {
+    return pack_rotation_result(qe::orthogonal_svd(data, weights, named_labels));
+}
+
+//' Complete a rotation — keep named axes verbatim, fill remainder from SVD
+//'
+//' Mirrors the tail of \code{ena.rotate.by.generalized}: the named axes
+//' appear in the output exactly as provided, and the trailing columns come
+//' from an SVD of the data deflated by all named axes.
+//'
+//' @param data         Numeric matrix (n_units x n_dims)
+//' @param named_axes   Numeric matrix (n_dims x k); columns must be unit-norm
+//' @param named_labels Character vector of length k
+//' @return List with \code{rotation}, \code{eigenvalues}, \code{column_names}
+//' @export
+// [[Rcpp::export]]
+List lq_complete_rotation(arma::mat data,
+                           arma::mat named_axes,
+                           std::vector<std::string> named_labels) {
+    return pack_rotation_result(qe::complete_rotation(data, named_axes, named_labels));
+}
+
+//' Means rotation
+//'
+//' For each group pair, computes a normalized mean-difference axis on the
+//' progressively-deflated data and finishes with \code{lq_orthogonal_svd}.
+//' The input is column-centered first, matching rENA's
+//' \code{scale(data, scale=F, center=T)} at the top of \code{ena.rotate.by.mean}.
+//'
+//' Each element of \code{group_pairs} is a length-2 list \code{list(a, b)}
+//' of 0-based row indices into \code{points}.
+//'
+//' @param points      Numeric matrix (n_units x n_dims)
+//' @param group_pairs List of length k; each element is \code{list(a, b)}
+//'   where \code{a} and \code{b} are 0-based integer index vectors
+//' @return List with \code{rotation}, \code{eigenvalues}, \code{column_names}
+//' @export
+// [[Rcpp::export]]
+List lq_means_rotation(arma::mat points, List group_pairs) {
+    std::vector<qe::GroupPair> pairs;
+    pairs.reserve(group_pairs.size());
+    for (R_xlen_t i = 0; i < group_pairs.size(); ++i) {
+        List pair = group_pairs[i];
+        if (pair.size() != 2) {
+            stop("group_pairs[[%d]] must be a length-2 list(a, b)",
+                 static_cast<int>(i + 1));
+        }
+        IntegerVector ra = pair[0];
+        IntegerVector rb = pair[1];
+        arma::uvec a(ra.size());
+        arma::uvec b(rb.size());
+        for (R_xlen_t j = 0; j < ra.size(); ++j) {
+            a(j) = static_cast<arma::uword>(ra[j]);
+        }
+        for (R_xlen_t j = 0; j < rb.size(); ++j) {
+            b(j) = static_cast<arma::uword>(rb[j]);
+        }
+        pairs.push_back({a, b});
+    }
+    return pack_rotation_result(qe::means_rotation(points, pairs));
+}
