@@ -611,7 +611,7 @@ function show(id, value, isError = false) {
 
 function fmtVal(v) {
     if (v instanceof Float64Array || v instanceof Int32Array || Array.isArray(v)) {
-        return '[' + Array.from(v).map(x => +x.toFixed(6)).join(', ') + ']';
+        return '[' + Array.from(v).map(x => typeof x === 'number' ? +x.toFixed(6) : x).join(', ') + ']';
     }
     if (typeof v === 'object' && v !== null) {
         return JSON.stringify(v, (k, val) =>
