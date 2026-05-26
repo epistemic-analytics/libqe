@@ -45,6 +45,13 @@ libqe/
 │       ├── Project.toml
 │       ├── src/LibQE.jl
 │       └── test/runtests.jl
+├── wasm/               ← @qe-libs/libqe-wasm npm package (Emscripten + Embind)
+│   ├── CMakeLists.txt
+│   ├── conanfile.py
+│   ├── src/libqe_wasm.cpp
+│   ├── profiles/wasm   ← Conan cross-compilation profile for Emscripten
+│   ├── js/index.js
+│   └── test/basic.test.js
 ├── conanfile.py        ← Conan recipe (header-only, exports include/libqe/)
 ├── conan-test/         ← Conan test_package consumer
 └── scripts/
@@ -132,19 +139,22 @@ target_link_libraries(my_app PRIVATE libqe::libqe)
 The version is sourced from `R/DESCRIPTION` (or `CI_COMMIT_TAG` on tagged
 releases) — there is a single place to bump it.
 
-## WebAssembly bindings
+## Installing the WASM package
 
-The WASM / npm distribution lives in a separate repository:
-[**libqe-wasm**](https://gitlab.com/epistemic-analytics/qe-packages/libqe-wasm).
-It exposes the full libqe API as a zero-dependency ES module usable in browsers
-and Node.js, built with Emscripten and published to npm as
-`@qe-libs/libqe-wasm`.
+```bash
+# one-time: tell npm where to find the @qe-libs scope
+echo "@qe-libs:registry=https://gitlab.com/api/v4/projects/epistemic-analytics%2Fqe-packages%2Flibqe/packages/npm/" >> ~/.npmrc
+
+npm install @qe-libs/libqe-wasm
+```
 
 ```js
 import loadLibQE from '@qe-libs/libqe-wasm';
 const qe = await loadLibQE();
 qe.svector_to_upper_tri(['A', 'B', 'C']);  // → ['A & B', 'A & C', 'B & C']
 ```
+
+See [wasm/README.md](wasm/README.md) for the full API reference and build-from-source instructions.
 
 ## Running tests
 
@@ -186,7 +196,7 @@ bash scripts/check-headers-in-sync.sh  # verify
 |---------|----------|-------------|
 | [rENA](https://gitlab.com/epistemic-analytics/qe-packages/rENA) | R | Epistemic Network Analysis |
 | [tma](https://gitlab.com/epistemic-analytics/qe-packages/tma) | R | Temporal / multi-modal accumulation |
-| [libqe-wasm](https://gitlab.com/epistemic-analytics/qe-packages/libqe-wasm) | JS/WASM | Browser and Node.js bindings (`@qe-libs/libqe-wasm`) |
+| [@qe-libs/libqe-wasm](wasm/) | JS/WASM | Browser and Node.js bindings (lives in `wasm/`) |
 
 ## License
 

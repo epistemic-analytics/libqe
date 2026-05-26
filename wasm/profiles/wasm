@@ -1,0 +1,27 @@
+# Conan v2 cross-compilation profile for WebAssembly via Emscripten.
+#
+# Prerequisites (one-time):
+#   brew install emscripten        # macOS
+#   apt-get install emscripten     # Debian/Ubuntu
+#
+# Usage (from repo root):
+#   conan install . -pr:b=default -pr:h=profiles/wasm --build=missing
+#   emcmake cmake -B build/wasm -DCMAKE_BUILD_TYPE=Release \
+#       -DCMAKE_TOOLCHAIN_FILE=build/wasm/conan_toolchain.cmake .
+#   emmake make -C build/wasm
+
+[settings]
+os          = Emscripten
+arch        = wasm
+compiler    = clang
+compiler.version = 18
+compiler.libcxx  = libc++
+build_type  = Release
+
+[options]
+# Armadillo: headers-only path — no compiled BLAS/LAPACK symbols emitted.
+armadillo*:use_blas   = False
+armadillo*:use_lapack = False
+
+[conf]
+tools.cmake.cmaketoolchain:generator = Ninja

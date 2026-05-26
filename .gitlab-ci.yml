@@ -1,4 +1,5 @@
 stages:
+  - build
   - test
   - publish
 
@@ -15,14 +16,40 @@ stages:
     paths: [.conan2]
     policy: pull-push
 
+.wasm-conan-cache: &wasm-conan-cache
+  cache:
+    key: conan2-wasm-$CI_COMMIT_REF_SLUG
+    paths: [wasm/.conan2]
+    policy: pull-push
+
 variables:
   # Conan 2 stores its home in $CONAN_HOME; pin it inside the project dir
   # so GitLab's cache mechanism can pick it up.
   CONAN_HOME: "$CI_PROJECT_DIR/.conan2"
 
+# ── Build WASM module ─────────────────────────────────────────────────────────
+# Runs in the build stage so test:wasm can consume the dist/ artifact.
+# R, Python, and Conan test jobs use needs:[] to bypass the build stage
+# and run immediately in parallel.
+build:wasm:
+  stage: build
+  image: emscripten/emsdk:latest
+  variables:
+    CONAN_HOME: "$CI_PROJECT_DIR/wasm/.conan2"
+  <<: *wasm-conan-cache
+  before_script:
+    - pip install conan --quiet
+    - conan profile detect --force
+  script:
+    - sh wasm/scripts/build.sh
+  artifacts:
+    paths: [wasm/dist/]
+    expire_in: 1 day
+
 # ── R tests ───────────────────────────────────────────────────────────────────
 test:r:
   stage: test
+  needs: []   # don't wait for build:wasm
   image: rocker/r-ver:4.5.0
   before_script:
     - apt-get update -qq
@@ -46,6 +73,7 @@ test:r:
 # ── Python tests ──────────────────────────────────────────────────────────────
 test:python:
   stage: test
+  needs: []   # don't wait for build:wasm
   image: python:3.12-slim
   <<: *pip-cache
   before_script:
@@ -63,6 +91,7 @@ test:python:
 # test package build cleanly on every branch push.
 test:conan:
   stage: test
+  needs: []   # don't wait for build:wasm
   image: ubuntu:24.04
   <<: *conan-cache
   before_script:
@@ -73,6 +102,16 @@ test:conan:
   script:
     - conan create . --test-folder=conan-test --build=missing
 
+# ── WASM JS tests ─────────────────────────────────────────────────────────────
+test:wasm:
+  stage: test
+  needs: [build:wasm]
+  image: node:20-slim
+  script:
+    - cd wasm
+    - npm ci
+    - npm test
+
 # ── Publish to GitLab Package Registry (version tags only) ───────────────────
 #
 # Trigger: push a tag matching vMAJOR.MINOR.PATCH, e.g. v0.2.0
@@ -81,13 +120,15 @@ test:conan:
 # Authentication uses the built-in CI_JOB_TOKEN — no personal access token
 # or deploy key needed.
 #
-# Consumers add the registry with:
+# Consumers add the Conan registry with:
 #   conan remote add gitlab \
 #     "https://gitlab.com/api/v4/packages/conan"
-#   conan remote login gitlab ci-job-token \
-#     --password <personal_access_token>
+#
+# Consumers add the npm registry with (one-time, then npm install works):
+#   echo "@qe-libs:registry=https://gitlab.com/api/v4/projects/epistemic-analytics%2Fqe-packages%2Flibqe/packages/npm/" >> ~/.npmrc
 publish:conan:
   stage: publish
+  needs: []
   image: ubuntu:24.04
   <<: *conan-cache
   rules:
@@ -108,3 +149,16 @@ publish:conan:
     - conan create . --test-folder=conan-test --build=missing
     - conan upload "libqe/${PKG_VERSION}@${PKG_USER}/stable"
         --remote=gitlab --confirm
+
+publish:wasm:
+  stage: publish
+  needs: [build:wasm, test:wasm]
+  image: node:20-slim
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
+  before_script:
+    - echo "//${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}" >> ~/.npmrc
+  script:
+    - cd wasm
+    - npm version "${CI_COMMIT_TAG#v}" --no-git-tag-version
+    - npm publish --registry "https://${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/"

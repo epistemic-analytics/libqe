@@ -1,0 +1,6 @@
+dist/
+build/
+node_modules/
+.conan2/
+CMakeUserPresets.json
+*.js.map

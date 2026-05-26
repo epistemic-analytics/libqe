@@ -17,3 +17,10 @@ R/inst/include/libqe/*.hpp
 # Python
 **/__pycache__/
 python/build/
+
+# WASM
+wasm/dist/
+wasm/build/
+wasm/node_modules/
+wasm/.conan2/
+wasm/CMakeUserPresets.json
