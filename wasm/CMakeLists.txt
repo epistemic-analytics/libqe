@@ -50,6 +50,7 @@ set_target_properties(libqe PROPERTIES SUFFIX ".js")
 
 target_link_options(libqe PRIVATE
     -sMODULARIZE=1
+    -sEXPORT_ES6=1          # emit an ES module (export default factory)
     -sEXPORT_NAME=LibQE
     -sWASM=1
     -sALLOW_MEMORY_GROWTH=1
