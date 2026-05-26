@@ -38,7 +38,7 @@ build:wasm:
     CONAN_HOME: "$CI_PROJECT_DIR/wasm/.conan2"
   <<: *wasm-conan-cache
   before_script:
-    - pip install conan --quiet
+    - pip install conan --quiet --break-system-packages
     - conan profile detect --force
   script:
     - sh wasm/scripts/build.sh
