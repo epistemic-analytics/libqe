@@ -26,4 +26,7 @@ armadillo*:use_lapack = False
 armadillo*:use_hdf5   = False
 
 [conf]
+# Map Conan's "clang" compiler setting to the Emscripten wrappers so that
+# cmake finds CMAKE_C_COMPILER / CMAKE_CXX_COMPILER when building deps.
+tools.build:compiler_executables={"c": "emcc", "cpp": "em++", "asm": "emcc"}
 tools.cmake.cmaketoolchain:generator = Ninja
