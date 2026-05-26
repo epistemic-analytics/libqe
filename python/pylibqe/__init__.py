@@ -17,19 +17,31 @@ pylibqe.accumulation
     Stanza-window accumulation, rolling window sum,
     per-row co-occurrence, adjacency matrix construction.
 
+pylibqe.rotation
+    SVD rotation, deflation, orthogonal SVD, means rotation, and the
+    generalized-rotation tail. Also exports :class:`RotationResult`.
+
 All matrix inputs/outputs use numpy float64 arrays.
 """
 
-from ._pylibqe import adjacency, normalization, modeling, accumulation
+from ._pylibqe import (
+    adjacency,
+    normalization,
+    modeling,
+    accumulation,
+    rotation,
+)
 from ._pylibqe.modeling import NodePositions
-from ._pylibqe import UnitNetworks, TensorNetworks
+from ._pylibqe import UnitNetworks, TensorNetworks, RotationResult
 
 __all__ = [
     "adjacency",
     "normalization",
     "modeling",
     "accumulation",
+    "rotation",
     "NodePositions",
     "UnitNetworks",
     "TensorNetworks",
+    "RotationResult",
 ]

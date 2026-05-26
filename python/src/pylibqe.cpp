@@ -1,10 +1,11 @@
 // pylibqe — nanobind bindings for libqe
 //
-// Exposes four submodules that mirror the four C++ headers:
+// Exposes five submodules that mirror the five C++ headers:
 //   pylibqe.adjacency     — vector/matrix upper-triangle utilities
 //   pylibqe.normalization — row-wise normalization
 //   pylibqe.modeling      — centering, correlation, node-position solvers
 //   pylibqe.accumulation  — stanza window, rolling sum, co-occurrence
+//   pylibqe.rotation      — SVD, means rotation, generalized-rotation tail
 //
 // All matrix arguments are accepted as 2-D numpy float64 arrays (C-contiguous).
 // All vector arguments are accepted as 1-D numpy float64 arrays.
@@ -431,4 +432,149 @@ NB_MODULE(_pylibqe, m) {
         "Returns TensorNetworks with .connection_counts (1-D) and .row_connection_counts (2-D).\n\n"
         "Default mode: when dims=[2] and tensor has 2 elements [weight, window], uses\n"
         "a simplified single-weight/window path (equivalent to tma's default tensor).");
+
+    // ── rotation ──────────────────────────────────────────────────────────────
+    auto rot = m.def_submodule("rotation",
+        "Rotation primitives: SVD, deflation, orthogonal SVD, means rotation, "
+        "generalized-rotation tail.");
+
+    // Python-side RotationResult — same eager-cast pattern as PyNodePositions.
+    struct PyRotationResult {
+        nb::object rotation;       // 2-D ndarray (p × p)
+        nb::object eigenvalues;    // 1-D ndarray (length p), == sdev^2
+        std::vector<std::string> column_names;
+    };
+    auto make_py_rot = [](const qe::RotationResult& r) {
+        PyRotationResult p;
+        p.rotation     = nb::cast(from_mat(r.rotation));
+        p.eigenvalues  = nb::cast(from_vec(r.eigenvalues));
+        p.column_names = r.column_names;
+        return p;
+    };
+
+    nb::class_<PyRotationResult>(m, "RotationResult",
+        "Result struct returned by rotation routines.\n\n"
+        "Attributes\n"
+        "----------\n"
+        "rotation     : ndarray (p × p)   — column j is rotation axis j\n"
+        "eigenvalues  : ndarray (p,)      — sdev^2 from the underlying SVD\n"
+        "column_names : list[str]         — labels for each column of rotation\n\n"
+        "Eigenvalues match rENA's prcomp(...)$sdev^2 convention. For rotations\n"
+        "that fix some named axes (means_rotation, complete_rotation), the\n"
+        "eigenvalues for those leading columns are 0.")
+        .def_ro("rotation",     &PyRotationResult::rotation)
+        .def_ro("eigenvalues",  &PyRotationResult::eigenvalues)
+        .def_ro("column_names", &PyRotationResult::column_names)
+        .def("__repr__", [](const PyRotationResult& r) {
+            auto rot_arr = nb::cast<nb::ndarray<double, nb::ndim<2>>>(r.rotation);
+            std::string s = "<RotationResult rotation=";
+            s += std::to_string(rot_arr.shape(0));
+            s += "x";
+            s += std::to_string(rot_arr.shape(1));
+            s += " labels=[";
+            for (std::size_t i = 0; i < r.column_names.size(); ++i) {
+                if (i) s += ", ";
+                s += r.column_names[i];
+            }
+            s += "]>";
+            return s;
+        });
+
+    rot.def("ena_svd", [make_py_rot](NpMat points) {
+        return make_py_rot(qe::ena_svd(to_mat(points)));
+    }, "points"_a,
+        "SVD rotation matching prcomp(retx=F, scale=F, center=F, tol=0).\n\n"
+        "Caller is responsible for centering upstream. Eigenvalues are stored\n"
+        "as sdev^2 to match rENA's ena.svd.\n\n"
+        "Parameters\n----------\n"
+        "points : ndarray (n_units × n_dims)\n\n"
+        "Returns RotationResult with column_names = ['SVD1', ..., 'SVDp'].\n\n"
+        "Sign convention: none. Signs come from LAPACK's SVD, matching rENA's\n"
+        "long-standing behavior. A deterministic sign rule may be added later.");
+
+    rot.def("deflate", [](NpMat data, NpVec axis) {
+        return from_mat(qe::deflate(to_mat(data), to_vec(axis)));
+    }, "data"_a, "axis"_a,
+        "Project `data` onto the hyperplane orthogonal to a unit-norm axis:\n"
+        "  data - (data @ axis) @ axis.T\n\n"
+        "Caller is responsible for normalizing `axis`.\n\n"
+        "Returns a matrix of the same shape as `data`.");
+
+    rot.def("orthogonal_svd",
+        [make_py_rot](NpMat data, NpMat weights,
+                       std::vector<std::string> named_labels) {
+            return make_py_rot(qe::orthogonal_svd(
+                to_mat(data), to_mat(weights), named_labels));
+        },
+        "data"_a, "weights"_a, "named_labels"_a,
+        "Orthonormalize named axes via QR, fill the rest from SVD.\n\n"
+        "Mirrors rENA's orthogonal_svd() in ena.rotate.by.mean.R. The named\n"
+        "axes in the OUTPUT are the orthonormalized Q columns, not the\n"
+        "original `weights` columns — use complete_rotation() to keep the\n"
+        "named axes verbatim.\n\n"
+        "Parameters\n----------\n"
+        "data         : ndarray (n_units × n_dims)\n"
+        "weights      : ndarray (n_dims × k)   — columns are the named axes\n"
+        "named_labels : list[str] of length k  — labels for the named axes\n\n"
+        "Returns RotationResult with column_names = named_labels + ['SVD{k+1}'..'SVDp'].");
+
+    rot.def("complete_rotation",
+        [make_py_rot](NpMat data, NpMat named_axes,
+                       std::vector<std::string> named_labels) {
+            return make_py_rot(qe::complete_rotation(
+                to_mat(data), to_mat(named_axes), named_labels));
+        },
+        "data"_a, "named_axes"_a, "named_labels"_a,
+        "Keep named axes verbatim, fill remaining axes from an SVD of the\n"
+        "data deflated by all named axes in parallel:\n"
+        "  defA = data - data @ named_axes @ named_axes.T\n\n"
+        "Mirrors the tail of ena.rotate.by.generalized (canonical version:\n"
+        "commit 2c079126 on rENA origin/main). The deflation is *parallel*\n"
+        "(each projection comes off the original data), matching rENA's\n"
+        "literal expression `defA <- A - A %*% v1 %*% t(v1) - A %*% v2 %*% t(v2)`.\n"
+        "For mutually orthogonal axes this equals sequential deflation.\n\n"
+        "Caller is responsible for ensuring each column of `named_axes` is\n"
+        "unit-norm. Orthonormality between columns is NOT assumed.\n\n"
+        "Conventional labels for generalized rotation are 'GMR1', 'GMR2',\n"
+        "then 'SVD{k+1}'..'SVDp'.");
+
+    rot.def("means_rotation",
+        [make_py_rot](NpMat points, nb::list group_pairs) {
+            std::vector<qe::GroupPair> pairs;
+            pairs.reserve(group_pairs.size());
+            for (std::size_t i = 0; i < group_pairs.size(); ++i) {
+                nb::sequence pair = nb::cast<nb::sequence>(group_pairs[i]);
+                if (nb::len(pair) != 2) {
+                    throw std::runtime_error(
+                        "group_pairs[" + std::to_string(i) +
+                        "] must be a length-2 sequence (a, b)");
+                }
+                auto seq_to_uvec = [](nb::handle h) {
+                    auto seq = nb::cast<nb::sequence>(h);
+                    arma::uvec out(nb::len(seq));
+                    std::size_t k = 0;
+                    for (nb::handle item : seq) {
+                        out(k++) = nb::cast<arma::uword>(item);
+                    }
+                    return out;
+                };
+                pairs.push_back({ seq_to_uvec(pair[0]), seq_to_uvec(pair[1]) });
+            }
+            return make_py_rot(qe::means_rotation(to_mat(points), pairs));
+        },
+        "points"_a, "group_pairs"_a,
+        "Means rotation matching ena.rotate.by.mean.\n\n"
+        "For each group pair, computes a normalized mean-difference axis on\n"
+        "the progressively-deflated data and finishes with orthogonal_svd.\n"
+        "The input is column-centered first, matching rENA's\n"
+        "  scale(data, scale=F, center=T)\n"
+        "at the top of ena.rotate.by.mean.\n\n"
+        "Parameters\n----------\n"
+        "points      : ndarray (n_units × n_dims)\n"
+        "group_pairs : list of length k; each element is (a, b) where a and\n"
+        "              b are 0-based integer index sequences into `points`.\n\n"
+        "Returns RotationResult with column_names = ['MR1', ..., 'MRk',\n"
+        "'SVD{k+1}', ..., 'SVDp'].\n\n"
+        "MATCH-RENA NOTE: no guard against zero-norm mean-difference vectors\n"
+        "(latent bug carried forward from rENA verbatim).");
 }
