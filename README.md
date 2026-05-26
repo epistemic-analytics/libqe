@@ -5,7 +5,8 @@ Header-only C++ library providing shared computational primitives for
 `libqe` is the common core consumed by [rENA](https://gitlab.com/epistemic-analytics/qe-packages/rENA)
 and [tma](https://gitlab.com/epistemic-analytics/qe-packages/tma); it ships as
 an R package (via `LinkingTo`), a Python extension (nanobind), a Julia package
-(CxxWrap.jl), and a Conan recipe for downstream C++ consumers.
+(CxxWrap.jl), a WebAssembly/npm package (Emscripten), and a Conan recipe for
+downstream C++ consumers.
 
 ## Modules
 
@@ -172,6 +173,11 @@ cd python && pytest tests/
 **Julia**
 ```bash
 cd julia/LibQE && julia --project=. -e 'using Pkg; Pkg.test()'
+```
+
+**WASM**
+```bash
+cd wasm && npm ci && npm test   # requires dist/ — run build first
 ```
 
 **Conan**
