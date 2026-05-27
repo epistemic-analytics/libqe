@@ -152,7 +152,7 @@ npm install @qe-libs/libqe-wasm
 ```js
 import loadLibQE from '@qe-libs/libqe-wasm';
 const qe = await loadLibQE();
-qe.svector_to_upper_tri(['A', 'B', 'C']);  // → ['A & B', 'A & C', 'B & C']
+qe.connection_names(['A', 'B', 'C']);  // → ['A & B', 'A & C', 'B & C']
 ```
 
 See [wasm/README.md](wasm/README.md) for the full API reference and build-from-source instructions.
