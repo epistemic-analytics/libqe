@@ -13,7 +13,7 @@ using namespace Rcpp;
 //' @param row -1 = both rows, 0 = row indices only, 1 = col indices only
 //' @export
 // [[Rcpp::export]]
-arma::umat lq_connection_indices(int len, int row = -1) {
+arma::umat connection_indices(int len, int row = -1) {
     return qe::connection_indices(len, row);
 }
 
@@ -21,7 +21,7 @@ arma::umat lq_connection_indices(int len, int row = -1) {
 //' @param v Numeric vector of code values
 //' @export
 // [[Rcpp::export]]
-arma::rowvec lq_code_connections(arma::mat v) {
+arma::rowvec code_connections(arma::mat v) {
     return qe::code_connections(v);
 }
 
@@ -29,7 +29,7 @@ arma::rowvec lq_code_connections(arma::mat v) {
 //' @param v Numeric vector of length n*n
 //' @export
 // [[Rcpp::export]]
-arma::rowvec lq_fold_directed_network(arma::vec v) {
+arma::rowvec fold_directed_network(arma::vec v) {
     return qe::fold_directed_network(v);
 }
 
@@ -38,7 +38,7 @@ arma::rowvec lq_fold_directed_network(arma::vec v) {
 //' @param full TRUE = full n*n (directed); FALSE = upper triangle (undirected)
 //' @export
 // [[Rcpp::export]]
-arma::rowvec lq_network_to_vector(arma::mat x, bool full = true) {
+arma::rowvec network_to_vector(arma::mat x, bool full = true) {
     return qe::network_to_vector(x, full);
 }
 
@@ -46,7 +46,7 @@ arma::rowvec lq_network_to_vector(arma::mat x, bool full = true) {
 //' @param v Character vector of code names
 //' @export
 // [[Rcpp::export]]
-std::vector<std::string> lq_connection_names(std::vector<std::string> v) {
+std::vector<std::string> connection_names(std::vector<std::string> v) {
     return qe::connection_names(v);
 }
 
@@ -58,7 +58,7 @@ std::vector<std::string> lq_connection_names(std::vector<std::string> v) {
 //' @param m Numeric matrix
 //' @export
 // [[Rcpp::export]]
-arma::mat lq_normalize_networks(arma::mat m) {
+arma::mat normalize_networks(arma::mat m) {
     return qe::normalize_networks(m);
 }
 
@@ -66,7 +66,7 @@ arma::mat lq_normalize_networks(arma::mat m) {
 //' @param m Numeric matrix
 //' @export
 // [[Rcpp::export]]
-arma::mat lq_scale_networks(arma::mat m) {
+arma::mat scale_networks(arma::mat m) {
     return qe::scale_networks(m);
 }
 
@@ -78,7 +78,7 @@ arma::mat lq_scale_networks(arma::mat m) {
 //' @param values Numeric matrix
 //' @export
 // [[Rcpp::export]]
-arma::mat lq_center_points(arma::mat values) {
+arma::mat center_points(arma::mat values) {
     return qe::center_points(values);
 }
 
@@ -93,7 +93,7 @@ arma::mat lq_center_points(arma::mat values) {
 //'   When \code{nrow(points) == 1} the CI bounds are \code{±Inf}.
 //' @export
 // [[Rcpp::export]]
-arma::mat lq_mean_ci(arma::mat points, double conf_level = 0.95) {
+arma::mat mean_ci(arma::mat points, double conf_level = 0.95) {
     return qe::mean_ci(points, conf_level);
 }
 
@@ -112,7 +112,7 @@ arma::mat lq_mean_ci(arma::mat points, double conf_level = 0.95) {
 //' @return Numeric matrix (n_dims x 2): columns are [lower, upper].
 //' @export
 // [[Rcpp::export]]
-arma::mat lq_outlier_ci(arma::mat points, double iqr_factor = 1.5) {
+arma::mat outlier_ci(arma::mat points, double iqr_factor = 1.5) {
     return qe::outlier_ci(points, iqr_factor);
 }
 
@@ -122,7 +122,7 @@ arma::mat lq_outlier_ci(arma::mat points, double iqr_factor = 1.5) {
 //' @param conf_level Confidence level (default 0.95)
 //' @export
 // [[Rcpp::export]]
-arma::mat lq_ena_correlation(arma::mat points, arma::mat centroids,
+arma::mat ena_correlation(arma::mat points, arma::mat centroids,
                               double conf_level = 0.95) {
     return qe::ena_correlation(points, centroids, conf_level);
 }
@@ -134,7 +134,7 @@ arma::mat lq_ena_correlation(arma::mat points, arma::mat centroids,
 //' @return List with nodes, centroids, weights, points
 //' @export
 // [[Rcpp::export]]
-List lq_node_positions(arma::mat adj_mats, arma::mat t, int num_dims) {
+List node_positions(arma::mat adj_mats, arma::mat t, int num_dims) {
     qe::NodePositions r = qe::node_positions(adj_mats, t, num_dims);
     return List::create(
         _("nodes")     = r.nodes,
@@ -151,7 +151,7 @@ List lq_node_positions(arma::mat adj_mats, arma::mat t, int num_dims) {
 //' @return List with nodes, centroids, weights, points
 //' @export
 // [[Rcpp::export]]
-List lq_directed_node_positions(arma::mat line_weights, arma::mat points,
+List directed_node_positions(arma::mat line_weights, arma::mat points,
                                  int num_dims) {
     qe::NodePositions r = qe::directed_node_positions(line_weights, points, num_dims);
     return List::create(
@@ -169,7 +169,7 @@ List lq_directed_node_positions(arma::mat line_weights, arma::mat points,
 //' @return List with nodes, centroids, weights, points
 //' @export
 // [[Rcpp::export]]
-List lq_directed_node_positions_combine_pairs(arma::mat line_weights,
+List directed_node_positions_combine_pairs(arma::mat line_weights,
                                                arma::mat points,
                                                int num_dims) {
     qe::NodePositions r = qe::directed_node_positions(
@@ -193,7 +193,7 @@ List lq_directed_node_positions_combine_pairs(arma::mat line_weights,
 //' @param ordered         TRUE = directed; FALSE = undirected
 //' @export
 // [[Rcpp::export]]
-arma::mat lq_connection_matrix(arma::rowvec ground, arma::rowvec response,
+arma::mat connection_matrix(arma::rowvec ground, arma::rowvec response,
                                          double response_weight = 1.0,
                                          bool ordered = true) {
     return qe::connection_matrix(ground, response, response_weight, ordered);
@@ -212,7 +212,7 @@ arma::mat lq_connection_matrix(arma::rowvec ground, arma::rowvec response,
 //' @return Numeric matrix (same n_rows, choose_two(n_codes) columns)
 //' @export
 // [[Rcpp::export]]
-arma::mat lq_accumulate_stanza(arma::mat codes,
+arma::mat accumulate_stanza(arma::mat codes,
                             int window_back    = 1,
                             int window_forward = 0,
                             bool binary        = true) {
@@ -229,7 +229,7 @@ arma::mat lq_accumulate_stanza(arma::mat codes,
 //' @return Scalar integer linear index
 //' @export
 // [[Rcpp::export]]
-int lq_flat_index(std::vector<int> indices, std::vector<int> dims) {
+int flat_index(std::vector<int> indices, std::vector<int> dims) {
     return qe::flat_index(indices, dims);
 }
 
@@ -244,7 +244,7 @@ int lq_flat_index(std::vector<int> indices, std::vector<int> dims) {
 //' @return Numeric matrix (n_rows x choose_two(n_codes))
 //' @export
 // [[Rcpp::export]]
-arma::mat lq_row_connections(arma::mat codes, bool binary = true) {
+arma::mat row_connections(arma::mat codes, bool binary = true) {
     return qe::row_connections(codes, binary);
 }
 
@@ -260,7 +260,7 @@ arma::mat lq_row_connections(arma::mat codes, bool binary = true) {
 //' @return Numeric matrix (same dimensions as \code{codes})
 //' @export
 // [[Rcpp::export]]
-arma::mat lq_rolling_window_sum(arma::mat codes, int window_size = 1) {
+arma::mat rolling_window_sum(arma::mat codes, int window_size = 1) {
     return qe::rolling_window_sum(codes, window_size);
 }
 
@@ -273,7 +273,7 @@ arma::mat lq_rolling_window_sum(arma::mat codes, int window_size = 1) {
 //' @return Numeric vector of connection counts
 //' @export
 // [[Rcpp::export]]
-arma::rowvec lq_accumulate_unit(arma::mat codes, std::vector<int> unit_rows,
+arma::rowvec accumulate_unit(arma::mat codes, std::vector<int> unit_rows,
                                   Function decay_fn, bool ordered = false) {
     auto cpp_decay = [&](arma::vec distances) -> arma::vec {
         NumericVector d = wrap(distances);
@@ -296,7 +296,7 @@ arma::rowvec lq_accumulate_unit(arma::mat codes, std::vector<int> unit_rows,
 //' @return List with `networks` (vector) and `row_networks` (matrix)
 //' @export
 // [[Rcpp::export]]
-List lq_accumulate_unit_with_rows(arma::mat codes, std::vector<int> unit_rows,
+List accumulate_unit_with_rows(arma::mat codes, std::vector<int> unit_rows,
                                    Function decay_fn, bool ordered = false) {
     auto cpp_decay = [&](int unit_row, arma::uvec ground_indices) -> arma::vec {
         arma::vec dists(ground_indices.n_elem);
@@ -330,7 +330,7 @@ List lq_accumulate_unit_with_rows(arma::mat codes, std::vector<int> unit_rows,
 //' @return List with `connection_counts` (vector) and `row_connection_counts` (matrix)
 //' @export
 // [[Rcpp::export]]
-List lq_apply_tensor(arma::vec tensor,
+List apply_tensor(arma::vec tensor,
                      std::vector<int> dims,
                      std::vector<int> dims_sender,
                      std::vector<int> dims_receiver,
@@ -380,7 +380,7 @@ static List pack_rotation_result(const qe::RotationResult& r) {
 //'   (length n_dims, = sdev^2), and \code{column_names} ("SVD1", "SVD2", ...)
 //' @export
 // [[Rcpp::export]]
-List lq_ena_svd(arma::mat points) {
+List ena_svd(arma::mat points) {
     return pack_rotation_result(qe::ena_svd(points));
 }
 
@@ -394,7 +394,7 @@ List lq_ena_svd(arma::mat points) {
 //' @return Numeric matrix of the same shape as \code{data}
 //' @export
 // [[Rcpp::export]]
-arma::mat lq_deflate(arma::mat data, arma::vec axis) {
+arma::mat deflate(arma::mat data, arma::vec axis) {
     return qe::deflate(data, axis);
 }
 
@@ -402,7 +402,7 @@ arma::mat lq_deflate(arma::mat data, arma::vec axis) {
 //'
 //' Mirrors rENA's \code{orthogonal_svd()} in \code{ena.rotate.by.mean.R}:
 //' the named axes in the output are the orthonormalized Q columns, not the
-//' original \code{weights} columns. Use \code{lq_complete_rotation} to keep
+//' original \code{weights} columns. Use \code{complete_rotation} to keep
 //' the named axes verbatim.
 //'
 //' @param data         Numeric matrix (n_units x n_dims)
@@ -411,7 +411,7 @@ arma::mat lq_deflate(arma::mat data, arma::vec axis) {
 //' @return List with \code{rotation}, \code{eigenvalues}, \code{column_names}
 //' @export
 // [[Rcpp::export]]
-List lq_orthogonal_svd(arma::mat data,
+List orthogonal_svd(arma::mat data,
                         arma::mat weights,
                         std::vector<std::string> named_labels) {
     return pack_rotation_result(qe::orthogonal_svd(data, weights, named_labels));
@@ -429,7 +429,7 @@ List lq_orthogonal_svd(arma::mat data,
 //' @return List with \code{rotation}, \code{eigenvalues}, \code{column_names}
 //' @export
 // [[Rcpp::export]]
-List lq_complete_rotation(arma::mat data,
+List complete_rotation(arma::mat data,
                            arma::mat named_axes,
                            std::vector<std::string> named_labels) {
     return pack_rotation_result(qe::complete_rotation(data, named_axes, named_labels));
@@ -438,7 +438,7 @@ List lq_complete_rotation(arma::mat data,
 //' Means rotation
 //'
 //' For each group pair, computes a normalized mean-difference axis on the
-//' progressively-deflated data and finishes with \code{lq_orthogonal_svd}.
+//' progressively-deflated data and finishes with \code{orthogonal_svd}.
 //' The input is column-centered first, matching rENA's
 //' \code{scale(data, scale=F, center=T)} at the top of \code{ena.rotate.by.mean}.
 //'
@@ -451,7 +451,7 @@ List lq_complete_rotation(arma::mat data,
 //' @return List with \code{rotation}, \code{eigenvalues}, \code{column_names}
 //' @export
 // [[Rcpp::export]]
-List lq_means_rotation(arma::mat points, List group_pairs) {
+List means_rotation(arma::mat points, List group_pairs) {
     std::vector<qe::GroupPair> pairs;
     pairs.reserve(group_pairs.size());
     for (R_xlen_t i = 0; i < group_pairs.size(); ++i) {

@@ -11,175 +11,175 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// lq_connection_indices
-arma::umat lq_connection_indices(int len, int row);
-RcppExport SEXP _libqe_lq_connection_indices(SEXP lenSEXP, SEXP rowSEXP) {
+// connection_indices
+arma::umat connection_indices(int len, int row);
+RcppExport SEXP _libqe_connection_indices(SEXP lenSEXP, SEXP rowSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< int >::type len(lenSEXP);
     Rcpp::traits::input_parameter< int >::type row(rowSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_connection_indices(len, row));
+    rcpp_result_gen = Rcpp::wrap(connection_indices(len, row));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_code_connections
-arma::rowvec lq_code_connections(arma::mat v);
-RcppExport SEXP _libqe_lq_code_connections(SEXP vSEXP) {
+// code_connections
+arma::rowvec code_connections(arma::mat v);
+RcppExport SEXP _libqe_code_connections(SEXP vSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type v(vSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_code_connections(v));
+    rcpp_result_gen = Rcpp::wrap(code_connections(v));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_fold_directed_network
-arma::rowvec lq_fold_directed_network(arma::vec v);
-RcppExport SEXP _libqe_lq_fold_directed_network(SEXP vSEXP) {
+// fold_directed_network
+arma::rowvec fold_directed_network(arma::vec v);
+RcppExport SEXP _libqe_fold_directed_network(SEXP vSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::vec >::type v(vSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_fold_directed_network(v));
+    rcpp_result_gen = Rcpp::wrap(fold_directed_network(v));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_network_to_vector
-arma::rowvec lq_network_to_vector(arma::mat x, bool full);
-RcppExport SEXP _libqe_lq_network_to_vector(SEXP xSEXP, SEXP fullSEXP) {
+// network_to_vector
+arma::rowvec network_to_vector(arma::mat x, bool full);
+RcppExport SEXP _libqe_network_to_vector(SEXP xSEXP, SEXP fullSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type x(xSEXP);
     Rcpp::traits::input_parameter< bool >::type full(fullSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_network_to_vector(x, full));
+    rcpp_result_gen = Rcpp::wrap(network_to_vector(x, full));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_connection_names
-std::vector<std::string> lq_connection_names(std::vector<std::string> v);
-RcppExport SEXP _libqe_lq_connection_names(SEXP vSEXP) {
+// connection_names
+std::vector<std::string> connection_names(std::vector<std::string> v);
+RcppExport SEXP _libqe_connection_names(SEXP vSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< std::vector<std::string> >::type v(vSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_connection_names(v));
+    rcpp_result_gen = Rcpp::wrap(connection_names(v));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_normalize_networks
-arma::mat lq_normalize_networks(arma::mat m);
-RcppExport SEXP _libqe_lq_normalize_networks(SEXP mSEXP) {
+// normalize_networks
+arma::mat normalize_networks(arma::mat m);
+RcppExport SEXP _libqe_normalize_networks(SEXP mSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type m(mSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_normalize_networks(m));
+    rcpp_result_gen = Rcpp::wrap(normalize_networks(m));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_scale_networks
-arma::mat lq_scale_networks(arma::mat m);
-RcppExport SEXP _libqe_lq_scale_networks(SEXP mSEXP) {
+// scale_networks
+arma::mat scale_networks(arma::mat m);
+RcppExport SEXP _libqe_scale_networks(SEXP mSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type m(mSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_scale_networks(m));
+    rcpp_result_gen = Rcpp::wrap(scale_networks(m));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_center_points
-arma::mat lq_center_points(arma::mat values);
-RcppExport SEXP _libqe_lq_center_points(SEXP valuesSEXP) {
+// center_points
+arma::mat center_points(arma::mat values);
+RcppExport SEXP _libqe_center_points(SEXP valuesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type values(valuesSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_center_points(values));
+    rcpp_result_gen = Rcpp::wrap(center_points(values));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_mean_ci
-arma::mat lq_mean_ci(arma::mat points, double conf_level);
-RcppExport SEXP _libqe_lq_mean_ci(SEXP pointsSEXP, SEXP conf_levelSEXP) {
+// mean_ci
+arma::mat mean_ci(arma::mat points, double conf_level);
+RcppExport SEXP _libqe_mean_ci(SEXP pointsSEXP, SEXP conf_levelSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type points(pointsSEXP);
     Rcpp::traits::input_parameter< double >::type conf_level(conf_levelSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_mean_ci(points, conf_level));
+    rcpp_result_gen = Rcpp::wrap(mean_ci(points, conf_level));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_outlier_ci
-arma::mat lq_outlier_ci(arma::mat points, double iqr_factor);
-RcppExport SEXP _libqe_lq_outlier_ci(SEXP pointsSEXP, SEXP iqr_factorSEXP) {
+// outlier_ci
+arma::mat outlier_ci(arma::mat points, double iqr_factor);
+RcppExport SEXP _libqe_outlier_ci(SEXP pointsSEXP, SEXP iqr_factorSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type points(pointsSEXP);
     Rcpp::traits::input_parameter< double >::type iqr_factor(iqr_factorSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_outlier_ci(points, iqr_factor));
+    rcpp_result_gen = Rcpp::wrap(outlier_ci(points, iqr_factor));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_ena_correlation
-arma::mat lq_ena_correlation(arma::mat points, arma::mat centroids, double conf_level);
-RcppExport SEXP _libqe_lq_ena_correlation(SEXP pointsSEXP, SEXP centroidsSEXP, SEXP conf_levelSEXP) {
+// ena_correlation
+arma::mat ena_correlation(arma::mat points, arma::mat centroids, double conf_level);
+RcppExport SEXP _libqe_ena_correlation(SEXP pointsSEXP, SEXP centroidsSEXP, SEXP conf_levelSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type points(pointsSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type centroids(centroidsSEXP);
     Rcpp::traits::input_parameter< double >::type conf_level(conf_levelSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_ena_correlation(points, centroids, conf_level));
+    rcpp_result_gen = Rcpp::wrap(ena_correlation(points, centroids, conf_level));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_node_positions
-List lq_node_positions(arma::mat adj_mats, arma::mat t, int num_dims);
-RcppExport SEXP _libqe_lq_node_positions(SEXP adj_matsSEXP, SEXP tSEXP, SEXP num_dimsSEXP) {
+// node_positions
+List node_positions(arma::mat adj_mats, arma::mat t, int num_dims);
+RcppExport SEXP _libqe_node_positions(SEXP adj_matsSEXP, SEXP tSEXP, SEXP num_dimsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type adj_mats(adj_matsSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type t(tSEXP);
     Rcpp::traits::input_parameter< int >::type num_dims(num_dimsSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_node_positions(adj_mats, t, num_dims));
+    rcpp_result_gen = Rcpp::wrap(node_positions(adj_mats, t, num_dims));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_directed_node_positions
-List lq_directed_node_positions(arma::mat line_weights, arma::mat points, int num_dims);
-RcppExport SEXP _libqe_lq_directed_node_positions(SEXP line_weightsSEXP, SEXP pointsSEXP, SEXP num_dimsSEXP) {
+// directed_node_positions
+List directed_node_positions(arma::mat line_weights, arma::mat points, int num_dims);
+RcppExport SEXP _libqe_directed_node_positions(SEXP line_weightsSEXP, SEXP pointsSEXP, SEXP num_dimsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type line_weights(line_weightsSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type points(pointsSEXP);
     Rcpp::traits::input_parameter< int >::type num_dims(num_dimsSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_directed_node_positions(line_weights, points, num_dims));
+    rcpp_result_gen = Rcpp::wrap(directed_node_positions(line_weights, points, num_dims));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_directed_node_positions_combine_pairs
-List lq_directed_node_positions_combine_pairs(arma::mat line_weights, arma::mat points, int num_dims);
-RcppExport SEXP _libqe_lq_directed_node_positions_combine_pairs(SEXP line_weightsSEXP, SEXP pointsSEXP, SEXP num_dimsSEXP) {
+// directed_node_positions_combine_pairs
+List directed_node_positions_combine_pairs(arma::mat line_weights, arma::mat points, int num_dims);
+RcppExport SEXP _libqe_directed_node_positions_combine_pairs(SEXP line_weightsSEXP, SEXP pointsSEXP, SEXP num_dimsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type line_weights(line_weightsSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type points(pointsSEXP);
     Rcpp::traits::input_parameter< int >::type num_dims(num_dimsSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_directed_node_positions_combine_pairs(line_weights, points, num_dims));
+    rcpp_result_gen = Rcpp::wrap(directed_node_positions_combine_pairs(line_weights, points, num_dims));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_connection_matrix
-arma::mat lq_connection_matrix(arma::rowvec ground, arma::rowvec response, double response_weight, bool ordered);
-RcppExport SEXP _libqe_lq_connection_matrix(SEXP groundSEXP, SEXP responseSEXP, SEXP response_weightSEXP, SEXP orderedSEXP) {
+// connection_matrix
+arma::mat connection_matrix(arma::rowvec ground, arma::rowvec response, double response_weight, bool ordered);
+RcppExport SEXP _libqe_connection_matrix(SEXP groundSEXP, SEXP responseSEXP, SEXP response_weightSEXP, SEXP orderedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -187,13 +187,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::rowvec >::type response(responseSEXP);
     Rcpp::traits::input_parameter< double >::type response_weight(response_weightSEXP);
     Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_connection_matrix(ground, response, response_weight, ordered));
+    rcpp_result_gen = Rcpp::wrap(connection_matrix(ground, response, response_weight, ordered));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_accumulate_stanza
-arma::mat lq_accumulate_stanza(arma::mat codes, int window_back, int window_forward, bool binary);
-RcppExport SEXP _libqe_lq_accumulate_stanza(SEXP codesSEXP, SEXP window_backSEXP, SEXP window_forwardSEXP, SEXP binarySEXP) {
+// accumulate_stanza
+arma::mat accumulate_stanza(arma::mat codes, int window_back, int window_forward, bool binary);
+RcppExport SEXP _libqe_accumulate_stanza(SEXP codesSEXP, SEXP window_backSEXP, SEXP window_forwardSEXP, SEXP binarySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -201,49 +201,49 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type window_back(window_backSEXP);
     Rcpp::traits::input_parameter< int >::type window_forward(window_forwardSEXP);
     Rcpp::traits::input_parameter< bool >::type binary(binarySEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_accumulate_stanza(codes, window_back, window_forward, binary));
+    rcpp_result_gen = Rcpp::wrap(accumulate_stanza(codes, window_back, window_forward, binary));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_flat_index
-int lq_flat_index(std::vector<int> indices, std::vector<int> dims);
-RcppExport SEXP _libqe_lq_flat_index(SEXP indicesSEXP, SEXP dimsSEXP) {
+// flat_index
+int flat_index(std::vector<int> indices, std::vector<int> dims);
+RcppExport SEXP _libqe_flat_index(SEXP indicesSEXP, SEXP dimsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< std::vector<int> >::type indices(indicesSEXP);
     Rcpp::traits::input_parameter< std::vector<int> >::type dims(dimsSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_flat_index(indices, dims));
+    rcpp_result_gen = Rcpp::wrap(flat_index(indices, dims));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_row_connections
-arma::mat lq_row_connections(arma::mat codes, bool binary);
-RcppExport SEXP _libqe_lq_row_connections(SEXP codesSEXP, SEXP binarySEXP) {
+// row_connections
+arma::mat row_connections(arma::mat codes, bool binary);
+RcppExport SEXP _libqe_row_connections(SEXP codesSEXP, SEXP binarySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type codes(codesSEXP);
     Rcpp::traits::input_parameter< bool >::type binary(binarySEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_row_connections(codes, binary));
+    rcpp_result_gen = Rcpp::wrap(row_connections(codes, binary));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_rolling_window_sum
-arma::mat lq_rolling_window_sum(arma::mat codes, int window_size);
-RcppExport SEXP _libqe_lq_rolling_window_sum(SEXP codesSEXP, SEXP window_sizeSEXP) {
+// rolling_window_sum
+arma::mat rolling_window_sum(arma::mat codes, int window_size);
+RcppExport SEXP _libqe_rolling_window_sum(SEXP codesSEXP, SEXP window_sizeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type codes(codesSEXP);
     Rcpp::traits::input_parameter< int >::type window_size(window_sizeSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_rolling_window_sum(codes, window_size));
+    rcpp_result_gen = Rcpp::wrap(rolling_window_sum(codes, window_size));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_accumulate_unit
-arma::rowvec lq_accumulate_unit(arma::mat codes, std::vector<int> unit_rows, Function decay_fn, bool ordered);
-RcppExport SEXP _libqe_lq_accumulate_unit(SEXP codesSEXP, SEXP unit_rowsSEXP, SEXP decay_fnSEXP, SEXP orderedSEXP) {
+// accumulate_unit
+arma::rowvec accumulate_unit(arma::mat codes, std::vector<int> unit_rows, Function decay_fn, bool ordered);
+RcppExport SEXP _libqe_accumulate_unit(SEXP codesSEXP, SEXP unit_rowsSEXP, SEXP decay_fnSEXP, SEXP orderedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -251,13 +251,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< std::vector<int> >::type unit_rows(unit_rowsSEXP);
     Rcpp::traits::input_parameter< Function >::type decay_fn(decay_fnSEXP);
     Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_accumulate_unit(codes, unit_rows, decay_fn, ordered));
+    rcpp_result_gen = Rcpp::wrap(accumulate_unit(codes, unit_rows, decay_fn, ordered));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_accumulate_unit_with_rows
-List lq_accumulate_unit_with_rows(arma::mat codes, std::vector<int> unit_rows, Function decay_fn, bool ordered);
-RcppExport SEXP _libqe_lq_accumulate_unit_with_rows(SEXP codesSEXP, SEXP unit_rowsSEXP, SEXP decay_fnSEXP, SEXP orderedSEXP) {
+// accumulate_unit_with_rows
+List accumulate_unit_with_rows(arma::mat codes, std::vector<int> unit_rows, Function decay_fn, bool ordered);
+RcppExport SEXP _libqe_accumulate_unit_with_rows(SEXP codesSEXP, SEXP unit_rowsSEXP, SEXP decay_fnSEXP, SEXP orderedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -265,13 +265,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< std::vector<int> >::type unit_rows(unit_rowsSEXP);
     Rcpp::traits::input_parameter< Function >::type decay_fn(decay_fnSEXP);
     Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_accumulate_unit_with_rows(codes, unit_rows, decay_fn, ordered));
+    rcpp_result_gen = Rcpp::wrap(accumulate_unit_with_rows(codes, unit_rows, decay_fn, ordered));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_apply_tensor
-List lq_apply_tensor(arma::vec tensor, std::vector<int> dims, std::vector<int> dims_sender, std::vector<int> dims_receiver, std::vector<int> dims_mode, arma::imat context_lookup, std::vector<int> unit_rows, arma::mat codes, arma::vec times, bool ordered);
-RcppExport SEXP _libqe_lq_apply_tensor(SEXP tensorSEXP, SEXP dimsSEXP, SEXP dims_senderSEXP, SEXP dims_receiverSEXP, SEXP dims_modeSEXP, SEXP context_lookupSEXP, SEXP unit_rowsSEXP, SEXP codesSEXP, SEXP timesSEXP, SEXP orderedSEXP) {
+// apply_tensor
+List apply_tensor(arma::vec tensor, std::vector<int> dims, std::vector<int> dims_sender, std::vector<int> dims_receiver, std::vector<int> dims_mode, arma::imat context_lookup, std::vector<int> unit_rows, arma::mat codes, arma::vec times, bool ordered);
+RcppExport SEXP _libqe_apply_tensor(SEXP tensorSEXP, SEXP dimsSEXP, SEXP dims_senderSEXP, SEXP dims_receiverSEXP, SEXP dims_modeSEXP, SEXP context_lookupSEXP, SEXP unit_rowsSEXP, SEXP codesSEXP, SEXP timesSEXP, SEXP orderedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -285,100 +285,100 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type codes(codesSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type times(timesSEXP);
     Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_apply_tensor(tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered));
+    rcpp_result_gen = Rcpp::wrap(apply_tensor(tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_ena_svd
-List lq_ena_svd(arma::mat points);
-RcppExport SEXP _libqe_lq_ena_svd(SEXP pointsSEXP) {
+// ena_svd
+List ena_svd(arma::mat points);
+RcppExport SEXP _libqe_ena_svd(SEXP pointsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type points(pointsSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_ena_svd(points));
+    rcpp_result_gen = Rcpp::wrap(ena_svd(points));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_deflate
-arma::mat lq_deflate(arma::mat data, arma::vec axis);
-RcppExport SEXP _libqe_lq_deflate(SEXP dataSEXP, SEXP axisSEXP) {
+// deflate
+arma::mat deflate(arma::mat data, arma::vec axis);
+RcppExport SEXP _libqe_deflate(SEXP dataSEXP, SEXP axisSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type data(dataSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type axis(axisSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_deflate(data, axis));
+    rcpp_result_gen = Rcpp::wrap(deflate(data, axis));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_orthogonal_svd
-List lq_orthogonal_svd(arma::mat data, arma::mat weights, std::vector<std::string> named_labels);
-RcppExport SEXP _libqe_lq_orthogonal_svd(SEXP dataSEXP, SEXP weightsSEXP, SEXP named_labelsSEXP) {
+// orthogonal_svd
+List orthogonal_svd(arma::mat data, arma::mat weights, std::vector<std::string> named_labels);
+RcppExport SEXP _libqe_orthogonal_svd(SEXP dataSEXP, SEXP weightsSEXP, SEXP named_labelsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type data(dataSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type weights(weightsSEXP);
     Rcpp::traits::input_parameter< std::vector<std::string> >::type named_labels(named_labelsSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_orthogonal_svd(data, weights, named_labels));
+    rcpp_result_gen = Rcpp::wrap(orthogonal_svd(data, weights, named_labels));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_complete_rotation
-List lq_complete_rotation(arma::mat data, arma::mat named_axes, std::vector<std::string> named_labels);
-RcppExport SEXP _libqe_lq_complete_rotation(SEXP dataSEXP, SEXP named_axesSEXP, SEXP named_labelsSEXP) {
+// complete_rotation
+List complete_rotation(arma::mat data, arma::mat named_axes, std::vector<std::string> named_labels);
+RcppExport SEXP _libqe_complete_rotation(SEXP dataSEXP, SEXP named_axesSEXP, SEXP named_labelsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type data(dataSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type named_axes(named_axesSEXP);
     Rcpp::traits::input_parameter< std::vector<std::string> >::type named_labels(named_labelsSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_complete_rotation(data, named_axes, named_labels));
+    rcpp_result_gen = Rcpp::wrap(complete_rotation(data, named_axes, named_labels));
     return rcpp_result_gen;
 END_RCPP
 }
-// lq_means_rotation
-List lq_means_rotation(arma::mat points, List group_pairs);
-RcppExport SEXP _libqe_lq_means_rotation(SEXP pointsSEXP, SEXP group_pairsSEXP) {
+// means_rotation
+List means_rotation(arma::mat points, List group_pairs);
+RcppExport SEXP _libqe_means_rotation(SEXP pointsSEXP, SEXP group_pairsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type points(pointsSEXP);
     Rcpp::traits::input_parameter< List >::type group_pairs(group_pairsSEXP);
-    rcpp_result_gen = Rcpp::wrap(lq_means_rotation(points, group_pairs));
+    rcpp_result_gen = Rcpp::wrap(means_rotation(points, group_pairs));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_libqe_lq_connection_indices", (DL_FUNC) &_libqe_lq_connection_indices, 2},
-    {"_libqe_lq_code_connections", (DL_FUNC) &_libqe_lq_code_connections, 1},
-    {"_libqe_lq_fold_directed_network", (DL_FUNC) &_libqe_lq_fold_directed_network, 1},
-    {"_libqe_lq_network_to_vector", (DL_FUNC) &_libqe_lq_network_to_vector, 2},
-    {"_libqe_lq_connection_names", (DL_FUNC) &_libqe_lq_connection_names, 1},
-    {"_libqe_lq_normalize_networks", (DL_FUNC) &_libqe_lq_normalize_networks, 1},
-    {"_libqe_lq_scale_networks", (DL_FUNC) &_libqe_lq_scale_networks, 1},
-    {"_libqe_lq_center_points", (DL_FUNC) &_libqe_lq_center_points, 1},
-    {"_libqe_lq_mean_ci", (DL_FUNC) &_libqe_lq_mean_ci, 2},
-    {"_libqe_lq_outlier_ci", (DL_FUNC) &_libqe_lq_outlier_ci, 2},
-    {"_libqe_lq_ena_correlation", (DL_FUNC) &_libqe_lq_ena_correlation, 3},
-    {"_libqe_lq_node_positions", (DL_FUNC) &_libqe_lq_node_positions, 3},
-    {"_libqe_lq_directed_node_positions", (DL_FUNC) &_libqe_lq_directed_node_positions, 3},
-    {"_libqe_lq_directed_node_positions_combine_pairs", (DL_FUNC) &_libqe_lq_directed_node_positions_combine_pairs, 3},
-    {"_libqe_lq_connection_matrix", (DL_FUNC) &_libqe_lq_connection_matrix, 4},
-    {"_libqe_lq_accumulate_stanza", (DL_FUNC) &_libqe_lq_accumulate_stanza, 4},
-    {"_libqe_lq_flat_index", (DL_FUNC) &_libqe_lq_flat_index, 2},
-    {"_libqe_lq_row_connections", (DL_FUNC) &_libqe_lq_row_connections, 2},
-    {"_libqe_lq_rolling_window_sum", (DL_FUNC) &_libqe_lq_rolling_window_sum, 2},
-    {"_libqe_lq_accumulate_unit", (DL_FUNC) &_libqe_lq_accumulate_unit, 4},
-    {"_libqe_lq_accumulate_unit_with_rows", (DL_FUNC) &_libqe_lq_accumulate_unit_with_rows, 4},
-    {"_libqe_lq_apply_tensor", (DL_FUNC) &_libqe_lq_apply_tensor, 10},
-    {"_libqe_lq_ena_svd", (DL_FUNC) &_libqe_lq_ena_svd, 1},
-    {"_libqe_lq_deflate", (DL_FUNC) &_libqe_lq_deflate, 2},
-    {"_libqe_lq_orthogonal_svd", (DL_FUNC) &_libqe_lq_orthogonal_svd, 3},
-    {"_libqe_lq_complete_rotation", (DL_FUNC) &_libqe_lq_complete_rotation, 3},
-    {"_libqe_lq_means_rotation", (DL_FUNC) &_libqe_lq_means_rotation, 2},
+    {"_libqe_connection_indices", (DL_FUNC) &_libqe_connection_indices, 2},
+    {"_libqe_code_connections", (DL_FUNC) &_libqe_code_connections, 1},
+    {"_libqe_fold_directed_network", (DL_FUNC) &_libqe_fold_directed_network, 1},
+    {"_libqe_network_to_vector", (DL_FUNC) &_libqe_network_to_vector, 2},
+    {"_libqe_connection_names", (DL_FUNC) &_libqe_connection_names, 1},
+    {"_libqe_normalize_networks", (DL_FUNC) &_libqe_normalize_networks, 1},
+    {"_libqe_scale_networks", (DL_FUNC) &_libqe_scale_networks, 1},
+    {"_libqe_center_points", (DL_FUNC) &_libqe_center_points, 1},
+    {"_libqe_mean_ci", (DL_FUNC) &_libqe_mean_ci, 2},
+    {"_libqe_outlier_ci", (DL_FUNC) &_libqe_outlier_ci, 2},
+    {"_libqe_ena_correlation", (DL_FUNC) &_libqe_ena_correlation, 3},
+    {"_libqe_node_positions", (DL_FUNC) &_libqe_node_positions, 3},
+    {"_libqe_directed_node_positions", (DL_FUNC) &_libqe_directed_node_positions, 3},
+    {"_libqe_directed_node_positions_combine_pairs", (DL_FUNC) &_libqe_directed_node_positions_combine_pairs, 3},
+    {"_libqe_connection_matrix", (DL_FUNC) &_libqe_connection_matrix, 4},
+    {"_libqe_accumulate_stanza", (DL_FUNC) &_libqe_accumulate_stanza, 4},
+    {"_libqe_flat_index", (DL_FUNC) &_libqe_flat_index, 2},
+    {"_libqe_row_connections", (DL_FUNC) &_libqe_row_connections, 2},
+    {"_libqe_rolling_window_sum", (DL_FUNC) &_libqe_rolling_window_sum, 2},
+    {"_libqe_accumulate_unit", (DL_FUNC) &_libqe_accumulate_unit, 4},
+    {"_libqe_accumulate_unit_with_rows", (DL_FUNC) &_libqe_accumulate_unit_with_rows, 4},
+    {"_libqe_apply_tensor", (DL_FUNC) &_libqe_apply_tensor, 10},
+    {"_libqe_ena_svd", (DL_FUNC) &_libqe_ena_svd, 1},
+    {"_libqe_deflate", (DL_FUNC) &_libqe_deflate, 2},
+    {"_libqe_orthogonal_svd", (DL_FUNC) &_libqe_orthogonal_svd, 3},
+    {"_libqe_complete_rotation", (DL_FUNC) &_libqe_complete_rotation, 3},
+    {"_libqe_means_rotation", (DL_FUNC) &_libqe_means_rotation, 2},
     {NULL, NULL, 0}
 };
 

@@ -5,58 +5,58 @@
 #' @param len Number of codes (side length of square matrix)
 #' @param row -1 = both rows, 0 = row indices only, 1 = col indices only
 #' @export
-lq_connection_indices <- function(len, row = -1L) {
-    .Call(`_libqe_lq_connection_indices`, len, row)
+connection_indices <- function(len, row = -1L) {
+    .Call(`_libqe_connection_indices`, len, row)
 }
 
 #' Pairwise products → upper-triangle vector
 #' @param v Numeric vector of code values
 #' @export
-lq_code_connections <- function(v) {
-    .Call(`_libqe_lq_code_connections`, v)
+code_connections <- function(v) {
+    .Call(`_libqe_code_connections`, v)
 }
 
 #' Fold a directed (n*n) vector into an undirected upper-triangle vector
 #' @param v Numeric vector of length n*n
 #' @export
-lq_fold_directed_network <- function(v) {
-    .Call(`_libqe_lq_fold_directed_network`, v)
+fold_directed_network <- function(v) {
+    .Call(`_libqe_fold_directed_network`, v)
 }
 
 #' Flatten an adjacency matrix to a connection vector
 #' @param x Numeric matrix
 #' @param full TRUE = full n*n (directed); FALSE = upper triangle (undirected)
 #' @export
-lq_network_to_vector <- function(x, full = TRUE) {
-    .Call(`_libqe_lq_network_to_vector`, x, full)
+network_to_vector <- function(x, full = TRUE) {
+    .Call(`_libqe_network_to_vector`, x, full)
 }
 
 #' Code-name pairs for upper-triangle positions ("A & B")
 #' @param v Character vector of code names
 #' @export
-lq_connection_names <- function(v) {
-    .Call(`_libqe_lq_connection_names`, v)
+connection_names <- function(v) {
+    .Call(`_libqe_connection_names`, v)
 }
 
 #' Row-wise L2 (sphere) normalization
 #' @param m Numeric matrix
 #' @export
-lq_normalize_networks <- function(m) {
-    .Call(`_libqe_lq_normalize_networks`, m)
+normalize_networks <- function(m) {
+    .Call(`_libqe_normalize_networks`, m)
 }
 
 #' Max-norm scaling (divide all rows by the largest row L2 norm)
 #' @param m Numeric matrix
 #' @export
-lq_scale_networks <- function(m) {
-    .Call(`_libqe_lq_scale_networks`, m)
+scale_networks <- function(m) {
+    .Call(`_libqe_scale_networks`, m)
 }
 
 #' Center points (subtract column means)
 #' @param values Numeric matrix
 #' @export
-lq_center_points <- function(values) {
-    .Call(`_libqe_lq_center_points`, values)
+center_points <- function(values) {
+    .Call(`_libqe_center_points`, values)
 }
 
 #' Confidence interval for the mean of a group of ENA unit points
@@ -69,8 +69,8 @@ lq_center_points <- function(values) {
 #' @return Numeric matrix (n_dims x 3): columns are [mean, ci_lower, ci_upper].
 #'   When \code{nrow(points) == 1} the CI bounds are \code{±Inf}.
 #' @export
-lq_mean_ci <- function(points, conf_level = 0.95) {
-    .Call(`_libqe_lq_mean_ci`, points, conf_level)
+mean_ci <- function(points, conf_level = 0.95) {
+    .Call(`_libqe_mean_ci`, points, conf_level)
 }
 
 #' Outlier interval based on IQR (Tukey fence) for a group of ENA unit points
@@ -87,8 +87,8 @@ lq_mean_ci <- function(points, conf_level = 0.95) {
 #' @param iqr_factor Multiplier applied to the IQR (default 1.5, the Tukey fence)
 #' @return Numeric matrix (n_dims x 2): columns are [lower, upper].
 #' @export
-lq_outlier_ci <- function(points, iqr_factor = 1.5) {
-    .Call(`_libqe_lq_outlier_ci`, points, iqr_factor)
+outlier_ci <- function(points, iqr_factor = 1.5) {
+    .Call(`_libqe_outlier_ci`, points, iqr_factor)
 }
 
 #' Pearson correlation with CI between ENA points and centroids
@@ -96,8 +96,8 @@ lq_outlier_ci <- function(points, iqr_factor = 1.5) {
 #' @param centroids Numeric matrix (units x dims)
 #' @param conf_level Confidence level (default 0.95)
 #' @export
-lq_ena_correlation <- function(points, centroids, conf_level = 0.95) {
-    .Call(`_libqe_lq_ena_correlation`, points, centroids, conf_level)
+ena_correlation <- function(points, centroids, conf_level = 0.95) {
+    .Call(`_libqe_ena_correlation`, points, centroids, conf_level)
 }
 
 #' Least-squares node positions for undirected ENA
@@ -106,8 +106,8 @@ lq_ena_correlation <- function(points, centroids, conf_level = 0.95) {
 #' @param num_dims Number of dimensions
 #' @return List with nodes, centroids, weights, points
 #' @export
-lq_node_positions <- function(adj_mats, t, num_dims) {
-    .Call(`_libqe_lq_node_positions`, adj_mats, t, num_dims)
+node_positions <- function(adj_mats, t, num_dims) {
+    .Call(`_libqe_node_positions`, adj_mats, t, num_dims)
 }
 
 #' Least-squares node positions for directed ENA
@@ -116,8 +116,8 @@ lq_node_positions <- function(adj_mats, t, num_dims) {
 #' @param num_dims     Number of dimensions
 #' @return List with nodes, centroids, weights, points
 #' @export
-lq_directed_node_positions <- function(line_weights, points, num_dims) {
-    .Call(`_libqe_lq_directed_node_positions`, line_weights, points, num_dims)
+directed_node_positions <- function(line_weights, points, num_dims) {
+    .Call(`_libqe_directed_node_positions`, line_weights, points, num_dims)
 }
 
 #' Directed node positions with paired ground+response rows combined
@@ -126,8 +126,8 @@ lq_directed_node_positions <- function(line_weights, points, num_dims) {
 #' @param num_dims     Number of dimensions
 #' @return List with nodes, centroids, weights, points
 #' @export
-lq_directed_node_positions_combine_pairs <- function(line_weights, points, num_dims) {
-    .Call(`_libqe_lq_directed_node_positions_combine_pairs`, line_weights, points, num_dims)
+directed_node_positions_combine_pairs <- function(line_weights, points, num_dims) {
+    .Call(`_libqe_directed_node_positions_combine_pairs`, line_weights, points, num_dims)
 }
 
 #' Core connection matrix for one ground+response pair
@@ -136,8 +136,8 @@ lq_directed_node_positions_combine_pairs <- function(line_weights, points, num_d
 #' @param response_weight Scalar weight applied to the response self-connection
 #' @param ordered         TRUE = directed; FALSE = undirected
 #' @export
-lq_connection_matrix <- function(ground, response, response_weight = 1.0, ordered = TRUE) {
-    .Call(`_libqe_lq_connection_matrix`, ground, response, response_weight, ordered)
+connection_matrix <- function(ground, response, response_weight = 1.0, ordered = TRUE) {
+    .Call(`_libqe_connection_matrix`, ground, response, response_weight, ordered)
 }
 
 #' Traditional stanza-window accumulation (rENA model)
@@ -152,8 +152,8 @@ lq_connection_matrix <- function(ground, response, response_weight = 1.0, ordere
 #' @param binary         If TRUE, binarise non-zero connection counts
 #' @return Numeric matrix (same n_rows, choose_two(n_codes) columns)
 #' @export
-lq_accumulate_stanza <- function(codes, window_back = 1L, window_forward = 0L, binary = TRUE) {
-    .Call(`_libqe_lq_accumulate_stanza`, codes, window_back, window_forward, binary)
+accumulate_stanza <- function(codes, window_back = 1L, window_forward = 0L, binary = TRUE) {
+    .Call(`_libqe_accumulate_stanza`, codes, window_back, window_forward, binary)
 }
 
 #' Compute a column-major linear index into a multi-dimensional array
@@ -165,8 +165,8 @@ lq_accumulate_stanza <- function(codes, window_back = 1L, window_forward = 0L, b
 #' @param dims    Integer vector of array dimensions
 #' @return Scalar integer linear index
 #' @export
-lq_flat_index <- function(indices, dims) {
-    .Call(`_libqe_lq_flat_index`, indices, dims)
+flat_index <- function(indices, dims) {
+    .Call(`_libqe_flat_index`, indices, dims)
 }
 
 #' Per-row upper-triangle co-occurrence matrix
@@ -179,8 +179,8 @@ lq_flat_index <- function(indices, dims) {
 #' @param binary If TRUE, binarise non-zero co-occurrences (default TRUE)
 #' @return Numeric matrix (n_rows x choose_two(n_codes))
 #' @export
-lq_row_connections <- function(codes, binary = TRUE) {
-    .Call(`_libqe_lq_row_connections`, codes, binary)
+row_connections <- function(codes, binary = TRUE) {
+    .Call(`_libqe_row_connections`, codes, binary)
 }
 
 #' Rolling backward window sum of a code matrix
@@ -194,8 +194,8 @@ lq_row_connections <- function(codes, binary = TRUE) {
 #' @param window_size Number of rows to look back (default 1)
 #' @return Numeric matrix (same dimensions as \code{codes})
 #' @export
-lq_rolling_window_sum <- function(codes, window_size = 1L) {
-    .Call(`_libqe_lq_rolling_window_sum`, codes, window_size)
+rolling_window_sum <- function(codes, window_size = 1L) {
+    .Call(`_libqe_rolling_window_sum`, codes, window_size)
 }
 
 #' Ground/response accumulation for one unit (tma model)
@@ -206,8 +206,8 @@ lq_rolling_window_sum <- function(codes, window_size = 1L) {
 #' @param ordered    TRUE = directed; FALSE = undirected (upper-tri)
 #' @return Numeric vector of connection counts
 #' @export
-lq_accumulate_unit <- function(codes, unit_rows, decay_fn, ordered = FALSE) {
-    .Call(`_libqe_lq_accumulate_unit`, codes, unit_rows, decay_fn, ordered)
+accumulate_unit <- function(codes, unit_rows, decay_fn, ordered = FALSE) {
+    .Call(`_libqe_accumulate_unit`, codes, unit_rows, decay_fn, ordered)
 }
 
 #' Ground/response accumulation for one unit — returns unit vector and per-row matrix
@@ -222,8 +222,8 @@ lq_accumulate_unit <- function(codes, unit_rows, decay_fn, ordered = FALSE) {
 #' @param ordered    TRUE = directed (full p^2); FALSE = undirected (upper-tri)
 #' @return List with `networks` (vector) and `row_networks` (matrix)
 #' @export
-lq_accumulate_unit_with_rows <- function(codes, unit_rows, decay_fn, ordered = FALSE) {
-    .Call(`_libqe_lq_accumulate_unit_with_rows`, codes, unit_rows, decay_fn, ordered)
+accumulate_unit_with_rows <- function(codes, unit_rows, decay_fn, ordered = FALSE) {
+    .Call(`_libqe_accumulate_unit_with_rows`, codes, unit_rows, decay_fn, ordered)
 }
 
 #' Tensor-based multi-modal accumulation for one unit (tma model)
@@ -244,8 +244,8 @@ lq_accumulate_unit_with_rows <- function(codes, unit_rows, decay_fn, ordered = F
 #' @param ordered        TRUE = directed; FALSE = undirected
 #' @return List with `connection_counts` (vector) and `row_connection_counts` (matrix)
 #' @export
-lq_apply_tensor <- function(tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered = TRUE) {
-    .Call(`_libqe_lq_apply_tensor`, tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered)
+apply_tensor <- function(tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered = TRUE) {
+    .Call(`_libqe_apply_tensor`, tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered)
 }
 
 #' SVD rotation (matches prcomp(retx=F, scale=F, center=F, tol=0))
@@ -257,8 +257,8 @@ lq_apply_tensor <- function(tensor, dims, dims_sender, dims_receiver, dims_mode,
 #' @return List with \code{rotation} (n_dims x n_dims), \code{eigenvalues}
 #'   (length n_dims, = sdev^2), and \code{column_names} ("SVD1", "SVD2", ...)
 #' @export
-lq_ena_svd <- function(points) {
-    .Call(`_libqe_lq_ena_svd`, points)
+ena_svd <- function(points) {
+    .Call(`_libqe_ena_svd`, points)
 }
 
 #' Project a matrix onto the hyperplane orthogonal to a unit-norm axis
@@ -270,15 +270,15 @@ lq_ena_svd <- function(points) {
 #' @param axis Numeric vector of length n_dims, unit-norm
 #' @return Numeric matrix of the same shape as \code{data}
 #' @export
-lq_deflate <- function(data, axis) {
-    .Call(`_libqe_lq_deflate`, data, axis)
+deflate <- function(data, axis) {
+    .Call(`_libqe_deflate`, data, axis)
 }
 
 #' Orthogonal SVD — orthonormalize named axes via QR, fill the rest from SVD
 #'
 #' Mirrors rENA's \code{orthogonal_svd()} in \code{ena.rotate.by.mean.R}:
 #' the named axes in the output are the orthonormalized Q columns, not the
-#' original \code{weights} columns. Use \code{lq_complete_rotation} to keep
+#' original \code{weights} columns. Use \code{complete_rotation} to keep
 #' the named axes verbatim.
 #'
 #' @param data         Numeric matrix (n_units x n_dims)
@@ -286,8 +286,8 @@ lq_deflate <- function(data, axis) {
 #' @param named_labels Character vector of length k
 #' @return List with \code{rotation}, \code{eigenvalues}, \code{column_names}
 #' @export
-lq_orthogonal_svd <- function(data, weights, named_labels) {
-    .Call(`_libqe_lq_orthogonal_svd`, data, weights, named_labels)
+orthogonal_svd <- function(data, weights, named_labels) {
+    .Call(`_libqe_orthogonal_svd`, data, weights, named_labels)
 }
 
 #' Complete a rotation — keep named axes verbatim, fill remainder from SVD
@@ -301,14 +301,14 @@ lq_orthogonal_svd <- function(data, weights, named_labels) {
 #' @param named_labels Character vector of length k
 #' @return List with \code{rotation}, \code{eigenvalues}, \code{column_names}
 #' @export
-lq_complete_rotation <- function(data, named_axes, named_labels) {
-    .Call(`_libqe_lq_complete_rotation`, data, named_axes, named_labels)
+complete_rotation <- function(data, named_axes, named_labels) {
+    .Call(`_libqe_complete_rotation`, data, named_axes, named_labels)
 }
 
 #' Means rotation
 #'
 #' For each group pair, computes a normalized mean-difference axis on the
-#' progressively-deflated data and finishes with \code{lq_orthogonal_svd}.
+#' progressively-deflated data and finishes with \code{orthogonal_svd}.
 #' The input is column-centered first, matching rENA's
 #' \code{scale(data, scale=F, center=T)} at the top of \code{ena.rotate.by.mean}.
 #'
@@ -320,7 +320,7 @@ lq_complete_rotation <- function(data, named_axes, named_labels) {
 #'   where \code{a} and \code{b} are 0-based integer index vectors
 #' @return List with \code{rotation}, \code{eigenvalues}, \code{column_names}
 #' @export
-lq_means_rotation <- function(points, group_pairs) {
-    .Call(`_libqe_lq_means_rotation`, points, group_pairs)
+means_rotation <- function(points, group_pairs) {
+    .Call(`_libqe_means_rotation`, points, group_pairs)
 }
 

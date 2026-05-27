@@ -44,28 +44,28 @@ pairs_to_libqe <- function(group_pairs) {
 
 test_that("ena_svd: matches prcomp on small dataset (up to sign)", {
     fx  <- load_fixture("svd_small")
-    out <- lq_ena_svd(fx$points)
+    out <- ena_svd(fx$points)
     expect_equal_up_to_sign(unname(out$rotation), unname(fx$rotation))
     expect_equal(unname(out$eigenvalues), unname(fx$eigenvalues), tolerance = 1e-10)
 })
 
 test_that("ena_svd: matches prcomp on medium dataset (up to sign)", {
     fx  <- load_fixture("svd_med")
-    out <- lq_ena_svd(fx$points)
+    out <- ena_svd(fx$points)
     expect_equal_up_to_sign(unname(out$rotation), unname(fx$rotation))
     expect_equal(unname(out$eigenvalues), unname(fx$eigenvalues), tolerance = 1e-10)
 })
 
 test_that("ena_svd: column names are SVD1..SVDp", {
     fx  <- load_fixture("svd_small")
-    out <- lq_ena_svd(fx$points)
+    out <- ena_svd(fx$points)
     expect_equal(out$column_names,
                  paste0("SVD", seq_len(ncol(fx$points))))
 })
 
 test_that("ena_svd: rotation is orthonormal", {
     fx  <- load_fixture("svd_med")
-    out <- lq_ena_svd(fx$points)
+    out <- ena_svd(fx$points)
     p   <- ncol(fx$points)
     expect_equal(unname(t(out$rotation) %*% out$rotation),
                  diag(p), tolerance = 1e-10)
@@ -78,7 +78,7 @@ test_that("deflate: matches manual data - data %*% axis %*% t(axis)", {
     d    <- matrix(rnorm(20 * 4), nrow = 20)
     axis <- rnorm(4); axis <- axis / sqrt(sum(axis ^ 2))
     expect_equal(
-        lq_deflate(d, axis),
+        deflate(d, axis),
         d - (d %*% axis) %*% t(axis),
         tolerance = 1e-12
     )
@@ -88,7 +88,7 @@ test_that("deflate: result is orthogonal to the deflation axis", {
     set.seed(8)
     d    <- matrix(rnorm(15 * 5), nrow = 15)
     axis <- rnorm(5); axis <- axis / sqrt(sum(axis ^ 2))
-    out  <- lq_deflate(d, axis)
+    out  <- deflate(d, axis)
     expect_true(all(abs(out %*% axis) < 1e-10))
 })
 
@@ -100,7 +100,7 @@ for (name in c("means_small_1pair", "means_small_2pair",
         nm <- name
         test_that(sprintf("means_rotation: %s matches rENA orthogonal_svd (up to sign)", nm), {
             fx  <- load_fixture(nm)
-            out <- lq_means_rotation(fx$points, pairs_to_libqe(fx$group_pairs))
+            out <- means_rotation(fx$points, pairs_to_libqe(fx$group_pairs))
             expect_equal_up_to_sign(unname(out$rotation), unname(fx$rotation))
         })
     })
@@ -108,7 +108,7 @@ for (name in c("means_small_1pair", "means_small_2pair",
 
 test_that("means_rotation: column labels are MR1..MRk, SVD(k+1)..SVDp", {
     fx  <- load_fixture("means_small_2pair")
-    out <- lq_means_rotation(fx$points, pairs_to_libqe(fx$group_pairs))
+    out <- means_rotation(fx$points, pairs_to_libqe(fx$group_pairs))
     p   <- ncol(fx$points)
     expect_equal(out$column_names, c("MR1", "MR2", "SVD3", "SVD4"))
     expect_equal(length(out$column_names), p)
@@ -116,7 +116,7 @@ test_that("means_rotation: column labels are MR1..MRk, SVD(k+1)..SVDp", {
 
 test_that("means_rotation: rotation is orthonormal", {
     fx  <- load_fixture("means_med_2pair")
-    out <- lq_means_rotation(fx$points, pairs_to_libqe(fx$group_pairs))
+    out <- means_rotation(fx$points, pairs_to_libqe(fx$group_pairs))
     p   <- ncol(fx$points)
     expect_equal(unname(t(out$rotation) %*% out$rotation),
                  diag(p), tolerance = 1e-10)
@@ -124,7 +124,7 @@ test_that("means_rotation: rotation is orthonormal", {
 
 test_that("means_rotation: errors on empty group_pairs", {
     expect_error(
-        lq_means_rotation(matrix(rnorm(20), nrow = 5), list()),
+        means_rotation(matrix(rnorm(20), nrow = 5), list()),
         "without 2 groups"
     )
 })
@@ -138,7 +138,7 @@ for (name in c("complete_small_1axis", "complete_med_2axis")) {
             fx  <- load_fixture(nm)
             k   <- ncol(fx$named_axes)
             labels <- if (k == 1) "GMR1" else paste0("GMR", seq_len(k))
-            out <- lq_complete_rotation(fx$points, fx$named_axes, labels)
+            out <- complete_rotation(fx$points, fx$named_axes, labels)
 
             # First k columns must match the input named_axes exactly (no flip).
             expect_equal(unname(out$rotation[, 1:k, drop = FALSE]),
@@ -159,7 +159,7 @@ for (name in c("complete_small_1axis", "complete_med_2axis")) {
 
 test_that("complete_rotation: column labels are user-provided then SVD", {
     fx  <- load_fixture("complete_med_2axis")
-    out <- lq_complete_rotation(fx$points, fx$named_axes, c("GMR1", "GMR2"))
+    out <- complete_rotation(fx$points, fx$named_axes, c("GMR1", "GMR2"))
     expect_equal(out$column_names, c("GMR1", "GMR2", "SVD3", "SVD4", "SVD5", "SVD6"))
 })
 
@@ -178,24 +178,24 @@ test_that("orthogonal_svd: equals means_rotation for the same inputs", {
         d  <- colMeans(deflated[a, , drop = FALSE]) -
               colMeans(deflated[b, , drop = FALSE])
         ax <- d / sqrt(sum(d ^ 2))
-        deflated     <- lq_deflate(deflated, ax)
+        deflated     <- deflate(deflated, ax)
         weights[, i] <- ax
     }
-    via_orth  <- lq_orthogonal_svd(deflated, weights, c("MR1", "MR2"))
-    via_means <- lq_means_rotation(fx$points, pairs_to_libqe(fx$group_pairs))
+    via_orth  <- orthogonal_svd(deflated, weights, c("MR1", "MR2"))
+    via_means <- means_rotation(fx$points, pairs_to_libqe(fx$group_pairs))
     expect_equal(via_orth$rotation, via_means$rotation, tolerance = 1e-12)
 })
 
 test_that("orthogonal_svd: errors on label/weights size mismatch", {
     expect_error(
-        lq_orthogonal_svd(matrix(rnorm(20), 5), matrix(0, 4, 2), c("A")),
+        orthogonal_svd(matrix(rnorm(20), 5), matrix(0, 4, 2), c("A")),
         "named_labels.size"
     )
 })
 
 test_that("orthogonal_svd: errors on data/weights dim mismatch", {
     expect_error(
-        lq_orthogonal_svd(matrix(rnorm(20), 5), matrix(0, 3, 1), c("A")),
+        orthogonal_svd(matrix(rnorm(20), 5), matrix(0, 3, 1), c("A")),
         "data.n_cols"
     )
 })
