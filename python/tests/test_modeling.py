@@ -4,36 +4,36 @@ import pytest
 from pylibqe import modeling, NodePositions
 
 
-class TestGroupCI:
+class TestMeanCI:
     def test_output_shape(self):
         rng = np.random.default_rng(10)
         pts = rng.standard_normal((20, 2))
-        out = modeling.group_ci(pts, 0.95)
+        out = modeling.mean_ci(pts, 0.95)
         assert out.shape == (2, 3)
 
     def test_lower_le_mean_le_upper(self):
         rng = np.random.default_rng(11)
         pts = rng.standard_normal((15, 3))
-        out = modeling.group_ci(pts, 0.95)
+        out = modeling.mean_ci(pts, 0.95)
         assert np.all(out[:, 1] <= out[:, 0] + 1e-12)   # lower <= mean
         assert np.all(out[:, 0] <= out[:, 2] + 1e-12)   # mean  <= upper
 
     def test_mean_column_matches_numpy(self):
         rng = np.random.default_rng(12)
         pts = rng.random((30, 2))
-        out = modeling.group_ci(pts, 0.95)
+        out = modeling.mean_ci(pts, 0.95)
         np.testing.assert_allclose(out[:, 0], np.mean(pts, axis=0), atol=1e-10)
 
     def test_wider_conf_level_gives_wider_ci(self):
         rng = np.random.default_rng(13)
         pts = rng.standard_normal((20, 2))
-        lo = modeling.group_ci(pts, 0.80)
-        hi = modeling.group_ci(pts, 0.99)
+        lo = modeling.mean_ci(pts, 0.80)
+        hi = modeling.mean_ci(pts, 0.99)
         assert np.all((hi[:, 2] - hi[:, 1]) > (lo[:, 2] - lo[:, 1]))
 
     def test_n1_gives_inf_bounds(self):
         pts = np.array([[1.5, 2.5]], dtype=np.float64)
-        out = modeling.group_ci(pts, 0.95)
+        out = modeling.mean_ci(pts, 0.95)
         assert np.isinf(out[0, 1])   # lower = -inf
         assert np.isinf(out[0, 2])   # upper = +inf
 
@@ -42,7 +42,7 @@ class TestGroupCI:
         stats = pytest.importorskip("scipy.stats")
         rng = np.random.default_rng(14)
         pts = rng.standard_normal((12, 2))
-        out = modeling.group_ci(pts, 0.95)
+        out = modeling.mean_ci(pts, 0.95)
         for d in range(2):
             col  = pts[:, d]
             n    = len(col)
@@ -56,8 +56,8 @@ class TestGroupCI:
         rng = np.random.default_rng(15)
         small = rng.standard_normal((5,  2))
         large = rng.standard_normal((50, 2))
-        w_small = np.mean(modeling.group_ci(small, 0.95)[:, 2] - modeling.group_ci(small, 0.95)[:, 1])
-        w_large = np.mean(modeling.group_ci(large, 0.95)[:, 2] - modeling.group_ci(large, 0.95)[:, 1])
+        w_small = np.mean(modeling.mean_ci(small, 0.95)[:, 2] - modeling.mean_ci(small, 0.95)[:, 1])
+        w_large = np.mean(modeling.mean_ci(large, 0.95)[:, 2] - modeling.mean_ci(large, 0.95)[:, 1])
         assert w_large < w_small
 
 
@@ -100,24 +100,24 @@ class TestOutlierCI:
         assert np.all(np.isnan(out))
 
 
-class TestCenterData:
+class TestCenterPoints:
     def test_column_means_become_zero(self):
         m = np.array([
             [1.0, 4.0],
             [3.0, 2.0],
             [5.0, 6.0],
         ], dtype=np.float64)
-        out = modeling.center_data(m)
+        out = modeling.center_points(m)
         np.testing.assert_allclose(np.mean(out, axis=0), [0.0, 0.0], atol=1e-12)
 
     def test_shape_preserved(self):
         m = np.random.rand(6, 4)
-        out = modeling.center_data(m)
+        out = modeling.center_points(m)
         assert out.shape == m.shape
 
     def test_already_centered_unchanged(self):
         m = np.array([[-1.0, 2.0], [0.0, -2.0], [1.0, 0.0]], dtype=np.float64)
-        out = modeling.center_data(m)
+        out = modeling.center_points(m)
         np.testing.assert_allclose(out, m, atol=1e-12)
 
 
@@ -146,7 +146,7 @@ class TestEnaCorrelation:
         assert np.all(out[:, 0] <= out[:, 2] + 1e-9)
 
 
-class TestLwsLsqPositions:
+class TestNodePositions:
     def _make_data(self, n_units=8, n_tri=3, n_dims=2, seed=0):
         rng = np.random.default_rng(seed)
         adj  = np.abs(rng.standard_normal((n_units, n_tri)))
@@ -155,12 +155,12 @@ class TestLwsLsqPositions:
 
     def test_returns_node_positions(self):
         adj, pts = self._make_data()
-        result = modeling.lws_lsq_positions(adj, pts, 2)
+        result = modeling.node_positions(adj, pts, 2)
         assert isinstance(result, NodePositions)
 
     def test_nodes_shape(self):
         adj, pts = self._make_data(n_tri=3, n_dims=2)
-        result = modeling.lws_lsq_positions(adj, pts, 2)
+        result = modeling.node_positions(adj, pts, 2)
         # n_tri=3 → choose_two(n) → n_codes=3 (since choose_two(3)=3)
         assert result.nodes.ndim == 2
         assert result.nodes.shape[1] == 2
@@ -168,17 +168,17 @@ class TestLwsLsqPositions:
     def test_centroids_n_rows_match_units(self):
         n = 8
         adj, pts = self._make_data(n_units=n)
-        result = modeling.lws_lsq_positions(adj, pts, 2)
+        result = modeling.node_positions(adj, pts, 2)
         assert result.centroids.shape[0] == n
 
     def test_points_echoed_back(self):
         adj, pts = self._make_data()
-        result = modeling.lws_lsq_positions(adj, pts, 2)
+        result = modeling.node_positions(adj, pts, 2)
         np.testing.assert_allclose(result.points, pts, atol=1e-10)
 
     def test_repr_contains_shape(self):
         adj, pts = self._make_data()
-        result = modeling.lws_lsq_positions(adj, pts, 2)
+        result = modeling.node_positions(adj, pts, 2)
         assert "NodePositions" in repr(result)
 
 
@@ -199,13 +199,13 @@ class TestDirectedNodePositions:
         assert result.centroids.shape[0] == n
 
 
-class TestDirectedNodePositionsGroundResponse:
+class TestDirectedNodePositionsCombinePairs:
     def test_centroids_row_count_halved(self):
         # n_rows must be even (paired ground/response)
         rng = np.random.default_rng(3)
         n = 12
         lw  = np.abs(rng.standard_normal((n, 4)))
         pts = rng.standard_normal((n, 2))
-        result = modeling.directed_node_positions_ground_response(lw, pts, 2)
+        result = modeling.directed_node_positions_combine_pairs(lw, pts, 2)
         # row pairing halves centroids
         assert result.centroids.shape[0] == n

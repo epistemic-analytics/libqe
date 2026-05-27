@@ -122,36 +122,36 @@ NB_MODULE(_pylibqe, m) {
     adj.def("choose_two", &qe::choose_two, "n"_a,
         "Return n*(n-1)/2 (number of unique pairs in a set of n elements).");
 
-    adj.def("tri_indices", [](int len, int row) {
-        return from_umat(qe::tri_indices(len, row));
+    adj.def("connection_indices", [](int len, int row) {
+        return from_umat(qe::connection_indices(len, row));
     }, "len"_a, "row"_a = -1,
         "Upper-triangle index pairs for an len×len matrix.\n"
         "row=-1: 2×k array of [row_idx; col_idx]  "
         "row=0: row indices only  "
         "row=1: col indices only");
 
-    adj.def("vector_to_upper_tri", [](NpVec v) {
-        // wrap 1-D input as a 1×n row vector for vector_to_upper_tri
+    adj.def("code_connections", [](NpVec v) {
+        // wrap 1-D input as a 1×n row vector for code_connections
         arma::mat vm(1, v.shape(0));
         for (size_t j = 0; j < v.shape(0); ++j) vm(0, j) = v(j);
-        return from_rowvec(qe::vector_to_upper_tri(vm));
+        return from_rowvec(qe::code_connections(vm));
     }, "v"_a,
         "Compute pairwise products v[j]*v[i] for all j < i (upper-triangle vector).");
 
-    adj.def("directed_to_upper_tri", [](NpVec v) {
-        return from_rowvec(qe::directed_to_upper_tri(to_vec(v)));
+    adj.def("fold_directed_network", [](NpVec v) {
+        return from_rowvec(qe::fold_directed_network(to_vec(v)));
     }, "v"_a,
         "Fold a directed n*n flat vector to upper-triangle by summing A→B + B→A.");
 
-    adj.def("adjacency_matrix_to_vector", [](NpMat x, bool full) {
-        return from_rowvec(qe::adjacency_matrix_to_vector(to_mat(x), full));
+    adj.def("network_to_vector", [](NpMat x, bool full) {
+        return from_rowvec(qe::network_to_vector(to_mat(x), full));
     }, "x"_a, "full"_a = true,
         "Flatten an adjacency matrix to a vector.\n"
         "full=True: full n*n vector (directed)  "
         "full=False: upper-triangle only (undirected)");
 
-    adj.def("svector_to_upper_tri", [](std::vector<std::string> v) {
-        return qe::svector_to_upper_tri(v);
+    adj.def("connection_names", [](std::vector<std::string> v) {
+        return qe::connection_names(v);
     }, "v"_a,
         "Return 'A & B' pair names for every upper-triangle position.\n"
         "Example: ['X','Y','Z'] → ['X & Y', 'X & Z', 'Y & Z']");
@@ -160,14 +160,14 @@ NB_MODULE(_pylibqe, m) {
     auto nrm = m.def_submodule("normalization",
         "Row-wise L2 normalization");
 
-    nrm.def("sphere_norm", [](NpMat mat) {
-        return from_mat(qe::sphere_norm(to_mat(mat)));
+    nrm.def("normalize_networks", [](NpMat mat) {
+        return from_mat(qe::normalize_networks(to_mat(mat)));
     }, "m"_a,
         "Divide each row by its own L2 norm (project onto unit hypersphere). "
         "Zero rows are left unchanged.");
 
-    nrm.def("skip_sphere_norm", [](NpMat mat) {
-        return from_mat(qe::skip_sphere_norm(to_mat(mat)));
+    nrm.def("scale_networks", [](NpMat mat) {
+        return from_mat(qe::scale_networks(to_mat(mat)));
     }, "m"_a,
         "Divide all entries by the *largest* row L2 norm. "
         "Preserves relative magnitudes across rows.");
@@ -213,8 +213,8 @@ NB_MODULE(_pylibqe, m) {
                 + std::to_string(cents_arr.shape(1)) + ">";
         });
 
-    mod.def("center_data", [](NpMat values) {
-        return from_mat(qe::center_data(to_mat(values)));
+    mod.def("center_points", [](NpMat values) {
+        return from_mat(qe::center_points(to_mat(values)));
     }, "values"_a,
         "Subtract column means (center each column to zero).");
 
@@ -224,8 +224,8 @@ NB_MODULE(_pylibqe, m) {
         "Pearson correlation + CI between unit points and centroids.\n"
         "Returns (n_dims × 3) array: columns are [r, ci_lower, ci_upper].");
 
-    mod.def("group_ci", [](NpMat points, double conf_level) {
-        return from_mat(qe::group_ci(to_mat(points), conf_level));
+    mod.def("mean_ci", [](NpMat points, double conf_level) {
+        return from_mat(qe::mean_ci(to_mat(points), conf_level));
     }, "points"_a, "conf_level"_a = 0.95,
         "t-based confidence interval for the mean of a group of ENA unit points.\n\n"
         "For each dimension computes: mean ± t(α/2, n-1) × (SD / sqrt(n))\n"
@@ -254,8 +254,8 @@ NB_MODULE(_pylibqe, m) {
         "Returns (n_dims × 2) array: columns are [lower, upper].\n"
         "All entries are NaN when n_units == 0.");
 
-    mod.def("lws_lsq_positions", [&make_py_np](NpMat adj_mats, NpMat t, int num_dims) {
-        return make_py_np(qe::lws_lsq_positions(to_mat(adj_mats), to_mat(t), num_dims));
+    mod.def("node_positions", [&make_py_np](NpMat adj_mats, NpMat t, int num_dims) {
+        return make_py_np(qe::node_positions(to_mat(adj_mats), to_mat(t), num_dims));
     }, "adj_mats"_a, "t"_a, "num_dims"_a,
         "Multiobjective least-squares node positions for undirected ENA.");
 
@@ -265,10 +265,10 @@ NB_MODULE(_pylibqe, m) {
     }, "line_weights"_a, "points"_a, "num_dims"_a,
         "Least-squares node positions for directed (ordered) ENA.");
 
-    mod.def("directed_node_positions_ground_response",
+    mod.def("directed_node_positions_combine_pairs",
         [&make_py_np](NpMat line_weights, NpMat points, int num_dims) {
-            return make_py_np(qe::directed_node_positions_ground_response(
-                to_mat(line_weights), to_mat(points), num_dims));
+            return make_py_np(qe::directed_node_positions(
+                to_mat(line_weights), to_mat(points), num_dims, true));
         }, "line_weights"_a, "points"_a, "num_dims"_a,
         "Directed node positions with paired ground+response rows combined before solving.");
 
@@ -321,18 +321,18 @@ NB_MODULE(_pylibqe, m) {
     auto acc = m.def_submodule("accumulation",
         "Network accumulation primitives");
 
-    acc.def("calculate_adjacency_matrix", [](NpVec ground, NpVec response,
+    acc.def("connection_matrix", [](NpVec ground, NpVec response,
                                               double response_weight, bool ordered) {
-        return from_mat(qe::calculate_adjacency_matrix(
+        return from_mat(qe::connection_matrix(
             to_rowvec(ground), to_rowvec(response), response_weight, ordered));
     }, "ground"_a, "response"_a, "response_weight"_a = 1.0, "ordered"_a = true,
         "Connection matrix for one ground+response event pair.\n"
         "ordered=True (directed):  ground→response cross-product\n"
         "ordered=False (undirected): symmetric outer-product");
 
-    acc.def("stanza_window", [](NpMat codes, int window_back,
+    acc.def("accumulate_stanza", [](NpMat codes, int window_back,
                                  int window_forward, bool binary) {
-        return from_mat(qe::stanza_window(
+        return from_mat(qe::accumulate_stanza(
             to_mat(codes), window_back, window_forward, binary));
     }, "codes"_a, "window_back"_a = 1, "window_forward"_a = 0, "binary"_a = true,
         "Traditional stanza-window accumulation (rENA model).\n"
@@ -340,8 +340,8 @@ NB_MODULE(_pylibqe, m) {
         "and applies back/forward-reference corrections.\n"
         "Returns (n_rows × choose_two(n_codes)) matrix.");
 
-    acc.def("rows_to_co_occurrences", [](NpMat codes, bool binary) {
-        return from_mat(qe::rows_to_co_occurrences(to_mat(codes), binary));
+    acc.def("row_connections", [](NpMat codes, bool binary) {
+        return from_mat(qe::row_connections(to_mat(codes), binary));
     }, "codes"_a, "binary"_a = true,
         "Per-row upper-triangle co-occurrence.\n"
         "Each row is processed independently (no cross-row accumulation).\n"
@@ -354,8 +354,8 @@ NB_MODULE(_pylibqe, m) {
         "Row k = sum of rows [max(0, k - window_size + 1), k].\n"
         "Returns matrix of same shape as input.");
 
-    acc.def("calculate_1d_index", [](std::vector<int> indices, std::vector<int> dims) {
-        return qe::calculate_1d_index(indices, dims);
+    acc.def("flat_index", [](std::vector<int> indices, std::vector<int> dims) {
+        return qe::flat_index(indices, dims);
     }, "indices"_a, "dims"_a,
         "Linear index into a column-major multi-dimensional array "
         "(equivalent to sub2ind with Fortran/column-major ordering).");

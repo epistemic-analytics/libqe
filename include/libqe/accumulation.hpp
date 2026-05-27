@@ -25,7 +25,7 @@ namespace qe {
 //   symmetric: (weight * r⊗r) + g⊗r + r⊗g
 //
 // Equivalent to calculate_adjacency_matrix() in tma/code.cpp.
-inline arma::mat calculate_adjacency_matrix(
+inline arma::mat connection_matrix(
     arma::rowvec ground, arma::rowvec response,
     double response_weight = 1.0, bool ordered = true
 ) {
@@ -47,14 +47,14 @@ inline arma::mat calculate_adjacency_matrix(
 // vector as:
 //
 //   sum of codes in window [k - window_back, k + window_forward]
-//   → upper-triangle outer-product (vector_to_upper_tri)
+//   → upper-triangle outer-product (code_connections)
 //   minus back-reference and forward-reference corrections
 //
 // Returns a matrix with the same number of rows as `codes` and
 // choose_two(n_codes) columns.
 //
 // Equivalent to ref_window_df() in rENA/ena.cpp.
-inline arma::mat stanza_window(
+inline arma::mat accumulate_stanza(
     arma::mat codes,
     int window_back    = 1,
     int window_forward = 0,
@@ -84,7 +84,7 @@ inline arma::mat stanza_window(
 
         arma::mat window_rows = codes.rows(earliest, latest);
         arma::mat summed      = arma::sum(window_rows);
-        arma::rowvec to_ut    = vector_to_upper_tri(summed);
+        arma::rowvec to_ut    = code_connections(summed);
 
         // Back-reference correction: subtract contribution of rows that are
         // not the focal row and not within window_back of it
@@ -95,7 +95,7 @@ inline arma::mat stanza_window(
             if (head_rows > 0) {
                 arma::mat refs     = window_rows.head_rows(head_rows);
                 arma::mat ref_sum  = arma::sum(refs);
-                to_ut -= vector_to_upper_tri(ref_sum);
+                to_ut -= code_connections(ref_sum);
             }
         }
 
@@ -105,7 +105,7 @@ inline arma::mat stanza_window(
             if (tail_rows > 0) {
                 arma::mat refs    = window_rows.tail_rows(tail_rows);
                 arma::mat ref_sum = arma::sum(refs);
-                to_ut -= vector_to_upper_tri(ref_sum);
+                to_ut -= code_connections(ref_sum);
             }
         }
 
@@ -160,10 +160,10 @@ inline arma::rowvec accumulate_unit(
         // Exclude the response row's own contribution from the ground
         arma::rowvec g_no_resp   = g_summed - weighted.tail_rows(1).row(0);
 
-        g_w_vec += calculate_adjacency_matrix(g_no_resp, response, 1.0, ordered);
+        g_w_vec += connection_matrix(g_no_resp, response, 1.0, ordered);
     }
 
-    if (!ordered) return directed_to_upper_tri(arma::vectorise(g_w_vec));
+    if (!ordered) return fold_directed_network(arma::vectorise(g_w_vec));
     return arma::vectorise(g_w_vec).t();
 }
 
@@ -207,14 +207,14 @@ inline UnitNetworks accumulate_unit_with_rows(
         arma::rowvec g_no_resp    = g_summed - weighted.tail_rows(1).row(0);
 
         arma::rowvec response = codes.row(unit_row);
-        arma::mat    conn     = calculate_adjacency_matrix(g_no_resp, response, 1.0, ordered);
+        arma::mat    conn     = connection_matrix(g_no_resp, response, 1.0, ordered);
         g_w_mat += conn;
         row_networks.row(i) = arma::vectorise(conn).t();
     }
 
     UnitNetworks result;
     if (!ordered)
-        result.networks = directed_to_upper_tri(arma::vectorise(g_w_mat));
+        result.networks = fold_directed_network(arma::vectorise(g_w_mat));
     else
         result.networks = arma::vectorise(g_w_mat).t();
     result.row_networks = row_networks;
@@ -226,8 +226,8 @@ inline UnitNetworks accumulate_unit_with_rows(
 // ---------------------------------------------------------------------------
 
 // Compute the linear index into a column-major multi-dimensional array.
-// Equivalent to calculate_1d_index() in tma/code.cpp.
-inline int calculate_1d_index(const std::vector<int>& indices,
+// Equivalent to flat_index() in tma/code.cpp.
+inline int flat_index(const std::vector<int>& indices,
                                const std::vector<int>& dims) {
     if (indices.size() != dims.size())
         throw std::invalid_argument("Number of indices must match number of dimensions.");
@@ -296,7 +296,7 @@ inline TensorNetworks apply_tensor_unit(
         resp_ctx[ctx_cols] = WINDOW_DIM;
 
         if (!IS_DEFAULT)
-            response_win = static_cast<int>(tensor[calculate_1d_index(resp_ctx, dims)]);
+            response_win = static_cast<int>(tensor[flat_index(resp_ctx, dims)]);
 
         std::vector<int>    gri_v;
         std::vector<double> grw_v;
@@ -311,14 +311,14 @@ inline TensorNetworks apply_tensor_unit(
 
                 double row_win = static_cast<double>(response_win);
                 if (!IS_DEFAULT)
-                    row_win = tensor[calculate_1d_index(row_v, dims)];
+                    row_win = tensor[flat_index(row_v, dims)];
 
                 if (times[gr] + row_win > response_time) {
                     gri_v.push_back(gr);
                     row_v[ctx_cols] = WEIGHT_DIM;
                     double row_wgt = static_cast<double>(response_weight);
                     if (!IS_DEFAULT)
-                        row_wgt = tensor[calculate_1d_index(row_v, dims)];
+                        row_wgt = tensor[flat_index(row_v, dims)];
                     grw_v.push_back(row_wgt);
                 }
             }
@@ -334,11 +334,11 @@ inline TensorNetworks apply_tensor_unit(
 
         if (!IS_DEFAULT) {
             resp_ctx[ctx_cols] = WEIGHT_DIM;
-            response_weight = static_cast<int>(tensor[calculate_1d_index(resp_ctx, dims)]);
+            response_weight = static_cast<int>(tensor[flat_index(resp_ctx, dims)]);
         }
 
         arma::rowvec row_vec = codes.row(ri);
-        arma::mat resp = calculate_adjacency_matrix(
+        arma::mat resp = connection_matrix(
             g_ws, row_vec, static_cast<double>(response_weight), ordered);
         g_w_mat += resp;
         row_conn.row(i) = arma::vectorise(resp).t();
@@ -355,10 +355,10 @@ inline TensorNetworks apply_tensor_unit(
 // ---------------------------------------------------------------------------
 
 // Per-row upper-triangle co-occurrence.
-// For each row, computes vector_to_upper_tri(row) and optionally binarizes.
+// For each row, computes code_connections(row) and optionally binarizes.
 // Output: n_rows x choose_two(n_codes).
 // Equivalent to rows_to_co_occurrences() in rENA/ena.cpp.
-inline arma::mat rows_to_co_occurrences(
+inline arma::mat row_connections(
     const arma::mat& codes,
     bool binary = true
 ) {
@@ -366,7 +366,7 @@ inline arma::mat rows_to_co_occurrences(
     int n_tri  = choose_two(codes.n_cols);
     arma::mat out(n_rows, n_tri, arma::fill::zeros);
     for (int row = 0; row < n_rows; ++row)
-        out.row(row) = vector_to_upper_tri(codes.row(row));
+        out.row(row) = code_connections(codes.row(row));
     if (binary) out.elem(arma::find(out > 0)).ones();
     return out;
 }

@@ -64,9 +64,9 @@ static val rowvec_to_js(const arma::rowvec& v) {
 
 // ── Adjacency ─────────────────────────────────────────────────────────────────
 
-// tri_indices(len) → { rows: Int32Array, cols: Int32Array }
-static val tri_indices(int len) {
-    arma::umat idx = qe::tri_indices(len, -1);
+// connection_indices(len) → { rows: Int32Array, cols: Int32Array }
+static val connection_indices(int len) {
+    arma::umat idx = qe::connection_indices(len, -1);
     std::vector<int> rows_v(idx.n_cols), cols_v(idx.n_cols);
     for (arma::uword i = 0; i < idx.n_cols; ++i) {
         rows_v[i] = static_cast<int>(idx(0, i));
@@ -78,30 +78,30 @@ static val tri_indices(int len) {
     return result;
 }
 
-// vector_to_upper_tri(data, n_codes) → Float64Array
-static val vector_to_upper_tri(const val& data, int n_codes) {
+// code_connections(data, n_codes) → Float64Array
+static val code_connections(const val& data, int n_codes) {
     arma::mat v = js_to_mat(data, 1, n_codes);
-    return rowvec_to_js(qe::vector_to_upper_tri(v));
+    return rowvec_to_js(qe::code_connections(v));
 }
 
-// directed_to_upper_tri(data) → Float64Array  (data.length == n*n)
-static val directed_to_upper_tri(const val& data) {
+// fold_directed_network(data) → Float64Array  (data.length == n*n)
+static val fold_directed_network(const val& data) {
     std::vector<double> v = vecFromJSArray<double>(data);
     arma::vec av(v.data(), v.size());
-    return rowvec_to_js(qe::directed_to_upper_tri(av));
+    return rowvec_to_js(qe::fold_directed_network(av));
 }
 
-// adjacency_matrix_to_vector(data, rows, cols, full) → Float64Array
-static val adjacency_matrix_to_vector(const val& data, int rows, int cols,
+// network_to_vector(data, rows, cols, full) → Float64Array
+static val network_to_vector(const val& data, int rows, int cols,
                                        bool full) {
     arma::mat m = js_to_mat(data, rows, cols);
-    return rowvec_to_js(qe::adjacency_matrix_to_vector(m, full));
+    return rowvec_to_js(qe::network_to_vector(m, full));
 }
 
-// svector_to_upper_tri(names) → string[]
-static val svector_to_upper_tri(const val& names) {
+// connection_names(names) → string[]
+static val connection_names(const val& names) {
     std::vector<std::string> v = vecFromJSArray<std::string>(names);
-    auto pairs = qe::svector_to_upper_tri(v);
+    auto pairs = qe::connection_names(v);
     val result = val::array();
     for (size_t i = 0; i < pairs.size(); ++i)
         result.call<void>("push", val(pairs[i]));
@@ -110,27 +110,27 @@ static val svector_to_upper_tri(const val& names) {
 
 // ── Normalization ─────────────────────────────────────────────────────────────
 
-// sphere_norm(data, rows, cols) → { data, rows, cols }
-static val sphere_norm(const val& data, int rows, int cols) {
-    return mat_to_js(qe::sphere_norm(js_to_mat(data, rows, cols)));
+// normalize_networks(data, rows, cols) → { data, rows, cols }
+static val normalize_networks(const val& data, int rows, int cols) {
+    return mat_to_js(qe::normalize_networks(js_to_mat(data, rows, cols)));
 }
 
-// skip_sphere_norm(data, rows, cols) → { data, rows, cols }
-static val skip_sphere_norm(const val& data, int rows, int cols) {
-    return mat_to_js(qe::skip_sphere_norm(js_to_mat(data, rows, cols)));
+// scale_networks(data, rows, cols) → { data, rows, cols }
+static val scale_networks(const val& data, int rows, int cols) {
+    return mat_to_js(qe::scale_networks(js_to_mat(data, rows, cols)));
 }
 
 // ── Modeling ──────────────────────────────────────────────────────────────────
 
-// center_data(data, rows, cols) → { data, rows, cols }
-static val center_data(const val& data, int rows, int cols) {
-    return mat_to_js(qe::center_data(js_to_mat(data, rows, cols)));
+// center_points(data, rows, cols) → { data, rows, cols }
+static val center_points(const val& data, int rows, int cols) {
+    return mat_to_js(qe::center_points(js_to_mat(data, rows, cols)));
 }
 
-// group_ci(data, rows, cols, conf_level) → { data, rows:n_dims, cols:3 }
+// mean_ci(data, rows, cols, conf_level) → { data, rows:n_dims, cols:3 }
 // columns: [mean, ci_lower, ci_upper]
-static val group_ci(const val& data, int rows, int cols, double conf_level) {
-    return mat_to_js(qe::group_ci(js_to_mat(data, rows, cols), conf_level));
+static val mean_ci(const val& data, int rows, int cols, double conf_level) {
+    return mat_to_js(qe::mean_ci(js_to_mat(data, rows, cols), conf_level));
 }
 
 // outlier_ci(data, rows, cols, iqr_factor) → { data, rows:n_dims, cols:2 }
@@ -139,13 +139,13 @@ static val outlier_ci(const val& data, int rows, int cols, double iqr_factor) {
     return mat_to_js(qe::outlier_ci(js_to_mat(data, rows, cols), iqr_factor));
 }
 
-// lws_lsq_positions(adj_data, adj_rows, adj_cols,
-//                   t_data,   t_rows,   t_cols, num_dims)
+// node_positions(adj_data, adj_rows, adj_cols,
+//                t_data,   t_rows,   t_cols, num_dims)
 // → { nodes, centroids, weights, points }  (each a matrix object)
-static val lws_lsq_positions(const val& adj_data, int adj_rows, int adj_cols,
+static val node_positions(const val& adj_data, int adj_rows, int adj_cols,
                               const val& t_data,   int t_rows,   int t_cols,
                               int num_dims) {
-    qe::NodePositions r = qe::lws_lsq_positions(
+    qe::NodePositions r = qe::node_positions(
         js_to_mat(adj_data, adj_rows, adj_cols),
         js_to_mat(t_data,   t_rows,   t_cols),
         num_dims);
@@ -157,7 +157,7 @@ static val lws_lsq_positions(const val& adj_data, int adj_rows, int adj_cols,
     return result;
 }
 
-// directed_node_positions — same signature as lws_lsq_positions
+// directed_node_positions — same signature as node_positions
 static val directed_node_positions(const val& lw_data, int lw_rows, int lw_cols,
                                    const val& pt_data, int pt_rows, int pt_cols,
                                    int num_dims) {
@@ -175,18 +175,18 @@ static val directed_node_positions(const val& lw_data, int lw_rows, int lw_cols,
 
 // ── Accumulation ─────────────────────────────────────────────────────────────
 
-// stanza_window(data, rows, cols, window_back, window_forward, binary)
+// accumulate_stanza(data, rows, cols, window_back, window_forward, binary)
 // → { data, rows, cols }
-static val stanza_window(const val& data, int rows, int cols,
+static val accumulate_stanza(const val& data, int rows, int cols,
                          int window_back, int window_forward, bool binary) {
-    return mat_to_js(qe::stanza_window(
+    return mat_to_js(qe::accumulate_stanza(
         js_to_mat(data, rows, cols), window_back, window_forward, binary));
 }
 
-// rows_to_co_occurrences(data, rows, cols, binary) → { data, rows, cols }
-static val rows_to_co_occurrences(const val& data, int rows, int cols,
+// row_connections(data, rows, cols, binary) → { data, rows, cols }
+static val row_connections(const val& data, int rows, int cols,
                                    bool binary) {
-    return mat_to_js(qe::rows_to_co_occurrences(
+    return mat_to_js(qe::row_connections(
         js_to_mat(data, rows, cols), binary));
 }
 
@@ -197,9 +197,9 @@ static val rolling_window_sum(const val& data, int rows, int cols,
         js_to_mat(data, rows, cols), window_size));
 }
 
-// calculate_1d_index(indices_array, dims_array) → int
-static int calculate_1d_index(const val& indices_val, const val& dims_val) {
-    return qe::calculate_1d_index(
+// flat_index(indices_array, dims_array) → int
+static int flat_index(const val& indices_val, const val& dims_val) {
+    return qe::flat_index(
         vecFromJSArray<int>(indices_val),
         vecFromJSArray<int>(dims_val));
 }
@@ -208,26 +208,26 @@ static int calculate_1d_index(const val& indices_val, const val& dims_val) {
 
 EMSCRIPTEN_BINDINGS(libqe) {
     // Adjacency
-    function("tri_indices",               &tri_indices);
-    function("vector_to_upper_tri",       &vector_to_upper_tri);
-    function("directed_to_upper_tri",     &directed_to_upper_tri);
-    function("adjacency_matrix_to_vector",&adjacency_matrix_to_vector);
-    function("svector_to_upper_tri",      &svector_to_upper_tri);
+    function("connection_indices",         &connection_indices);
+    function("code_connections",           &code_connections);
+    function("fold_directed_network",      &fold_directed_network);
+    function("network_to_vector",          &network_to_vector);
+    function("connection_names",           &connection_names);
 
     // Normalization
-    function("sphere_norm",               &sphere_norm);
-    function("skip_sphere_norm",          &skip_sphere_norm);
+    function("normalize_networks",         &normalize_networks);
+    function("scale_networks",             &scale_networks);
 
     // Modeling
-    function("center_data",               &center_data);
-    function("group_ci",                  &group_ci);
-    function("outlier_ci",                &outlier_ci);
-    function("lws_lsq_positions",         &lws_lsq_positions);
-    function("directed_node_positions",   &directed_node_positions);
+    function("center_points",              &center_points);
+    function("mean_ci",                    &mean_ci);
+    function("outlier_ci",                 &outlier_ci);
+    function("node_positions",             &node_positions);
+    function("directed_node_positions",    &directed_node_positions);
 
     // Accumulation
-    function("stanza_window",             &stanza_window);
-    function("rows_to_co_occurrences",    &rows_to_co_occurrences);
-    function("rolling_window_sum",        &rolling_window_sum);
-    function("calculate_1d_index",        &calculate_1d_index);
+    function("accumulate_stanza",          &accumulate_stanza);
+    function("row_connections",            &row_connections);
+    function("rolling_window_sum",         &rolling_window_sum);
+    function("flat_index",                 &flat_index);
 }

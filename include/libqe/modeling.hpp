@@ -23,7 +23,7 @@ struct NodePositions {
 
 // Subtract column means (center-to-origin).
 // Equivalent to center_data_c() in rENA/ena.cpp.
-inline arma::mat center_data(arma::mat values) {
+inline arma::mat center_points(arma::mat values) {
     return values.each_row() - arma::mean(values);
 }
 
@@ -76,7 +76,7 @@ inline double normal_quantile(double p) {
 // ---------------------------------------------------------------------------
 //
 // These live in qe::detail so they don't pollute the public qe namespace.
-// They are used by group_ci() and are not part of the public API.
+// They are used by mean_ci() and are not part of the public API.
 
 namespace detail {
 
@@ -261,7 +261,7 @@ inline arma::mat ena_correlation(arma::mat points, arma::mat centroids,
 //
 // Returns an n_dims × 3 matrix: columns are [mean, ci_lower, ci_upper].
 // When n == 1 the CI bounds are ±Inf; when n == 0 all entries are NaN.
-inline arma::mat group_ci(const arma::mat& points, double conf_level = 0.95) {
+inline arma::mat mean_ci(const arma::mat& points, double conf_level = 0.95) {
     const int n      = static_cast<int>(points.n_rows);
     const int n_dims = static_cast<int>(points.n_cols);
 
@@ -338,7 +338,7 @@ inline arma::mat outlier_ci(const arma::mat& points, double iqr_factor = 1.5) {
 // Half of each line weight is distributed to each of its two endpoint nodes,
 // then an overdetermined system is solved per dimension.
 // Equivalent to lws_lsq_positions() in rENA/ena.cpp.
-inline NodePositions lws_lsq_positions(arma::mat adj_mats, arma::mat t,
+inline NodePositions node_positions(arma::mat adj_mats, arma::mat t,
                                         int num_dims) {
     int tri_size  = adj_mats.n_cols;
     int num_nodes = static_cast<int>(
@@ -380,9 +380,15 @@ inline NodePositions lws_lsq_positions(arma::mat adj_mats, arma::mat t,
 }
 
 // Least-squares node positions for directed (ordered) ENA.
-// Equivalent to directed_node_positions() in rENA/ena.cpp.
+// When combine_pairs == false (default): standard directed node positions.
+// When combine_pairs == true: paired ground+response rows are combined before
+//   solving — used for directed ENA where each unit contributes a ground row
+//   and a response row that should be averaged together.
+// Equivalent to directed_node_positions() and
+//   directed_node_positions_with_ground_response_added() in rENA/ena.cpp.
 inline NodePositions directed_node_positions(arma::mat line_weights,
-                                              arma::mat points, int num_dims) {
+                                              arma::mat points, int num_dims,
+                                              bool combine_pairs = false) {
     int num_nodes = static_cast<int>(
         std::ceil(std::sqrt(static_cast<double>(line_weights.n_cols)))
     );
@@ -401,62 +407,36 @@ inline NodePositions directed_node_positions(arma::mat line_weights,
         double len = arma::accu(arma::abs(nw.row(k)));
         if (len < 0.0001) len = 0.0001;
         nw.row(k) /= len;
+    }
+
+    if (combine_pairs) {
+        // Combine paired rows (ground at k, response at k+1)
+        arma::mat nw_added(row_count / 2, num_nodes, arma::fill::zeros);
+        arma::mat pts_added(row_count / 2, num_dims, arma::fill::zeros);
+        for (int k = 0; k < row_count; k += 2) {
+            nw_added.row(k / 2)  = nw.row(k)     + nw.row(k + 1);
+            pts_added.row(k / 2) = points.row(k) + points.row(k + 1);
+        }
+
+        arma::mat ssX(num_dims, num_nodes, arma::fill::zeros);
+        arma::mat ssA = nw_added.t() * nw_added;
+        for (int i = 0; i < num_dims; i++) {
+            arma::mat ssb = nw_added.t() * pts_added.col(i);
+            ssX.row(i) = arma::solve(ssA, ssb, arma::solve_opts::equilibrate).t();
+        }
+
+        NodePositions r;
+        r.nodes     = ssX.t();
+        r.centroids = (ssX * nw.t()).t();
+        r.weights   = nw;
+        r.points    = points;
+        return r;
     }
 
     arma::mat ssX(num_dims, num_nodes, arma::fill::zeros);
     arma::mat ssA = nw.t() * nw;
     for (int i = 0; i < num_dims; i++) {
         arma::mat ssb = nw.t() * points.col(i);
-        ssX.row(i) = arma::solve(ssA, ssb, arma::solve_opts::equilibrate).t();
-    }
-
-    NodePositions r;
-    r.nodes     = ssX.t();
-    r.centroids = (ssX * nw.t()).t();
-    r.weights   = nw;
-    r.points    = points;
-    return r;
-}
-
-// Directed node positions with paired ground+response rows combined before
-// solving — used for directed ENA where each unit contributes a ground row
-// and a response row that should be averaged together.
-// Equivalent to directed_node_positions_with_ground_response_added() in rENA/ena.cpp.
-inline NodePositions directed_node_positions_ground_response(
-    arma::mat line_weights, arma::mat points, int num_dims) {
-
-    int num_nodes = static_cast<int>(
-        std::ceil(std::sqrt(static_cast<double>(line_weights.n_cols)))
-    );
-    int row_count = line_weights.n_rows;
-
-    arma::mat nw(row_count, num_nodes, arma::fill::zeros);
-    for (int k = 0; k < row_count; k++) {
-        arma::mat curr = line_weights.row(k);
-        int z = 0;
-        for (int x = 0; x < num_nodes; x++)
-            for (int y = 0; y < num_nodes; y++) {
-                nw(k, x) += curr[z]; nw(k, y) += curr[z]; z++;
-            }
-    }
-    for (int k = 0; k < row_count; k++) {
-        double len = arma::accu(arma::abs(nw.row(k)));
-        if (len < 0.0001) len = 0.0001;
-        nw.row(k) /= len;
-    }
-
-    // Combine paired rows (ground at k, response at k+1)
-    arma::mat nw_added(row_count / 2, num_nodes, arma::fill::zeros);
-    arma::mat pts_added(row_count / 2, num_dims, arma::fill::zeros);
-    for (int k = 0; k < row_count; k += 2) {
-        nw_added.row(k / 2)  = nw.row(k)     + nw.row(k + 1);
-        pts_added.row(k / 2) = points.row(k) + points.row(k + 1);
-    }
-
-    arma::mat ssX(num_dims, num_nodes, arma::fill::zeros);
-    arma::mat ssA = nw_added.t() * nw_added;
-    for (int i = 0; i < num_dims; i++) {
-        arma::mat ssb = nw_added.t() * pts_added.col(i);
         ssX.row(i) = arma::solve(ssA, ssb, arma::solve_opts::equilibrate).t();
     }
 

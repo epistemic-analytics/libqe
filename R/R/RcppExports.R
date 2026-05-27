@@ -5,58 +5,58 @@
 #' @param len Number of codes (side length of square matrix)
 #' @param row -1 = both rows, 0 = row indices only, 1 = col indices only
 #' @export
-lq_tri_indices <- function(len, row = -1L) {
-    .Call(`_libqe_lq_tri_indices`, len, row)
+lq_connection_indices <- function(len, row = -1L) {
+    .Call(`_libqe_lq_connection_indices`, len, row)
 }
 
 #' Pairwise products → upper-triangle vector
 #' @param v Numeric vector of code values
 #' @export
-lq_vector_to_upper_tri <- function(v) {
-    .Call(`_libqe_lq_vector_to_upper_tri`, v)
+lq_code_connections <- function(v) {
+    .Call(`_libqe_lq_code_connections`, v)
 }
 
 #' Fold a directed (n*n) vector into an undirected upper-triangle vector
 #' @param v Numeric vector of length n*n
 #' @export
-lq_directed_to_upper_tri <- function(v) {
-    .Call(`_libqe_lq_directed_to_upper_tri`, v)
+lq_fold_directed_network <- function(v) {
+    .Call(`_libqe_lq_fold_directed_network`, v)
 }
 
 #' Flatten an adjacency matrix to a connection vector
 #' @param x Numeric matrix
 #' @param full TRUE = full n*n (directed); FALSE = upper triangle (undirected)
 #' @export
-lq_adjacency_matrix_to_vector <- function(x, full = TRUE) {
-    .Call(`_libqe_lq_adjacency_matrix_to_vector`, x, full)
+lq_network_to_vector <- function(x, full = TRUE) {
+    .Call(`_libqe_lq_network_to_vector`, x, full)
 }
 
 #' Code-name pairs for upper-triangle positions ("A & B")
 #' @param v Character vector of code names
 #' @export
-lq_svector_to_upper_tri <- function(v) {
-    .Call(`_libqe_lq_svector_to_upper_tri`, v)
+lq_connection_names <- function(v) {
+    .Call(`_libqe_lq_connection_names`, v)
 }
 
 #' Row-wise L2 (sphere) normalization
 #' @param m Numeric matrix
 #' @export
-lq_sphere_norm <- function(m) {
-    .Call(`_libqe_lq_sphere_norm`, m)
+lq_normalize_networks <- function(m) {
+    .Call(`_libqe_lq_normalize_networks`, m)
 }
 
 #' Max-norm scaling (divide all rows by the largest row L2 norm)
 #' @param m Numeric matrix
 #' @export
-lq_skip_sphere_norm <- function(m) {
-    .Call(`_libqe_lq_skip_sphere_norm`, m)
+lq_scale_networks <- function(m) {
+    .Call(`_libqe_lq_scale_networks`, m)
 }
 
-#' Center data (subtract column means)
+#' Center points (subtract column means)
 #' @param values Numeric matrix
 #' @export
-lq_center_data <- function(values) {
-    .Call(`_libqe_lq_center_data`, values)
+lq_center_points <- function(values) {
+    .Call(`_libqe_lq_center_points`, values)
 }
 
 #' Confidence interval for the mean of a group of ENA unit points
@@ -69,8 +69,8 @@ lq_center_data <- function(values) {
 #' @return Numeric matrix (n_dims x 3): columns are [mean, ci_lower, ci_upper].
 #'   When \code{nrow(points) == 1} the CI bounds are \code{±Inf}.
 #' @export
-lq_group_ci <- function(points, conf_level = 0.95) {
-    .Call(`_libqe_lq_group_ci`, points, conf_level)
+lq_mean_ci <- function(points, conf_level = 0.95) {
+    .Call(`_libqe_lq_mean_ci`, points, conf_level)
 }
 
 #' Outlier interval based on IQR (Tukey fence) for a group of ENA unit points
@@ -106,8 +106,8 @@ lq_ena_correlation <- function(points, centroids, conf_level = 0.95) {
 #' @param num_dims Number of dimensions
 #' @return List with nodes, centroids, weights, points
 #' @export
-lq_lws_lsq_positions <- function(adj_mats, t, num_dims) {
-    .Call(`_libqe_lq_lws_lsq_positions`, adj_mats, t, num_dims)
+lq_node_positions <- function(adj_mats, t, num_dims) {
+    .Call(`_libqe_lq_node_positions`, adj_mats, t, num_dims)
 }
 
 #' Least-squares node positions for directed ENA
@@ -126,18 +126,18 @@ lq_directed_node_positions <- function(line_weights, points, num_dims) {
 #' @param num_dims     Number of dimensions
 #' @return List with nodes, centroids, weights, points
 #' @export
-lq_directed_node_positions_ground_response <- function(line_weights, points, num_dims) {
-    .Call(`_libqe_lq_directed_node_positions_ground_response`, line_weights, points, num_dims)
+lq_directed_node_positions_combine_pairs <- function(line_weights, points, num_dims) {
+    .Call(`_libqe_lq_directed_node_positions_combine_pairs`, line_weights, points, num_dims)
 }
 
-#' Core adjacency matrix for one ground+response pair
+#' Core connection matrix for one ground+response pair
 #' @param ground          Numeric row vector of ground (context) code values
 #' @param response        Numeric row vector of response code values
 #' @param response_weight Scalar weight applied to the response self-connection
 #' @param ordered         TRUE = directed; FALSE = undirected
 #' @export
-lq_calculate_adjacency_matrix <- function(ground, response, response_weight = 1.0, ordered = TRUE) {
-    .Call(`_libqe_lq_calculate_adjacency_matrix`, ground, response, response_weight, ordered)
+lq_connection_matrix <- function(ground, response, response_weight = 1.0, ordered = TRUE) {
+    .Call(`_libqe_lq_connection_matrix`, ground, response, response_weight, ordered)
 }
 
 #' Traditional stanza-window accumulation (rENA model)
@@ -152,21 +152,21 @@ lq_calculate_adjacency_matrix <- function(ground, response, response_weight = 1.
 #' @param binary         If TRUE, binarise non-zero connection counts
 #' @return Numeric matrix (same n_rows, choose_two(n_codes) columns)
 #' @export
-lq_stanza_window <- function(codes, window_back = 1L, window_forward = 0L, binary = TRUE) {
-    .Call(`_libqe_lq_stanza_window`, codes, window_back, window_forward, binary)
+lq_accumulate_stanza <- function(codes, window_back = 1L, window_forward = 0L, binary = TRUE) {
+    .Call(`_libqe_lq_accumulate_stanza`, codes, window_back, window_forward, binary)
 }
 
 #' Compute a column-major linear index into a multi-dimensional array
 #'
-#' Equivalent to tma's calculate_1d_index(). Throws if lengths of `indices`
+#' Equivalent to tma's flat_index(). Throws if lengths of `indices`
 #' and `dims` differ.
 #'
 #' @param indices 0-based integer vector of per-dimension indices
 #' @param dims    Integer vector of array dimensions
 #' @return Scalar integer linear index
 #' @export
-lq_calculate_1d_index <- function(indices, dims) {
-    .Call(`_libqe_lq_calculate_1d_index`, indices, dims)
+lq_flat_index <- function(indices, dims) {
+    .Call(`_libqe_lq_flat_index`, indices, dims)
 }
 
 #' Per-row upper-triangle co-occurrence matrix
@@ -179,8 +179,8 @@ lq_calculate_1d_index <- function(indices, dims) {
 #' @param binary If TRUE, binarise non-zero co-occurrences (default TRUE)
 #' @return Numeric matrix (n_rows x choose_two(n_codes))
 #' @export
-lq_rows_to_co_occurrences <- function(codes, binary = TRUE) {
-    .Call(`_libqe_lq_rows_to_co_occurrences`, codes, binary)
+lq_row_connections <- function(codes, binary = TRUE) {
+    .Call(`_libqe_lq_row_connections`, codes, binary)
 }
 
 #' Rolling backward window sum of a code matrix

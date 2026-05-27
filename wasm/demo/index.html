@@ -239,9 +239,9 @@
     <h2>Adjacency</h2>
     <div class="cards">
 
-      <div class="card" id="card-svector_to_upper_tri">
+      <div class="card" id="card-connection_names">
         <div class="card-header" onclick="toggleCard(this)">
-          <span class="fn-name">svector_to_upper_tri</span>
+          <span class="fn-name">connection_names</span>
           <span class="tag tag-adj">adjacency</span>
           <span class="fn-sig">(names[]) → string[]</span>
         </div>
@@ -256,9 +256,9 @@
         </div>
       </div>
 
-      <div class="card" id="card-tri_indices">
+      <div class="card" id="card-connection_indices">
         <div class="card-header" onclick="toggleCard(this)">
-          <span class="fn-name">tri_indices</span>
+          <span class="fn-name">connection_indices</span>
           <span class="tag tag-adj">adjacency</span>
           <span class="fn-sig">(n) → {rows, cols}</span>
         </div>
@@ -272,9 +272,9 @@
         </div>
       </div>
 
-      <div class="card" id="card-vector_to_upper_tri">
+      <div class="card" id="card-code_connections">
         <div class="card-header" onclick="toggleCard(this)">
-          <span class="fn-name">vector_to_upper_tri</span>
+          <span class="fn-name">code_connections</span>
           <span class="tag tag-adj">adjacency</span>
           <span class="fn-sig">(data, n_codes) → Float64Array</span>
         </div>
@@ -289,9 +289,9 @@
         </div>
       </div>
 
-      <div class="card" id="card-directed_to_upper_tri">
+      <div class="card" id="card-fold_directed_network">
         <div class="card-header" onclick="toggleCard(this)">
-          <span class="fn-name">directed_to_upper_tri</span>
+          <span class="fn-name">fold_directed_network</span>
           <span class="tag tag-adj">adjacency</span>
           <span class="fn-sig">(data) → Float64Array</span>
         </div>
@@ -306,9 +306,9 @@
         </div>
       </div>
 
-      <div class="card" id="card-adjacency_matrix_to_vector">
+      <div class="card" id="card-network_to_vector">
         <div class="card-header" onclick="toggleCard(this)">
-          <span class="fn-name">adjacency_matrix_to_vector</span>
+          <span class="fn-name">network_to_vector</span>
           <span class="tag tag-adj">adjacency</span>
           <span class="fn-sig">(data, rows, cols, full) → Float64Array</span>
         </div>
@@ -336,9 +336,9 @@
     <h2>Normalization</h2>
     <div class="cards">
 
-      <div class="card" id="card-sphere_norm">
+      <div class="card" id="card-normalize_networks">
         <div class="card-header" onclick="toggleCard(this)">
-          <span class="fn-name">sphere_norm</span>
+          <span class="fn-name">normalize_networks</span>
           <span class="tag tag-norm">normalization</span>
           <span class="fn-sig">(data, rows, cols) → {data, rows, cols}</span>
         </div>
@@ -354,14 +354,14 @@
         </div>
       </div>
 
-      <div class="card" id="card-skip_sphere_norm">
+      <div class="card" id="card-scale_networks">
         <div class="card-header" onclick="toggleCard(this)">
-          <span class="fn-name">skip_sphere_norm</span>
+          <span class="fn-name">scale_networks</span>
           <span class="tag tag-norm">normalization</span>
           <span class="fn-sig">(data, rows, cols) → {data, rows, cols}</span>
         </div>
         <div class="card-body">
-          <p class="desc">Same as sphere_norm but skips rows that are already normalized (avoids double-normalizing).</p>
+          <p class="desc">Divide all entries by the largest row L2 norm (preserves relative magnitudes across rows).</p>
           <div class="inputs-grid">
             <div class="input-row"><label>data (row-major)</label><input id="ssn-data" value="1,0, 0,1, 0.6,0.8"></div>
             <div class="input-row"><label>rows</label><input id="ssn-rows" type="number" value="3"></div>
@@ -380,9 +380,9 @@
     <h2>Modeling</h2>
     <div class="cards">
 
-      <div class="card" id="card-center_data">
+      <div class="card" id="card-center_points">
         <div class="card-header" onclick="toggleCard(this)">
-          <span class="fn-name">center_data</span>
+          <span class="fn-name">center_points</span>
           <span class="tag tag-model">modeling</span>
           <span class="fn-sig">(data, rows, cols) → {data, rows, cols}</span>
         </div>
@@ -398,9 +398,9 @@
         </div>
       </div>
 
-      <div class="card" id="card-group_ci">
+      <div class="card" id="card-mean_ci">
         <div class="card-header" onclick="toggleCard(this)">
-          <span class="fn-name">group_ci</span>
+          <span class="fn-name">mean_ci</span>
           <span class="tag tag-model">modeling</span>
           <span class="fn-sig">(data, rows, cols, conf) → {data[n_dims×3], rows, cols}</span>
         </div>
@@ -436,9 +436,9 @@
         </div>
       </div>
 
-      <div class="card" id="card-lws_lsq_positions">
+      <div class="card" id="card-node_positions">
         <div class="card-header" onclick="toggleCard(this)">
-          <span class="fn-name">lws_lsq_positions</span>
+          <span class="fn-name">node_positions</span>
           <span class="tag tag-model">modeling</span>
           <span class="fn-sig">(adj, t, num_dims) → {nodes, centroids, weights, points}</span>
         </div>
@@ -465,7 +465,7 @@
           <span class="fn-sig">(lw, pt, num_dims) → {nodes, centroids, weights, points}</span>
         </div>
         <div class="card-body">
-          <p class="desc">Node positions for directed networks; takes lineweight matrix and point matrix, returns same structure as lws_lsq_positions.</p>
+          <p class="desc">Node positions for directed networks; takes lineweight matrix and point matrix, returns same structure as node_positions.</p>
           <div class="inputs-grid">
             <div class="input-row"><label>lw data (lineweights, row-major)</label><input id="dnp-lw" value="1,0, 0,1, 1,1"></div>
             <div class="input-row"><label>lw rows</label><input id="dnp-lw-r" type="number" value="3"></div>
@@ -488,9 +488,9 @@
     <h2>Accumulation</h2>
     <div class="cards">
 
-      <div class="card" id="card-stanza_window">
+      <div class="card" id="card-accumulate_stanza">
         <div class="card-header" onclick="toggleCard(this)">
-          <span class="fn-name">stanza_window</span>
+          <span class="fn-name">accumulate_stanza</span>
           <span class="tag tag-acc">accumulation</span>
           <span class="fn-sig">(data, rows, cols, back, fwd, binary) → {data, rows, cols}</span>
         </div>
@@ -512,9 +512,9 @@
         </div>
       </div>
 
-      <div class="card" id="card-rows_to_co_occurrences">
+      <div class="card" id="card-row_connections">
         <div class="card-header" onclick="toggleCard(this)">
-          <span class="fn-name">rows_to_co_occurrences</span>
+          <span class="fn-name">row_connections</span>
           <span class="tag tag-acc">accumulation</span>
           <span class="fn-sig">(data, rows, cols, binary) → {data, rows, cols}</span>
         </div>
@@ -553,9 +553,9 @@
         </div>
       </div>
 
-      <div class="card" id="card-calculate_1d_index">
+      <div class="card" id="card-flat_index">
         <div class="card-header" onclick="toggleCard(this)">
-          <span class="fn-name">calculate_1d_index</span>
+          <span class="fn-name">flat_index</span>
           <span class="tag tag-acc">accumulation</span>
           <span class="fn-sig">(indices[], dims[]) → int</span>
         </div>
@@ -643,23 +643,23 @@ function guard(fn, outId) {
 
 window.runSvector = () => guard(() => {
     const names = parseStrings(document.getElementById('svector-names').value);
-    show('out-svector', qe.svector_to_upper_tri(names));
+    show('out-svector', qe.connection_names(names));
 }, 'out-svector');
 
 window.runTriIndices = () => guard(() => {
     const n = parseInt(document.getElementById('tri-n').value, 10);
-    show('out-tri', qe.tri_indices(n));
+    show('out-tri', qe.connection_indices(n));
 }, 'out-tri');
 
 window.runVectorToUpper = () => guard(() => {
     const data   = parseFloats(document.getElementById('vut-data').value);
     const n      = parseInt(document.getElementById('vut-n').value, 10);
-    show('out-vut', qe.vector_to_upper_tri(data, n));
+    show('out-vut', qe.code_connections(data, n));
 }, 'out-vut');
 
 window.runDirToUpper = () => guard(() => {
     const data = parseFloats(document.getElementById('dut-data').value);
-    show('out-dut', qe.directed_to_upper_tri(data));
+    show('out-dut', qe.fold_directed_network(data));
 }, 'out-dut');
 
 window.runAdjToVec = () => guard(() => {
@@ -667,7 +667,7 @@ window.runAdjToVec = () => guard(() => {
     const rows = parseInt(document.getElementById('amv-rows').value, 10);
     const cols = parseInt(document.getElementById('amv-cols').value, 10);
     const full = document.getElementById('amv-full').value === 'true';
-    show('out-amv', qe.adjacency_matrix_to_vector(data, rows, cols, full));
+    show('out-amv', qe.network_to_vector(data, rows, cols, full));
 }, 'out-amv');
 
 // ── Normalization ─────────────────────────────────────────────────────────────
@@ -676,14 +676,14 @@ window.runSphereNorm = () => guard(() => {
     const data = parseFloats(document.getElementById('sn-data').value);
     const rows = parseInt(document.getElementById('sn-rows').value, 10);
     const cols = parseInt(document.getElementById('sn-cols').value, 10);
-    show('out-sn', qe.sphere_norm(data, rows, cols));
+    show('out-sn', qe.normalize_networks(data, rows, cols));
 }, 'out-sn');
 
 window.runSkipSphereNorm = () => guard(() => {
     const data = parseFloats(document.getElementById('ssn-data').value);
     const rows = parseInt(document.getElementById('ssn-rows').value, 10);
     const cols = parseInt(document.getElementById('ssn-cols').value, 10);
-    show('out-ssn', qe.skip_sphere_norm(data, rows, cols));
+    show('out-ssn', qe.scale_networks(data, rows, cols));
 }, 'out-ssn');
 
 // ── Modeling ──────────────────────────────────────────────────────────────────
@@ -692,7 +692,7 @@ window.runCenterData = () => guard(() => {
     const data = parseFloats(document.getElementById('cd-data').value);
     const rows = parseInt(document.getElementById('cd-rows').value, 10);
     const cols = parseInt(document.getElementById('cd-cols').value, 10);
-    show('out-cd', qe.center_data(data, rows, cols));
+    show('out-cd', qe.center_points(data, rows, cols));
 }, 'out-cd');
 
 window.runGroupCI = () => guard(() => {
@@ -700,7 +700,7 @@ window.runGroupCI = () => guard(() => {
     const rows = parseInt(document.getElementById('gci-rows').value, 10);
     const cols = parseInt(document.getElementById('gci-cols').value, 10);
     const conf = parseFloat(document.getElementById('gci-conf').value);
-    show('out-gci', qe.group_ci(data, rows, cols, conf));
+    show('out-gci', qe.mean_ci(data, rows, cols, conf));
 }, 'out-gci');
 
 window.runOutlierCI = () => guard(() => {
@@ -719,7 +719,7 @@ window.runLwsLsq = () => guard(() => {
     const tR   = parseInt(document.getElementById('lws-t-r').value, 10);
     const tC   = parseInt(document.getElementById('lws-t-c').value, 10);
     const dims = parseInt(document.getElementById('lws-dims').value, 10);
-    show('out-lws', qe.lws_lsq_positions(adjD, adjR, adjC, tD, tR, tC, dims));
+    show('out-lws', qe.node_positions(adjD, adjR, adjC, tD, tR, tC, dims));
 }, 'out-lws');
 
 window.runDirNodePos = () => guard(() => {
@@ -742,7 +742,7 @@ window.runStanza = () => guard(() => {
     const back = parseInt(document.getElementById('sw-back').value, 10);
     const fwd  = parseInt(document.getElementById('sw-fwd').value, 10);
     const bin  = document.getElementById('sw-bin').value === 'true';
-    show('out-sw', qe.stanza_window(data, rows, cols, back, fwd, bin));
+    show('out-sw', qe.accumulate_stanza(data, rows, cols, back, fwd, bin));
 }, 'out-sw');
 
 window.runRowsToCoOcc = () => guard(() => {
@@ -750,7 +750,7 @@ window.runRowsToCoOcc = () => guard(() => {
     const rows = parseInt(document.getElementById('rco-rows').value, 10);
     const cols = parseInt(document.getElementById('rco-cols').value, 10);
     const bin  = document.getElementById('rco-bin').value === 'true';
-    show('out-rco', qe.rows_to_co_occurrences(data, rows, cols, bin));
+    show('out-rco', qe.row_connections(data, rows, cols, bin));
 }, 'out-rco');
 
 window.runRolling = () => guard(() => {
@@ -764,7 +764,7 @@ window.runRolling = () => guard(() => {
 window.runCalc1d = () => guard(() => {
     const idx  = parseInts(document.getElementById('c1d-idx').value);
     const dims = parseInts(document.getElementById('c1d-dims').value);
-    show('out-c1d', qe.calculate_1d_index(idx, dims));
+    show('out-c1d', qe.flat_index(idx, dims));
 }, 'out-c1d');
 
 // (buttons start disabled via HTML; enabled above after WASM loads)

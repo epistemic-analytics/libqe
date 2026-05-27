@@ -25,7 +25,7 @@ inline int choose_two(int n) {
 // row ==  0: return only the row indices
 // row ==  1: return only the column indices
 // Equivalent to triIndices() in both rENA/ena.cpp and tma/code.cpp.
-inline arma::umat tri_indices(int len, int row = -1) {
+inline arma::umat connection_indices(int len, int row = -1) {
     int vS = choose_two(len);
     int s  = 0;
 
@@ -51,7 +51,7 @@ inline arma::umat tri_indices(int len, int row = -1) {
 // Compute pairwise products of elements and return as a flat upper-triangle
 // vector.  v[j] * v[i] for all j < i.
 // Equivalent to vector_to_ut() in rENA/ena.cpp.
-inline arma::rowvec vector_to_upper_tri(arma::mat v) {
+inline arma::rowvec code_connections(arma::mat v) {
     int vL = v.size();
     int vS = choose_two(vL);
     arma::rowvec out(vS, arma::fill::zeros);
@@ -68,7 +68,7 @@ inline arma::rowvec vector_to_upper_tri(arma::mat v) {
 // Fold a directed (n*n) vector into an undirected upper-triangle vector by
 // summing symmetric elements (A→B + B→A).
 // Equivalent to vector_to_summed_uppertri() in tma/code.cpp.
-inline arma::rowvec directed_to_upper_tri(arma::vec v) {
+inline arma::rowvec fold_directed_network(arma::vec v) {
     int n    = static_cast<int>(std::round(std::sqrt(static_cast<double>(v.size()))));
     int tris = choose_two(n);
 
@@ -85,7 +85,7 @@ inline arma::rowvec directed_to_upper_tri(arma::vec v) {
 // full == true  → full n*n vector (directed)
 // full == false → upper-triangle only (undirected)
 // Equivalent to adjacency_matrix_to_vector() in tma/code.cpp.
-inline arma::rowvec adjacency_matrix_to_vector(arma::mat x, bool full = true) {
+inline arma::rowvec network_to_vector(arma::mat x, bool full = true) {
     if (full) return arma::vectorise(x).t();
     arma::mat combined  = arma::trimatu(x, 1) + arma::trimatl(x, -1);
     arma::uvec up_inds  = arma::trimatu_ind(arma::size(combined), 1);
@@ -98,7 +98,7 @@ inline arma::rowvec adjacency_matrix_to_vector(arma::mat x, bool full = true) {
 
 // Return "A & B" pair names for every upper-triangle position.
 // Equivalent to svector_to_ut() in rENA/ena.cpp.
-inline std::vector<std::string> svector_to_upper_tri(std::vector<std::string> v) {
+inline std::vector<std::string> connection_names(std::vector<std::string> v) {
     int vL = v.size();
     int vS = choose_two(vL);
     std::vector<std::string> out(vS);

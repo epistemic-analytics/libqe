@@ -13,24 +13,24 @@ using namespace Rcpp;
 //' @param row -1 = both rows, 0 = row indices only, 1 = col indices only
 //' @export
 // [[Rcpp::export]]
-arma::umat lq_tri_indices(int len, int row = -1) {
-    return qe::tri_indices(len, row);
+arma::umat lq_connection_indices(int len, int row = -1) {
+    return qe::connection_indices(len, row);
 }
 
 //' Pairwise products → upper-triangle vector
 //' @param v Numeric vector of code values
 //' @export
 // [[Rcpp::export]]
-arma::rowvec lq_vector_to_upper_tri(arma::mat v) {
-    return qe::vector_to_upper_tri(v);
+arma::rowvec lq_code_connections(arma::mat v) {
+    return qe::code_connections(v);
 }
 
 //' Fold a directed (n*n) vector into an undirected upper-triangle vector
 //' @param v Numeric vector of length n*n
 //' @export
 // [[Rcpp::export]]
-arma::rowvec lq_directed_to_upper_tri(arma::vec v) {
-    return qe::directed_to_upper_tri(v);
+arma::rowvec lq_fold_directed_network(arma::vec v) {
+    return qe::fold_directed_network(v);
 }
 
 //' Flatten an adjacency matrix to a connection vector
@@ -38,16 +38,16 @@ arma::rowvec lq_directed_to_upper_tri(arma::vec v) {
 //' @param full TRUE = full n*n (directed); FALSE = upper triangle (undirected)
 //' @export
 // [[Rcpp::export]]
-arma::rowvec lq_adjacency_matrix_to_vector(arma::mat x, bool full = true) {
-    return qe::adjacency_matrix_to_vector(x, full);
+arma::rowvec lq_network_to_vector(arma::mat x, bool full = true) {
+    return qe::network_to_vector(x, full);
 }
 
 //' Code-name pairs for upper-triangle positions ("A & B")
 //' @param v Character vector of code names
 //' @export
 // [[Rcpp::export]]
-std::vector<std::string> lq_svector_to_upper_tri(std::vector<std::string> v) {
-    return qe::svector_to_upper_tri(v);
+std::vector<std::string> lq_connection_names(std::vector<std::string> v) {
+    return qe::connection_names(v);
 }
 
 // =============================================================================
@@ -58,28 +58,28 @@ std::vector<std::string> lq_svector_to_upper_tri(std::vector<std::string> v) {
 //' @param m Numeric matrix
 //' @export
 // [[Rcpp::export]]
-arma::mat lq_sphere_norm(arma::mat m) {
-    return qe::sphere_norm(m);
+arma::mat lq_normalize_networks(arma::mat m) {
+    return qe::normalize_networks(m);
 }
 
 //' Max-norm scaling (divide all rows by the largest row L2 norm)
 //' @param m Numeric matrix
 //' @export
 // [[Rcpp::export]]
-arma::mat lq_skip_sphere_norm(arma::mat m) {
-    return qe::skip_sphere_norm(m);
+arma::mat lq_scale_networks(arma::mat m) {
+    return qe::scale_networks(m);
 }
 
 // =============================================================================
 // Modeling
 // =============================================================================
 
-//' Center data (subtract column means)
+//' Center points (subtract column means)
 //' @param values Numeric matrix
 //' @export
 // [[Rcpp::export]]
-arma::mat lq_center_data(arma::mat values) {
-    return qe::center_data(values);
+arma::mat lq_center_points(arma::mat values) {
+    return qe::center_points(values);
 }
 
 //' Confidence interval for the mean of a group of ENA unit points
@@ -93,8 +93,8 @@ arma::mat lq_center_data(arma::mat values) {
 //'   When \code{nrow(points) == 1} the CI bounds are \code{±Inf}.
 //' @export
 // [[Rcpp::export]]
-arma::mat lq_group_ci(arma::mat points, double conf_level = 0.95) {
-    return qe::group_ci(points, conf_level);
+arma::mat lq_mean_ci(arma::mat points, double conf_level = 0.95) {
+    return qe::mean_ci(points, conf_level);
 }
 
 //' Outlier interval based on IQR (Tukey fence) for a group of ENA unit points
@@ -134,8 +134,8 @@ arma::mat lq_ena_correlation(arma::mat points, arma::mat centroids,
 //' @return List with nodes, centroids, weights, points
 //' @export
 // [[Rcpp::export]]
-List lq_lws_lsq_positions(arma::mat adj_mats, arma::mat t, int num_dims) {
-    qe::NodePositions r = qe::lws_lsq_positions(adj_mats, t, num_dims);
+List lq_node_positions(arma::mat adj_mats, arma::mat t, int num_dims) {
+    qe::NodePositions r = qe::node_positions(adj_mats, t, num_dims);
     return List::create(
         _("nodes")     = r.nodes,
         _("centroids") = r.centroids,
@@ -169,11 +169,11 @@ List lq_directed_node_positions(arma::mat line_weights, arma::mat points,
 //' @return List with nodes, centroids, weights, points
 //' @export
 // [[Rcpp::export]]
-List lq_directed_node_positions_ground_response(arma::mat line_weights,
-                                                 arma::mat points,
-                                                 int num_dims) {
-    qe::NodePositions r = qe::directed_node_positions_ground_response(
-        line_weights, points, num_dims);
+List lq_directed_node_positions_combine_pairs(arma::mat line_weights,
+                                               arma::mat points,
+                                               int num_dims) {
+    qe::NodePositions r = qe::directed_node_positions(
+        line_weights, points, num_dims, true);
     return List::create(
         _("nodes")     = r.nodes,
         _("centroids") = r.centroids,
@@ -186,17 +186,17 @@ List lq_directed_node_positions_ground_response(arma::mat line_weights,
 // Accumulation
 // =============================================================================
 
-//' Core adjacency matrix for one ground+response pair
+//' Core connection matrix for one ground+response pair
 //' @param ground          Numeric row vector of ground (context) code values
 //' @param response        Numeric row vector of response code values
 //' @param response_weight Scalar weight applied to the response self-connection
 //' @param ordered         TRUE = directed; FALSE = undirected
 //' @export
 // [[Rcpp::export]]
-arma::mat lq_calculate_adjacency_matrix(arma::rowvec ground, arma::rowvec response,
+arma::mat lq_connection_matrix(arma::rowvec ground, arma::rowvec response,
                                          double response_weight = 1.0,
                                          bool ordered = true) {
-    return qe::calculate_adjacency_matrix(ground, response, response_weight, ordered);
+    return qe::connection_matrix(ground, response, response_weight, ordered);
 }
 
 //' Traditional stanza-window accumulation (rENA model)
@@ -212,16 +212,16 @@ arma::mat lq_calculate_adjacency_matrix(arma::rowvec ground, arma::rowvec respon
 //' @return Numeric matrix (same n_rows, choose_two(n_codes) columns)
 //' @export
 // [[Rcpp::export]]
-arma::mat lq_stanza_window(arma::mat codes,
+arma::mat lq_accumulate_stanza(arma::mat codes,
                             int window_back    = 1,
                             int window_forward = 0,
                             bool binary        = true) {
-    return qe::stanza_window(codes, window_back, window_forward, binary);
+    return qe::accumulate_stanza(codes, window_back, window_forward, binary);
 }
 
 //' Compute a column-major linear index into a multi-dimensional array
 //'
-//' Equivalent to tma's calculate_1d_index(). Throws if lengths of `indices`
+//' Equivalent to tma's flat_index(). Throws if lengths of `indices`
 //' and `dims` differ.
 //'
 //' @param indices 0-based integer vector of per-dimension indices
@@ -229,8 +229,8 @@ arma::mat lq_stanza_window(arma::mat codes,
 //' @return Scalar integer linear index
 //' @export
 // [[Rcpp::export]]
-int lq_calculate_1d_index(std::vector<int> indices, std::vector<int> dims) {
-    return qe::calculate_1d_index(indices, dims);
+int lq_flat_index(std::vector<int> indices, std::vector<int> dims) {
+    return qe::flat_index(indices, dims);
 }
 
 //' Per-row upper-triangle co-occurrence matrix
@@ -244,8 +244,8 @@ int lq_calculate_1d_index(std::vector<int> indices, std::vector<int> dims) {
 //' @return Numeric matrix (n_rows x choose_two(n_codes))
 //' @export
 // [[Rcpp::export]]
-arma::mat lq_rows_to_co_occurrences(arma::mat codes, bool binary = true) {
-    return qe::rows_to_co_occurrences(codes, binary);
+arma::mat lq_row_connections(arma::mat codes, bool binary = true) {
+    return qe::row_connections(codes, binary);
 }
 
 //' Rolling backward window sum of a code matrix
