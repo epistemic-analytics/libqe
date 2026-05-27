@@ -163,3 +163,8 @@ publish:wasm:
     - cd wasm
     - npm version "${CI_COMMIT_TAG#v}" --no-git-tag-version
     - npm publish --registry "https://${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/"
+
+include:
+  - project: 'epistemic-analytics/qe-packages/cranqe'
+    ref: main
+    file: '/ci-templates/trigger-cranqe.yml'
