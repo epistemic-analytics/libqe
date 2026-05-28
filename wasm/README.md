@@ -77,17 +77,32 @@ Access a cell: `data[row * cols + col]`
 | `center_points(data, rows, cols)` | Subtract column means |
 | `mean_ci(data, rows, cols, conf_level)` | t-based CI → `n_dims × 3` `[mean, lower, upper]` |
 | `outlier_ci(data, rows, cols, iqr_factor)` | IQR-based interval → `n_dims × 2` `[lower, upper]` |
+| `ena_correlation(pts, pr, pc, cen, cr, cc, conf_level)` | Pearson r + CI → `n_units × 3` `[r, lower, upper]` |
 | `node_positions(adj, ar, ac, t, tr, tc, dims)` | Undirected ENA node positions |
 | `directed_node_positions(lw, lr, lc, pt, pr, pc, dims)` | Directed ENA node positions |
+| `directed_node_positions_combine_pairs(lw, lr, lc, pt, pr, pc, dims)` | Directed ENA — ground+response rows averaged before solve |
 
 ### Accumulation
 
 | Function | Description |
 |----------|-------------|
-| `accumulate_stanza(data, rows, cols, back, forward, binary, ordered)` | Stanza-window. `ordered=false`: undirected upper-tri. `ordered=true`: directed n² output| rENA stanza-window |
+| `connection_matrix(ground, gn, response, rn, weight, ordered)` | Core adjacency math for one ground+response pair → `n_codes × n_codes` matrix |
+| `accumulate_stanza(data, rows, cols, back, forward, binary, ordered)` | Stanza-window. `ordered=false`: upper-tri `choose(n,2)` cols. `ordered=true`: directed `n²` cols |
 | `row_connections(data, rows, cols, binary)` | Per-row co-occurrence |
 | `rolling_window_sum(data, rows, cols, window_size)` | Rolling backward sum |
 | `flat_index(indices, dims)` | Column-major linear index |
+| `accumulate_unit(codes, rows, cols, unit_rows, decay_fn, ordered)` | Ground/response accumulation for one unit (tma). `decay_fn(Float64Array) → Float64Array` |
+| `accumulate_unit_with_rows(codes, rows, cols, unit_rows, decay_fn, ordered)` | Like `accumulate_unit` but also returns per-response-row networks → `{ networks, row_networks }` |
+
+### Rotation
+
+| Function | Description |
+|----------|-------------|
+| `ena_svd(data, rows, cols)` | SVD rotation → `{ rotation, eigenvalues, column_names }` |
+| `deflate(data, rows, cols, axis)` | Project out a given axis → `{ data, rows, cols }` |
+| `orthogonal_svd(data, rows, cols, weights, wr, wc, labels)` | Weighted SVD with orthogonalization |
+| `complete_rotation(data, rows, cols, axes, ax_rows, ax_cols, labels)` | Fix named axes then fill remaining with SVD |
+| `means_rotation(data, rows, cols, group_pairs)` | Group-means rotation. `group_pairs`: `Array<{a: Int32Array, b: Int32Array}>` (0-based row indices) |
 
 ## Building from source
 

@@ -62,6 +62,30 @@ static val rowvec_to_js(const arma::rowvec& v) {
     return val::array(vec.begin(), vec.end());
 }
 
+// RotationResult → JS { rotation: matObj, eigenvalues: Float64Array, column_names: string[] }
+static val rotation_to_js(const qe::RotationResult& r) {
+    val result = val::object();
+    result.set("rotation",     mat_to_js(r.rotation));
+    std::vector<double> ev(r.eigenvalues.memptr(),
+                           r.eigenvalues.memptr() + r.eigenvalues.n_elem);
+    result.set("eigenvalues",  val::array(ev.begin(), ev.end()));
+    val names = val::array();
+    for (const auto& s : r.column_names)
+        names.call<void>("push", val(s));
+    result.set("column_names", names);
+    return result;
+}
+
+// NodePositions → JS { nodes, centroids, weights, points }
+static val node_positions_to_js(const qe::NodePositions& r) {
+    val result = val::object();
+    result.set("nodes",     mat_to_js(r.nodes));
+    result.set("centroids", mat_to_js(r.centroids));
+    result.set("weights",   mat_to_js(r.weights));
+    result.set("points",    mat_to_js(r.points));
+    return result;
+}
+
 // ── Adjacency ─────────────────────────────────────────────────────────────────
 
 // connection_indices(len) → { rows: Int32Array, cols: Int32Array }
@@ -92,8 +116,7 @@ static val fold_directed_network(const val& data) {
 }
 
 // network_to_vector(data, rows, cols, full) → Float64Array
-static val network_to_vector(const val& data, int rows, int cols,
-                                       bool full) {
+static val network_to_vector(const val& data, int rows, int cols, bool full) {
     arma::mat m = js_to_mat(data, rows, cols);
     return rowvec_to_js(qe::network_to_vector(m, full));
 }
@@ -139,64 +162,82 @@ static val outlier_ci(const val& data, int rows, int cols, double iqr_factor) {
     return mat_to_js(qe::outlier_ci(js_to_mat(data, rows, cols), iqr_factor));
 }
 
+// ena_correlation(pts, pt_rows, pt_cols, cen, cen_rows, cen_cols, conf_level)
+// → { data, rows:n_units, cols:3 }  columns: [r, ci_lower, ci_upper]
+static val ena_correlation(const val& pts, int pt_rows, int pt_cols,
+                            const val& cen, int cen_rows, int cen_cols,
+                            double conf_level) {
+    return mat_to_js(qe::ena_correlation(
+        js_to_mat(pts, pt_rows, pt_cols),
+        js_to_mat(cen, cen_rows, cen_cols),
+        conf_level));
+}
+
 // node_positions(adj_data, adj_rows, adj_cols,
 //                t_data,   t_rows,   t_cols, num_dims)
 // → { nodes, centroids, weights, points }  (each a matrix object)
 static val node_positions(const val& adj_data, int adj_rows, int adj_cols,
-                              const val& t_data,   int t_rows,   int t_cols,
-                              int num_dims) {
-    qe::NodePositions r = qe::node_positions(
+                           const val& t_data,   int t_rows,   int t_cols,
+                           int num_dims) {
+    return node_positions_to_js(qe::node_positions(
         js_to_mat(adj_data, adj_rows, adj_cols),
         js_to_mat(t_data,   t_rows,   t_cols),
-        num_dims);
-    val result = val::object();
-    result.set("nodes",     mat_to_js(r.nodes));
-    result.set("centroids", mat_to_js(r.centroids));
-    result.set("weights",   mat_to_js(r.weights));
-    result.set("points",    mat_to_js(r.points));
-    return result;
+        num_dims));
 }
 
 // directed_node_positions — same signature as node_positions
 static val directed_node_positions(const val& lw_data, int lw_rows, int lw_cols,
-                                   const val& pt_data, int pt_rows, int pt_cols,
-                                   int num_dims) {
-    qe::NodePositions r = qe::directed_node_positions(
+                                    const val& pt_data,  int pt_rows, int pt_cols,
+                                    int num_dims) {
+    return node_positions_to_js(qe::directed_node_positions(
         js_to_mat(lw_data, lw_rows, lw_cols),
         js_to_mat(pt_data, pt_rows, pt_cols),
-        num_dims);
-    val result = val::object();
-    result.set("nodes",     mat_to_js(r.nodes));
-    result.set("centroids", mat_to_js(r.centroids));
-    result.set("weights",   mat_to_js(r.weights));
-    result.set("points",    mat_to_js(r.points));
-    return result;
+        num_dims));
+}
+
+// directed_node_positions_combine_pairs — ground+response rows combined before solve
+static val directed_node_positions_combine_pairs(
+        const val& lw_data, int lw_rows, int lw_cols,
+        const val& pt_data, int pt_rows, int pt_cols,
+        int num_dims) {
+    return node_positions_to_js(qe::directed_node_positions(
+        js_to_mat(lw_data, lw_rows, lw_cols),
+        js_to_mat(pt_data, pt_rows, pt_cols),
+        num_dims, /*combine_pairs=*/true));
 }
 
 // ── Accumulation ─────────────────────────────────────────────────────────────
+
+// connection_matrix(ground, gn, response, rn, response_weight, ordered)
+// → { data, rows:n_codes, cols:n_codes }
+static val connection_matrix(const val& ground_data, int gn,
+                              const val& response_data, int rn,
+                              double response_weight, bool ordered) {
+    std::vector<double> gv = vecFromJSArray<double>(ground_data);
+    std::vector<double> rv = vecFromJSArray<double>(response_data);
+    arma::rowvec g(gv.data(), gn);
+    arma::rowvec r(rv.data(), rn);
+    return mat_to_js(qe::connection_matrix(g, r, response_weight, ordered));
+}
 
 // accumulate_stanza(data, rows, cols, window_back, window_forward, binary, ordered)
 // ordered=false → { data, rows, choose_two(cols) }
 // ordered=true  → { data, rows, cols² }
 static val accumulate_stanza(const val& data, int rows, int cols,
-                         int window_back, int window_forward, bool binary,
-                         bool ordered) {
+                              int window_back, int window_forward,
+                              bool binary, bool ordered) {
     return mat_to_js(qe::accumulate_stanza(
         js_to_mat(data, rows, cols), window_back, window_forward, binary, ordered));
 }
 
 // row_connections(data, rows, cols, binary) → { data, rows, cols }
-static val row_connections(const val& data, int rows, int cols,
-                                   bool binary) {
-    return mat_to_js(qe::row_connections(
-        js_to_mat(data, rows, cols), binary));
+static val row_connections(const val& data, int rows, int cols, bool binary) {
+    return mat_to_js(qe::row_connections(js_to_mat(data, rows, cols), binary));
 }
 
 // rolling_window_sum(data, rows, cols, window_size) → { data, rows, cols }
-static val rolling_window_sum(const val& data, int rows, int cols,
-                               int window_size) {
-    return mat_to_js(qe::rolling_window_sum(
-        js_to_mat(data, rows, cols), window_size));
+static val rolling_window_sum(const val& data, int rows, int cols, int window_size) {
+    return mat_to_js(qe::rolling_window_sum(js_to_mat(data, rows, cols), window_size));
 }
 
 // flat_index(indices_array, dims_array) → int
@@ -206,30 +247,149 @@ static int flat_index(const val& indices_val, const val& dims_val) {
         vecFromJSArray<int>(dims_val));
 }
 
+// accumulate_unit(codes, rows, cols, unit_rows, decay_fn, ordered)
+// decay_fn: JS function(Float64Array distances) → Float64Array weights
+// → Float64Array  (length choose_two(n_codes) or n_codes²)
+static val accumulate_unit(const val& codes_data, int rows, int cols,
+                            const val& unit_rows_val,
+                            const val& decay_fn_js,
+                            bool ordered) {
+    std::vector<int> unit_rows = vecFromJSArray<int>(unit_rows_val);
+
+    auto cpp_decay = [&decay_fn_js](arma::vec distances) -> arma::vec {
+        std::vector<double> dv(distances.memptr(), distances.memptr() + distances.n_elem);
+        val js_result = decay_fn_js(val::array(dv.begin(), dv.end()));
+        std::vector<double> wv = vecFromJSArray<double>(js_result);
+        return arma::vec(wv.data(), wv.size());
+    };
+
+    return rowvec_to_js(qe::accumulate_unit(
+        js_to_mat(codes_data, rows, cols), unit_rows, cpp_decay, ordered));
+}
+
+// accumulate_unit_with_rows(codes, rows, cols, unit_rows, decay_fn, ordered)
+// → { networks: Float64Array, row_networks: matObj }
+static val accumulate_unit_with_rows(const val& codes_data, int rows, int cols,
+                                      const val& unit_rows_val,
+                                      const val& decay_fn_js,
+                                      bool ordered) {
+    std::vector<int> unit_rows = vecFromJSArray<int>(unit_rows_val);
+
+    auto cpp_decay = [&decay_fn_js](int unit_row, arma::uvec ground_indices) -> arma::vec {
+        arma::vec distances(ground_indices.n_elem);
+        for (arma::uword k = 0; k < ground_indices.n_elem; ++k)
+            distances[k] = static_cast<double>(unit_row - ground_indices[k]);
+        std::vector<double> dv(distances.memptr(), distances.memptr() + distances.n_elem);
+        val js_result = decay_fn_js(val::array(dv.begin(), dv.end()));
+        std::vector<double> wv = vecFromJSArray<double>(js_result);
+        return arma::vec(wv.data(), wv.size());
+    };
+
+    qe::UnitNetworks r = qe::accumulate_unit_with_rows(
+        js_to_mat(codes_data, rows, cols), unit_rows, cpp_decay, ordered);
+
+    val result = val::object();
+    result.set("networks",     rowvec_to_js(r.networks));
+    result.set("row_networks", mat_to_js(r.row_networks));
+    return result;
+}
+
+// ── Rotation ──────────────────────────────────────────────────────────────────
+
+// ena_svd(data, rows, cols)
+// → { rotation: matObj, eigenvalues: Float64Array, column_names: string[] }
+static val ena_svd(const val& data, int rows, int cols) {
+    return rotation_to_js(qe::ena_svd(js_to_mat(data, rows, cols)));
+}
+
+// deflate(data, rows, cols, axis_data)
+// → { data, rows, cols }
+static val deflate(const val& data, int rows, int cols, const val& axis_data) {
+    std::vector<double> av = vecFromJSArray<double>(axis_data);
+    arma::vec axis(av.data(), av.size());
+    return mat_to_js(qe::deflate(js_to_mat(data, rows, cols), axis));
+}
+
+// orthogonal_svd(data, rows, cols, weights_data, w_rows, w_cols, named_labels)
+// → { rotation, eigenvalues, column_names }
+static val orthogonal_svd(const val& data, int rows, int cols,
+                           const val& weights_data, int w_rows, int w_cols,
+                           const val& named_labels_val) {
+    std::vector<std::string> labels = vecFromJSArray<std::string>(named_labels_val);
+    return rotation_to_js(qe::orthogonal_svd(
+        js_to_mat(data, rows, cols),
+        js_to_mat(weights_data, w_rows, w_cols),
+        labels));
+}
+
+// complete_rotation(data, rows, cols, named_axes_data, ax_rows, ax_cols, named_labels)
+// → { rotation, eigenvalues, column_names }
+static val complete_rotation(const val& data, int rows, int cols,
+                              const val& axes_data, int ax_rows, int ax_cols,
+                              const val& named_labels_val) {
+    std::vector<std::string> labels = vecFromJSArray<std::string>(named_labels_val);
+    return rotation_to_js(qe::complete_rotation(
+        js_to_mat(data, rows, cols),
+        js_to_mat(axes_data, ax_rows, ax_cols),
+        labels));
+}
+
+// means_rotation(data, rows, cols, group_pairs)
+// group_pairs: Array of { a: Int32Array, b: Int32Array }  (0-based row indices)
+// → { rotation, eigenvalues, column_names }
+static val means_rotation(const val& data, int rows, int cols,
+                           const val& group_pairs_js) {
+    int n_pairs = group_pairs_js["length"].as<int>();
+    std::vector<qe::GroupPair> pairs;
+    pairs.reserve(n_pairs);
+    for (int i = 0; i < n_pairs; ++i) {
+        val pair = group_pairs_js[i];
+        std::vector<int> av = vecFromJSArray<int>(pair["a"]);
+        std::vector<int> bv = vecFromJSArray<int>(pair["b"]);
+        arma::uvec a(av.size()), b(bv.size());
+        for (size_t j = 0; j < av.size(); ++j) a(j) = static_cast<arma::uword>(av[j]);
+        for (size_t j = 0; j < bv.size(); ++j) b(j) = static_cast<arma::uword>(bv[j]);
+        pairs.push_back({a, b});
+    }
+    return rotation_to_js(qe::means_rotation(js_to_mat(data, rows, cols), pairs));
+}
+
 // ── Embind registrations ──────────────────────────────────────────────────────
 
 EMSCRIPTEN_BINDINGS(libqe) {
     // Adjacency
-    function("connection_indices",         &connection_indices);
-    function("code_connections",           &code_connections);
-    function("fold_directed_network",      &fold_directed_network);
-    function("network_to_vector",          &network_to_vector);
-    function("connection_names",           &connection_names);
+    function("connection_indices",                    &connection_indices);
+    function("code_connections",                      &code_connections);
+    function("fold_directed_network",                 &fold_directed_network);
+    function("network_to_vector",                     &network_to_vector);
+    function("connection_names",                      &connection_names);
 
     // Normalization
-    function("normalize_networks",         &normalize_networks);
-    function("scale_networks",             &scale_networks);
+    function("normalize_networks",                    &normalize_networks);
+    function("scale_networks",                        &scale_networks);
 
     // Modeling
-    function("center_points",              &center_points);
-    function("mean_ci",                    &mean_ci);
-    function("outlier_ci",                 &outlier_ci);
-    function("node_positions",             &node_positions);
-    function("directed_node_positions",    &directed_node_positions);
+    function("center_points",                         &center_points);
+    function("mean_ci",                               &mean_ci);
+    function("outlier_ci",                            &outlier_ci);
+    function("ena_correlation",                       &ena_correlation);
+    function("node_positions",                        &node_positions);
+    function("directed_node_positions",               &directed_node_positions);
+    function("directed_node_positions_combine_pairs", &directed_node_positions_combine_pairs);
 
     // Accumulation
-    function("accumulate_stanza",          &accumulate_stanza);
-    function("row_connections",            &row_connections);
-    function("rolling_window_sum",         &rolling_window_sum);
-    function("flat_index",                 &flat_index);
+    function("connection_matrix",                     &connection_matrix);
+    function("accumulate_stanza",                     &accumulate_stanza);
+    function("row_connections",                       &row_connections);
+    function("rolling_window_sum",                    &rolling_window_sum);
+    function("flat_index",                            &flat_index);
+    function("accumulate_unit",                       &accumulate_unit);
+    function("accumulate_unit_with_rows",             &accumulate_unit_with_rows);
+
+    // Rotation
+    function("ena_svd",                               &ena_svd);
+    function("deflate",                               &deflate);
+    function("orthogonal_svd",                        &orthogonal_svd);
+    function("complete_rotation",                     &complete_rotation);
+    function("means_rotation",                        &means_rotation);
 }

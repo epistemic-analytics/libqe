@@ -64,3 +64,88 @@ test('flat_index matches column-major expectation', () => {
     // 3D array of dims [2,3,4], index [1,2,3] → 1 + 2*2 + 3*6 = 23
     expect(qe.flat_index([1,2,3], [2,3,4])).toBe(23);
 });
+
+// ── Accumulation — extended ───────────────────────────────────────────────────
+
+test('accumulate_stanza: ordered=true gives n_codes² columns', () => {
+    // 3 rows × 3 codes, ordered → 3² = 9 cols
+    const codes = new Float64Array([1,1,0, 1,0,1, 0,1,1]);
+    const out   = qe.accumulate_stanza(codes, 3, 3, 2, 0, true, true);
+    expect(out.rows).toBe(3);
+    expect(out.cols).toBe(9);
+});
+
+test('connection_matrix: ordered=false diagonal is zero', () => {
+    const g = new Float64Array([1, 0, 1]);
+    const r = new Float64Array([1, 1, 0]);
+    const m = qe.connection_matrix(g, 3, r, 3, 1.0, false);
+    // result is n_codes × n_codes; diagonal entries should be zero (unordered)
+    const diag = [m.data[0], m.data[4], m.data[8]];
+    diag.forEach(v => expect(v).toBeCloseTo(0, 10));
+});
+
+test('accumulate_unit: output length is choose_two(n_codes) when unordered', () => {
+    // 4 rows × 3 codes; unit covers rows [0, 1, 2]; decay = constant 1
+    const codes    = new Float64Array([1,0,0, 0,1,0, 0,0,1, 1,1,0]);
+    const unitRows = new Int32Array([0, 1, 2]);
+    const decayFn  = (d) => new Float64Array(d.length).fill(1.0);
+    const out = qe.accumulate_unit(codes, 4, 3, unitRows, decayFn, false);
+    // choose(3,2) = 3
+    expect(out.length).toBe(3);
+});
+
+test('accumulate_unit: output length is n_codes² when ordered', () => {
+    const codes    = new Float64Array([1,0,0, 0,1,0, 0,0,1, 1,1,0]);
+    const unitRows = new Int32Array([0, 1, 2]);
+    const decayFn  = (d) => new Float64Array(d.length).fill(1.0);
+    const out = qe.accumulate_unit(codes, 4, 3, unitRows, decayFn, true);
+    expect(out.length).toBe(9);
+});
+
+test('accumulate_unit_with_rows: networks + row_networks returned', () => {
+    const codes    = new Float64Array([1,0, 0,1, 1,1]);
+    const unitRows = new Int32Array([0, 1, 2]);
+    const decayFn  = (d) => new Float64Array(d.length).fill(1.0);
+    const out = qe.accumulate_unit_with_rows(codes, 3, 2, unitRows, decayFn, false);
+    // choose(2,2) = 1 connection
+    expect(out.networks.length).toBe(1);
+    // row_networks: 3 rows × 1 col
+    expect(out.row_networks.rows).toBe(3);
+    expect(out.row_networks.cols).toBe(1);
+});
+
+// ── Rotation ──────────────────────────────────────────────────────────────────
+
+test('ena_svd: returns rotation matrix and eigenvalues', () => {
+    // 3 units × 2 connection dimensions
+    const data = new Float64Array([1,0, 0,1, 1,1]);
+    const r    = qe.ena_svd(data, 3, 2);
+    expect(r.rotation.rows).toBe(2);
+    expect(r.rotation.cols).toBe(2);
+    expect(r.eigenvalues.length).toBe(2);
+    expect(r.column_names.length).toBe(2);
+});
+
+test('deflate: removes variance along axis', () => {
+    // data aligned with first standard basis vector; deflating that axis
+    // should zero out the first column
+    const data = new Float64Array([1,0, 2,0, 3,0]);  // 3×2 row-major
+    const axis = new Float64Array([1, 0]);
+    const out  = qe.deflate(data, 3, 2, axis);
+    expect(out.rows).toBe(3);
+    expect(out.cols).toBe(2);
+    // col 0 of output should be near zero
+    [0, 2, 4].forEach(i => expect(Math.abs(out.data[i])).toBeCloseTo(0, 8));
+});
+
+test('means_rotation: returns rotation with column_names', () => {
+    const data = new Float64Array([
+        1,0, 0,1,  // group a
+        2,1, 1,2,  // group b
+        0,0, 3,3,
+    ]);
+    const groupPairs = [{ a: new Int32Array([0,1]), b: new Int32Array([2,3]) }];
+    const r = qe.means_rotation(data, 4, 4, groupPairs);
+    expect(r.rotation.rows).toBe(4);
+    expect(r.eigenvalues.length).toBe(4);
+});
