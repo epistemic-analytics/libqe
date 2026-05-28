@@ -47,6 +47,19 @@ static std::vector<double> pack(const arma::rowvec& v) {
     return std::vector<double>(v.memptr(), v.memptr() + v.n_elem);
 }
 
+// Julia Matrix{Int32} (column-major) → arma::imat.
+// Cannot be zero-copy: arma::sword is s32 or s64 depending on ARMA_64BIT_WORD,
+// so we always copy with an explicit cast.
+static arma::imat copy_imat(jlcxx::ArrayRef<int32_t> data, int rows, int cols) {
+    arma::imat m(static_cast<arma::uword>(rows),
+                 static_cast<arma::uword>(cols));
+    // data is column-major (Julia-native), matching Armadillo's layout
+    for (arma::uword j = 0; j < static_cast<arma::uword>(cols); ++j)
+        for (arma::uword i = 0; i < static_cast<arma::uword>(rows); ++i)
+            m(i, j) = static_cast<arma::sword>(data[j * rows + i]);
+    return m;
+}
+
 // Unpack a jl_value_t* (expected to be Vector{Float64}) into arma::vec.
 // Used to interpret the return value of a Julia decay function.
 static arma::vec unpack_jl_vec(jl_value_t* val) {
@@ -93,6 +106,51 @@ static NodePositionsResult pack_positions(const qe::NodePositions& r) {
     return out;
 }
 
+// ── RotationResult ────────────────────────────────────────────────────────────
+// rotation.hpp functions return qe::RotationResult.  We pack it into a plain
+// struct for safe transport across the CxxWrap boundary.
+
+struct RotationResultJ {
+    std::vector<double> rot_matrix;    // rotation matrix, flat column-major
+    int32_t rot_rows, rot_cols;
+
+    std::vector<double> eigenvalues;   // flat (length = n_dims)
+
+    std::vector<std::string> column_names;
+};
+
+static RotationResultJ pack_rotation(const qe::RotationResult& r) {
+    RotationResultJ out;
+    out.rot_matrix  = pack(r.rotation);
+    out.rot_rows    = static_cast<int32_t>(r.rotation.n_rows);
+    out.rot_cols    = static_cast<int32_t>(r.rotation.n_cols);
+    out.eigenvalues = std::vector<double>(r.eigenvalues.memptr(),
+                                          r.eigenvalues.memptr() + r.eigenvalues.n_elem);
+    out.column_names = r.column_names;
+    return out;
+}
+
+// ── TensorNetworks ────────────────────────────────────────────────────────────
+// accumulation.hpp apply_tensor_unit returns qe::TensorNetworks.
+
+struct TensorNetworksJ {
+    std::vector<double> connection_counts;   // flat (length = n_codes² or choose_two)
+
+    std::vector<double> row_networks;        // flat column-major
+    int32_t row_networks_rows, row_networks_cols;
+};
+
+static TensorNetworksJ pack_tensor_networks(const qe::TensorNetworks& r) {
+    TensorNetworksJ out;
+    out.connection_counts = std::vector<double>(
+        r.connection_counts.memptr(),
+        r.connection_counts.memptr() + r.connection_counts.n_elem);
+    out.row_networks      = pack(r.row_connection_counts);
+    out.row_networks_rows = static_cast<int32_t>(r.row_connection_counts.n_rows);
+    out.row_networks_cols = static_cast<int32_t>(r.row_connection_counts.n_cols);
+    return out;
+}
+
 // ── Module definition ─────────────────────────────────────────────────────────
 
 JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
@@ -111,6 +169,21 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
         .method("points",         [](const NodePositionsResult& r){ return r.points; })
         .method("points_rows",    [](const NodePositionsResult& r){ return r.points_rows; })
         .method("points_cols",    [](const NodePositionsResult& r){ return r.points_cols; });
+
+    // ── RotationResultJ ───────────────────────────────────────────────────────
+    mod.add_type<RotationResultJ>("RotationResultJ")
+        .method("rot_matrix",    [](const RotationResultJ& r){ return r.rot_matrix; })
+        .method("rot_rows",      [](const RotationResultJ& r){ return r.rot_rows; })
+        .method("rot_cols",      [](const RotationResultJ& r){ return r.rot_cols; })
+        .method("eigenvalues",   [](const RotationResultJ& r){ return r.eigenvalues; })
+        .method("column_names",  [](const RotationResultJ& r){ return r.column_names; });
+
+    // ── TensorNetworksJ ───────────────────────────────────────────────────────
+    mod.add_type<TensorNetworksJ>("TensorNetworksJ")
+        .method("connection_counts",   [](const TensorNetworksJ& r){ return r.connection_counts; })
+        .method("row_networks",        [](const TensorNetworksJ& r){ return r.row_networks; })
+        .method("row_networks_rows",   [](const TensorNetworksJ& r){ return r.row_networks_rows; })
+        .method("row_networks_cols",   [](const TensorNetworksJ& r){ return r.row_networks_cols; });
 
     // ── Adjacency ─────────────────────────────────────────────────────────────
 
@@ -320,5 +393,98 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
             out.weights_cols = n_codes * n_codes;
             out.points = {};       // unused
             return out;
+        });
+
+    // accumulate_tensor_unit — tma tensor-based accumulation for one unit.
+    //
+    // context_lookup is passed as a flat Int32 vector (column-major, Julia-native)
+    // plus cl_rows/cl_cols.  All index vectors are Int32; copied to std::vector<int>
+    // because qe::apply_tensor_unit takes std::vector<int>.
+    mod.method("apply_tensor_unit",
+        [](jlcxx::ArrayRef<double> tensor_ref,
+           const std::vector<int32_t>& dims_i32,
+           const std::vector<int32_t>& dims_sender_i32,
+           const std::vector<int32_t>& dims_receiver_i32,
+           const std::vector<int32_t>& dims_mode_i32,
+           jlcxx::ArrayRef<int32_t> ctx_ref, int32_t cl_rows, int32_t cl_cols,
+           const std::vector<int32_t>& unit_rows_i32,
+           jlcxx::ArrayRef<double> codes_ref, int32_t rows, int32_t cols,
+           jlcxx::ArrayRef<double> times_ref,
+           bool ordered) -> TensorNetworksJ {
+
+            arma::vec tensor(tensor_ref.data(), tensor_ref.size(), false, true);
+
+            std::vector<int> dims(dims_i32.begin(), dims_i32.end());
+            std::vector<int> dims_sender(dims_sender_i32.begin(), dims_sender_i32.end());
+            std::vector<int> dims_receiver(dims_receiver_i32.begin(), dims_receiver_i32.end());
+            std::vector<int> dims_mode(dims_mode_i32.begin(), dims_mode_i32.end());
+            std::vector<int> unit_rows(unit_rows_i32.begin(), unit_rows_i32.end());
+
+            arma::imat context_lookup = copy_imat(ctx_ref, cl_rows, cl_cols);
+            arma::mat  codes          = view_mat(codes_ref, rows, cols);
+            arma::vec  times(times_ref.data(), times_ref.size(), false, true);
+
+            return pack_tensor_networks(qe::apply_tensor_unit(
+                tensor, dims, dims_sender, dims_receiver, dims_mode,
+                context_lookup, unit_rows, codes, times, ordered));
+        });
+
+    // ── Rotation ──────────────────────────────────────────────────────────────
+
+    mod.method("ena_svd",
+        [](jlcxx::ArrayRef<double> m, int32_t rows, int32_t cols) -> RotationResultJ {
+            return pack_rotation(qe::ena_svd(view_mat(m, rows, cols)));
+        });
+
+    mod.method("deflate",
+        [](jlcxx::ArrayRef<double> m, int32_t rows, int32_t cols,
+           jlcxx::ArrayRef<double> axis_ref) -> std::vector<double> {
+            arma::vec axis(axis_ref.data(), axis_ref.size(), false, true);
+            return pack(qe::deflate(view_mat(m, rows, cols), axis));
+        });
+
+    mod.method("orthogonal_svd",
+        [](jlcxx::ArrayRef<double> data,    int32_t dr, int32_t dc,
+           jlcxx::ArrayRef<double> weights, int32_t wr, int32_t wc,
+           const std::vector<std::string>& labels) -> RotationResultJ {
+            return pack_rotation(qe::orthogonal_svd(
+                view_mat(data,    dr, dc),
+                view_mat(weights, wr, wc),
+                labels));
+        });
+
+    mod.method("complete_rotation",
+        [](jlcxx::ArrayRef<double> data,  int32_t dr, int32_t dc,
+           jlcxx::ArrayRef<double> axes,  int32_t ar, int32_t ac,
+           const std::vector<std::string>& labels) -> RotationResultJ {
+            return pack_rotation(qe::complete_rotation(
+                view_mat(data, dr, dc),
+                view_mat(axes, ar, ac),
+                labels));
+        });
+
+    // means_rotation — group pairs passed as four flat vectors:
+    //   a_flat / a_sizes: concatenated a-group indices + size of each group
+    //   b_flat / b_sizes: same for b-groups
+    // Julia wrapper reconstructs Vector{Tuple{Vector{Int32},Vector{Int32}}} → these.
+    mod.method("means_rotation",
+        [](jlcxx::ArrayRef<double> m, int32_t rows, int32_t cols,
+           const std::vector<int32_t>& a_flat, const std::vector<int32_t>& a_sizes,
+           const std::vector<int32_t>& b_flat, const std::vector<int32_t>& b_sizes)
+           -> RotationResultJ {
+
+            std::vector<qe::GroupPair> pairs;
+            pairs.reserve(a_sizes.size());
+            size_t ai = 0, bi = 0;
+            for (size_t k = 0; k < a_sizes.size(); ++k) {
+                arma::uvec a(static_cast<arma::uword>(a_sizes[k]));
+                arma::uvec b(static_cast<arma::uword>(b_sizes[k]));
+                for (arma::uword j = 0; j < a.n_elem; ++j)
+                    a(j) = static_cast<arma::uword>(a_flat[ai++]);
+                for (arma::uword j = 0; j < b.n_elem; ++j)
+                    b(j) = static_cast<arma::uword>(b_flat[bi++]);
+                pairs.push_back({a, b});
+            }
+            return pack_rotation(qe::means_rotation(view_mat(m, rows, cols), pairs));
         });
 }

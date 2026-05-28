@@ -68,6 +68,25 @@ function _unpack_positions(r)
     )
 end
 
+# Unpack a RotationResultJ into a NamedTuple.
+function _unpack_rotation(r)
+    (
+        rotation     = reshape(rot_matrix(r), rot_rows(r), rot_cols(r)),
+        eigenvalues  = eigenvalues(r),
+        column_names = column_names(r),
+    )
+end
+
+# Unpack a TensorNetworksJ into a NamedTuple.
+function _unpack_tensor_networks(r)
+    (
+        connection_counts    = connection_counts(r),
+        row_connection_counts = reshape(row_networks(r),
+                                        row_networks_rows(r),
+                                        row_networks_cols(r)),
+    )
+end
+
 # ── Adjacency ─────────────────────────────────────────────────────────────────
 
 """
@@ -92,8 +111,21 @@ function code_connections(v::Vector{Float64})
     code_connections(v, Int32(length(v)))
 end
 
-# fold_directed_network(v::Vector{Float64}) and connection_names(names::Vector{String})
-# are exposed directly by the C++ binding — no Julia wrapper needed.
+"""
+    fold_directed_network(v) -> Vector{Float64}
+
+Fold an n²-length directed network vector into upper-triangle form.
+"""
+function fold_directed_network(v::Vector{Float64})
+    fold_directed_network(v, Int32(length(v)))
+end
+
+# connection_names(names::Vector{String}) -> Vector{String}
+# CxxWrap maps std::vector<std::string> directly to Vector{String}, so the
+# C++ binding is already callable as connection_names(["A","B","C"]).
+# A same-signature Julia wrapper would recurse into itself, so we leave
+# the CxxWrap-generated method in place and only document it here.
+#   connection_names(["Concept A", "Concept B"]) → ["Concept A & Concept B"]
 
 # ── Normalization ─────────────────────────────────────────────────────────────
 
@@ -200,6 +232,25 @@ function directed_node_positions(line_weights::Matrix{Float64},
     _unpack_positions(r)
 end
 
+"""
+    directed_node_positions_combine_pairs(line_weights, points, num_dims) -> NamedTuple
+
+Directed ENA node positions — ground and response rows averaged before the
+least-squares solve (`combine_pairs = true`).
+Returns `(nodes, centroids, weights, points)`.
+"""
+function directed_node_positions_combine_pairs(line_weights::Matrix{Float64},
+                                                points::Matrix{Float64},
+                                                num_dims::Integer)
+    lr, lc = size(line_weights)
+    pr, pc = size(points)
+    r = directed_node_positions_combine_pairs(
+            line_weights, Int32(lr), Int32(lc),
+            points,       Int32(pr), Int32(pc),
+            Int32(num_dims))
+    _unpack_positions(r)
+end
+
 # ── Accumulation ──────────────────────────────────────────────────────────────
 
 """
@@ -303,6 +354,126 @@ function accumulate_unit_with_rows(codes::Matrix{Float64}, unit_rows::Vector{Int
         networks     = nodes(r),                              # flat Vector{Float64}
         row_networks = reshape(weights(r), n_unit, cols^2),   # n_unit × p²
     )
+end
+
+"""
+    accumulate_tensor_unit(codes, dims, dims_sender, dims_receiver, dims_mode,
+                           context_lookup, unit_rows, times; ordered=true)
+    -> NamedTuple{(:connection_counts, :row_connection_counts)}
+
+tma tensor-based accumulation for one unit.
+
+- `codes`          — `Matrix{Float64}` (n_context_rows × n_codes)
+- `tensor`         — `Vector{Float64}` flat column-major, shaped by `dims`
+- `dims`           — `Vector{Int32}` tensor axis sizes
+- `dims_sender`    — `Vector{Int32}` axis indices for sender factors
+- `dims_receiver`  — `Vector{Int32}` axis indices for receiver factors
+- `dims_mode`      — `Vector{Int32}` axis indices for mode factors
+- `context_lookup` — `Matrix{Int32}` (n_context_rows × n_factors), **0-based**
+- `unit_rows`      — `Vector{Int32}` **0-based** response-row indices for this unit
+- `times`          — `Vector{Float64}` one timestamp per context row
+- `ordered`        — `true` → directed n²; `false` → undirected upper-tri
+
+Returns `(connection_counts, row_connection_counts)`.
+"""
+function accumulate_tensor_unit(codes::Matrix{Float64},
+                                 tensor::Vector{Float64},
+                                 dims::Vector{Int32},
+                                 dims_sender::Vector{Int32},
+                                 dims_receiver::Vector{Int32},
+                                 dims_mode::Vector{Int32},
+                                 context_lookup::Matrix{Int32},
+                                 unit_rows::Vector{Int32},
+                                 times::Vector{Float64};
+                                 ordered::Bool = true)
+    rows, cols = size(codes)
+    cl_rows, cl_cols = size(context_lookup)
+    r = apply_tensor_unit(
+            tensor,
+            dims, dims_sender, dims_receiver, dims_mode,
+            context_lookup, Int32(cl_rows), Int32(cl_cols),
+            unit_rows,
+            codes, Int32(rows), Int32(cols),
+            times,
+            ordered)
+    _unpack_tensor_networks(r)
+end
+
+# ── Rotation ──────────────────────────────────────────────────────────────────
+
+"""
+    ena_svd(points) -> NamedTuple{(:rotation, :eigenvalues, :column_names)}
+
+SVD rotation of ENA point space.
+Returns `(rotation, eigenvalues, column_names)`.
+"""
+function ena_svd(points::Matrix{Float64})
+    rows, cols = size(points)
+    _unpack_rotation(ena_svd(points, Int32(rows), Int32(cols)))
+end
+
+"""
+    deflate(data, axis) -> Matrix{Float64}
+
+Project out the given unit `axis` from `data` (remove its variance).
+"""
+function deflate(data::Matrix{Float64}, axis::Vector{Float64})
+    rows, cols = size(data)
+    reshape(deflate(data, Int32(rows), Int32(cols), axis), rows, cols)
+end
+
+"""
+    orthogonal_svd(data, weights, labels) -> NamedTuple
+
+Weighted SVD with orthogonalization against previously fixed axes.
+`labels` names the resulting axes.
+Returns `(rotation, eigenvalues, column_names)`.
+"""
+function orthogonal_svd(data::Matrix{Float64}, weights::Matrix{Float64},
+                         labels::Vector{String})
+    dr, dc = size(data)
+    wr, wc = size(weights)
+    _unpack_rotation(orthogonal_svd(data,    Int32(dr), Int32(dc),
+                                    weights, Int32(wr), Int32(wc),
+                                    labels))
+end
+
+"""
+    complete_rotation(data, named_axes, labels) -> NamedTuple
+
+Fix the columns of `named_axes` as the first rotation axes, then fill the
+remaining dimensions with SVD of the doubly-deflated space.
+`labels` names the fixed axes (length must equal `size(named_axes, 2)`).
+Returns `(rotation, eigenvalues, column_names)`.
+"""
+function complete_rotation(data::Matrix{Float64}, named_axes::Matrix{Float64},
+                            labels::Vector{String})
+    dr, dc = size(data)
+    ar, ac = size(named_axes)
+    _unpack_rotation(complete_rotation(data,        Int32(dr), Int32(dc),
+                                       named_axes,  Int32(ar), Int32(ac),
+                                       labels))
+end
+
+"""
+    means_rotation(data, group_pairs) -> NamedTuple
+
+Group-means rotation.
+
+`group_pairs` is a `Vector` of `Tuple{Vector{Int32}, Vector{Int32}}` where
+each tuple holds **0-based** row indices for group A and group B.
+
+Returns `(rotation, eigenvalues, column_names)`.
+"""
+function means_rotation(data::Matrix{Float64},
+                         group_pairs::Vector{<:Tuple{Vector{Int32},Vector{Int32}}})
+    rows, cols = size(data)
+    a_flat  = vcat([p[1] for p in group_pairs]...)
+    b_flat  = vcat([p[2] for p in group_pairs]...)
+    a_sizes = Int32[length(p[1]) for p in group_pairs]
+    b_sizes = Int32[length(p[2]) for p in group_pairs]
+    _unpack_rotation(means_rotation(data, Int32(rows), Int32(cols),
+                                    a_flat, a_sizes, b_flat, b_sizes))
 end
 
 end # module LibQE
