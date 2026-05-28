@@ -11,6 +11,17 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// choose_two
+int choose_two(int n);
+RcppExport SEXP _libqe_choose_two(SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(choose_two(n));
+    return rcpp_result_gen;
+END_RCPP
+}
 // connection_indices
 arma::umat connection_indices(int len, int row);
 RcppExport SEXP _libqe_connection_indices(SEXP lenSEXP, SEXP rowSEXP) {
@@ -351,8 +362,35 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// generalized_means_rotation
+List generalized_means_rotation(arma::mat V, arma::mat x_model_matrix, arma::vec x_target, IntegerVector x1_cols, bool x_categorical, int x_n_groups, IntegerVector x_subset, bool has_y, arma::mat y_model_matrix, arma::vec y_target, IntegerVector y1_cols, bool y_categorical, int y_n_groups, int n_lambda, int k_folds, double lasso_eps);
+RcppExport SEXP _libqe_generalized_means_rotation(SEXP VSEXP, SEXP x_model_matrixSEXP, SEXP x_targetSEXP, SEXP x1_colsSEXP, SEXP x_categoricalSEXP, SEXP x_n_groupsSEXP, SEXP x_subsetSEXP, SEXP has_ySEXP, SEXP y_model_matrixSEXP, SEXP y_targetSEXP, SEXP y1_colsSEXP, SEXP y_categoricalSEXP, SEXP y_n_groupsSEXP, SEXP n_lambdaSEXP, SEXP k_foldsSEXP, SEXP lasso_epsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type V(VSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type x_model_matrix(x_model_matrixSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type x_target(x_targetSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type x1_cols(x1_colsSEXP);
+    Rcpp::traits::input_parameter< bool >::type x_categorical(x_categoricalSEXP);
+    Rcpp::traits::input_parameter< int >::type x_n_groups(x_n_groupsSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type x_subset(x_subsetSEXP);
+    Rcpp::traits::input_parameter< bool >::type has_y(has_ySEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type y_model_matrix(y_model_matrixSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type y_target(y_targetSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type y1_cols(y1_colsSEXP);
+    Rcpp::traits::input_parameter< bool >::type y_categorical(y_categoricalSEXP);
+    Rcpp::traits::input_parameter< int >::type y_n_groups(y_n_groupsSEXP);
+    Rcpp::traits::input_parameter< int >::type n_lambda(n_lambdaSEXP);
+    Rcpp::traits::input_parameter< int >::type k_folds(k_foldsSEXP);
+    Rcpp::traits::input_parameter< double >::type lasso_eps(lasso_epsSEXP);
+    rcpp_result_gen = Rcpp::wrap(generalized_means_rotation(V, x_model_matrix, x_target, x1_cols, x_categorical, x_n_groups, x_subset, has_y, y_model_matrix, y_target, y1_cols, y_categorical, y_n_groups, n_lambda, k_folds, lasso_eps));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_libqe_choose_two", (DL_FUNC) &_libqe_choose_two, 1},
     {"_libqe_connection_indices", (DL_FUNC) &_libqe_connection_indices, 2},
     {"_libqe_code_connections", (DL_FUNC) &_libqe_code_connections, 1},
     {"_libqe_fold_directed_network", (DL_FUNC) &_libqe_fold_directed_network, 1},
@@ -380,6 +418,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_libqe_orthogonal_svd", (DL_FUNC) &_libqe_orthogonal_svd, 3},
     {"_libqe_complete_rotation", (DL_FUNC) &_libqe_complete_rotation, 3},
     {"_libqe_means_rotation", (DL_FUNC) &_libqe_means_rotation, 2},
+    {"_libqe_generalized_means_rotation", (DL_FUNC) &_libqe_generalized_means_rotation, 16},
     {NULL, NULL, 0}
 };
 

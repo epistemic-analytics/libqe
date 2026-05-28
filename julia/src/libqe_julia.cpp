@@ -187,6 +187,10 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
 
     // ── Adjacency ─────────────────────────────────────────────────────────────
 
+    mod.method("choose_two", [](int32_t n) -> int32_t {
+        return static_cast<int32_t>(qe::choose_two(n));
+    });
+
     // tri_indices(len, row) → Matrix{Int32}  (2 × choose_two(len))
     mod.method("connection_indices", [](int32_t len, int32_t row) -> std::vector<int32_t> {
         arma::umat idx = qe::connection_indices(len, row);

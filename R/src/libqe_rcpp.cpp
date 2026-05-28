@@ -8,6 +8,15 @@ using namespace Rcpp;
 // Adjacency utilities
 // =============================================================================
 
+//' Number of upper-triangle pairs for n codes
+//' @param n Number of codes
+//' @return Integer: n*(n-1)/2
+//' @export
+// [[Rcpp::export]]
+int choose_two(int n) {
+    return qe::choose_two(n);
+}
+
 //' Upper-triangle index pairs
 //' @param len Number of codes (side length of square matrix)
 //' @param row -1 = both rows, 0 = row indices only, 1 = col indices only
@@ -482,4 +491,102 @@ List means_rotation(arma::mat points, List group_pairs) {
         pairs.push_back({a, b});
     }
     return pack_rotation_result(qe::means_rotation(points, pairs));
+}
+
+// =============================================================================
+// Generalized Means Rotation (GMR)
+// =============================================================================
+
+//' Generalized Means Rotation
+//'
+//' Computes a rotation axis that best represents a target variable's
+//' contribution to the ENA point space, after controlling for covariates via
+//' Lasso (coordinate-descent, k-fold CV).  Mirrors
+//' \code{rENA::ena.rotate.by.generalized()}.
+//'
+//' The caller is responsible for building \code{x_model_matrix} (e.g. via
+//' \code{model.matrix()}) and identifying \code{x1_cols} (0-based indices of
+//' the target variable's columns, which receive \code{penalty_factor = 0}).
+//' Categorical targets should be encoded as 0-based integers.
+//'
+//' @param V              Numeric matrix (n_units x n_connections) — ENA points.
+//' @param x_model_matrix Numeric matrix (n_units x p) — model matrix for x axis.
+//' @param x_target       Numeric vector length n — target variable (raw float
+//'   for numeric; 0-based integer codes for categorical).
+//' @param x1_cols        Integer vector of 0-based column indices in
+//'   \code{x_model_matrix} that belong to the target variable (unpenalized).
+//' @param x_categorical  Logical — TRUE if target is categorical.
+//' @param x_n_groups     Integer — number of distinct groups (categorical only).
+//' @param x_subset       Integer vector of 0-based row indices to subset for
+//'   the x-axis GMR step (pass \code{integer(0)} to use all rows).
+//' @param has_y          Logical — TRUE to compute a second GMR axis.
+//' @param y_model_matrix Numeric matrix (n_units x p) — model matrix for y axis
+//'   (ignored when \code{has_y = FALSE}).
+//' @param y_target       Numeric vector — y-axis target (ignored when
+//'   \code{has_y = FALSE}).
+//' @param y1_cols        0-based column indices for y target (ignored when
+//'   \code{has_y = FALSE}).
+//' @param y_categorical  Logical (ignored when \code{has_y = FALSE}).
+//' @param y_n_groups     Integer (ignored when \code{has_y = FALSE}).
+//' @param n_lambda       Length of the Lasso lambda path (default 50).
+//' @param k_folds        Cross-validation folds for lambda selection (default 5).
+//' @param lasso_eps      \code{lambda_min = lasso_eps * lambda_max} (default 0.01).
+//' @return List with \code{rotation}, \code{eigenvalues}, \code{column_names}.
+//' @export
+// [[Rcpp::export]]
+List generalized_means_rotation(
+    arma::mat V,
+    arma::mat x_model_matrix,
+    arma::vec x_target,
+    IntegerVector x1_cols,
+    bool x_categorical,
+    int  x_n_groups,
+    IntegerVector x_subset,
+    bool has_y,
+    arma::mat y_model_matrix,
+    arma::vec y_target,
+    IntegerVector y1_cols,
+    bool y_categorical,
+    int  y_n_groups,
+    int  n_lambda  = 50,
+    int  k_folds   = 5,
+    double lasso_eps = 0.01
+) {
+    // ── Unpack x1_cols ───────────────────────────────────────────────────────
+    arma::uvec x1(x1_cols.size());
+    for (R_xlen_t i = 0; i < x1_cols.size(); ++i)
+        x1(i) = static_cast<arma::uword>(x1_cols[i]);
+
+    // ── Unpack x_subset (empty IntegerVector → use all rows) ─────────────────
+    arma::uvec x_sub;
+    if (x_subset.size() > 0) {
+        x_sub.set_size(x_subset.size());
+        for (R_xlen_t i = 0; i < x_subset.size(); ++i)
+            x_sub(i) = static_cast<arma::uword>(x_subset[i]);
+    }
+
+    // ── Unpack y1_cols ───────────────────────────────────────────────────────
+    arma::uvec y1(y1_cols.size());
+    for (R_xlen_t i = 0; i < y1_cols.size(); ++i)
+        y1(i) = static_cast<arma::uword>(y1_cols[i]);
+
+    // ── Build params ─────────────────────────────────────────────────────────
+    qe::GeneralizedRotationParams p;
+    p.x_model_matrix = x_model_matrix;
+    p.x_target       = x_target;
+    p.x1_cols        = x1;
+    p.x_categorical  = x_categorical;
+    p.x_n_groups     = static_cast<arma::uword>(x_n_groups);
+    p.x_subset       = x_sub;
+    p.has_y          = has_y;
+    p.y_model_matrix = y_model_matrix;
+    p.y_target       = y_target;
+    p.y1_cols        = y1;
+    p.y_categorical  = y_categorical;
+    p.y_n_groups     = static_cast<arma::uword>(y_n_groups);
+    p.n_lambda       = n_lambda;
+    p.k_folds        = k_folds;
+    p.lasso_eps      = lasso_eps;
+
+    return pack_rotation_result(qe::generalized_means_rotation(V, p));
 }

@@ -418,10 +418,16 @@ static val means_rotation(const val& data, int rows, int cols,
     return rotation_to_js(qe::means_rotation(js_to_mat(data, rows, cols), pairs));
 }
 
+// choose_two(n) → int
+static int choose_two(int n) {
+    return qe::choose_two(n);
+}
+
 // ── Embind registrations ──────────────────────────────────────────────────────
 
 EMSCRIPTEN_BINDINGS(libqe) {
     // Adjacency
+    function("choose_two",                            &choose_two);
     function("connection_indices",                    &connection_indices);
     function("code_connections",                      &code_connections);
     function("fold_directed_network",                 &fold_directed_network);

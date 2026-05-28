@@ -90,6 +90,15 @@ end
 # ── Adjacency ─────────────────────────────────────────────────────────────────
 
 """
+    choose_two(n) -> Int
+
+Number of upper-triangle pairs for `n` codes: `n*(n-1)÷2`.
+"""
+function choose_two(n::Integer)
+    choose_two(Int32(n))
+end
+
+"""
     connection_indices(len; row=-1) -> Matrix{Int32}
 
 Upper-triangle (i, j) index pairs for a matrix of side `len`.
