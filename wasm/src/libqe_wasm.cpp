@@ -418,6 +418,58 @@ static val means_rotation(const val& data, int rows, int cols,
     return rotation_to_js(qe::means_rotation(js_to_mat(data, rows, cols), pairs));
 }
 
+// generalized_means_rotation(...)
+// All index arrays (x1_cols, x_subset, y1_cols) are Int32Array of 0-based indices.
+// Pass a zero-length Int32Array for x_subset to use all rows.
+// Pass empty Float64Array / Int32Array for ignored y params when has_y=false.
+// → { rotation, eigenvalues, column_names }
+static val generalized_means_rotation(
+    const val& V_data,  int V_rows,  int V_cols,
+    const val& xm_data, int xm_rows, int xm_cols,
+    const val& x_target_data,
+    const val& x1_cols_data,
+    bool x_categorical, int x_n_groups,
+    const val& x_subset_data,
+    bool has_y,
+    const val& ym_data, int ym_rows, int ym_cols,
+    const val& y_target_data,
+    const val& y1_cols_data,
+    bool y_categorical, int y_n_groups,
+    int n_lambda, int k_folds, double lasso_eps
+) {
+    auto js_to_uvec = [](const val& v) {
+        std::vector<int> iv = vecFromJSArray<int>(v);
+        arma::uvec out(iv.size());
+        for (size_t i = 0; i < iv.size(); ++i)
+            out(i) = static_cast<arma::uword>(iv[i]);
+        return out;
+    };
+    auto js_to_arma_vec = [](const val& v) {
+        std::vector<double> dv = vecFromJSArray<double>(v);
+        return arma::vec(dv.data(), dv.size());
+    };
+
+    qe::GeneralizedRotationParams p;
+    p.x_model_matrix = js_to_mat(xm_data, xm_rows, xm_cols);
+    p.x_target       = js_to_arma_vec(x_target_data);
+    p.x1_cols        = js_to_uvec(x1_cols_data);
+    p.x_categorical  = x_categorical;
+    p.x_n_groups     = static_cast<arma::uword>(x_n_groups);
+    p.x_subset       = js_to_uvec(x_subset_data);  // empty → use all rows
+    p.has_y          = has_y;
+    p.y_model_matrix = js_to_mat(ym_data, ym_rows, ym_cols);
+    p.y_target       = js_to_arma_vec(y_target_data);
+    p.y1_cols        = js_to_uvec(y1_cols_data);
+    p.y_categorical  = y_categorical;
+    p.y_n_groups     = static_cast<arma::uword>(y_n_groups);
+    p.n_lambda       = n_lambda;
+    p.k_folds        = k_folds;
+    p.lasso_eps      = lasso_eps;
+
+    return rotation_to_js(
+        qe::generalized_means_rotation(js_to_mat(V_data, V_rows, V_cols), p));
+}
+
 // choose_two(n) → int
 static int choose_two(int n) {
     return qe::choose_two(n);
@@ -463,4 +515,5 @@ EMSCRIPTEN_BINDINGS(libqe) {
     function("orthogonal_svd",                        &orthogonal_svd);
     function("complete_rotation",                     &complete_rotation);
     function("means_rotation",                        &means_rotation);
+    function("generalized_means_rotation",            &generalized_means_rotation);
 }

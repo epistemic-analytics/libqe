@@ -485,4 +485,58 @@ function means_rotation(data::Matrix{Float64},
                                     a_flat, a_sizes, b_flat, b_sizes))
 end
 
+"""
+    generalized_means_rotation(V, x_model, x_target, x1_cols, x_categorical,
+                                x_n_groups, x_subset, has_y, y_model, y_target,
+                                y1_cols, y_categorical, y_n_groups;
+                                n_lambda=50, k_folds=5, lasso_eps=0.01) -> NamedTuple
+
+Generalized Means Rotation (GMR) with Lasso-based covariate adjustment.
+
+Mirrors rENA's `ena.rotate.by.generalized()`. The x axis is the direction in
+ENA space most explained by `x_target` after controlling for covariates via
+Lasso (coordinate-descent, k-fold CV). The y axis is either a second GMR axis
+(`has_y=true`) or the leading SVD of the x-deflated space.
+
+All index vectors (`x1_cols`, `x_subset`, `y1_cols`) are **0-based `Int32`**.
+Pass `Int32[]` for `x_subset` to use all rows.
+Pass empty arrays for all `y_*` arguments when `has_y=false`.
+
+Returns `(rotation, eigenvalues, column_names)` with labels
+`GMR1`, `GMR2`|`SVD2`, `SVD3`, …
+"""
+function generalized_means_rotation(
+    V::Matrix{Float64},
+    x_model::Matrix{Float64},
+    x_target::Vector{Float64},
+    x1_cols::Vector{Int32},
+    x_categorical::Bool,
+    x_n_groups::Int32,
+    x_subset::Vector{Int32},
+    has_y::Bool,
+    y_model::Matrix{Float64},
+    y_target::Vector{Float64},
+    y1_cols::Vector{Int32},
+    y_categorical::Bool,
+    y_n_groups::Int32;
+    n_lambda::Int=50, k_folds::Int=5, lasso_eps::Float64=0.01
+)
+    vr, vc = size(V)
+    xr, xc = size(x_model)
+    yr, yc = size(y_model)
+    _unpack_rotation(generalized_means_rotation(
+        V,        Int32(vr), Int32(vc),
+        x_model,  Int32(xr), Int32(xc),
+        x_target,
+        x1_cols,
+        x_categorical, x_n_groups,
+        x_subset,
+        has_y,
+        y_model,  Int32(yr), Int32(yc),
+        y_target,
+        y1_cols,
+        y_categorical, y_n_groups,
+        Int32(n_lambda), Int32(k_folds), lasso_eps))
+end
+
 end # module LibQE

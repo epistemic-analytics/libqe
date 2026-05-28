@@ -104,6 +104,7 @@ Access a cell: `data[row * cols + col]`
 | `orthogonal_svd(data, rows, cols, weights, wr, wc, labels)` | Weighted SVD with orthogonalization |
 | `complete_rotation(data, rows, cols, axes, ax_rows, ax_cols, labels)` | Fix named axes then fill remaining with SVD |
 | `means_rotation(data, rows, cols, group_pairs)` | Group-means rotation. `group_pairs`: `Array<{a: Int32Array, b: Int32Array}>` (0-based row indices) |
+| `generalized_means_rotation(V, vr, vc, xm, xr, xc, x_target, x1_cols, x_categorical, x_n_groups, x_subset, has_y, ym, yr, yc, y_target, y1_cols, y_categorical, y_n_groups, n_lambda, k_folds, lasso_eps)` | Lasso-based GMR. Index arrays are `Int32Array` (0-based); pass zero-length `Int32Array` for `x_subset` to use all rows. Returns `{ rotation, eigenvalues, column_names }` with labels `GMR1`, `GMR2`\|`SVD2`, … |
 
 ## Building from source
 
