@@ -43,6 +43,13 @@ static arma::mat js_to_mat(const val& data, int rows, int cols) {
     return m.t();                         // transpose → (rows × cols)
 }
 
+// JS Int32Array (row-major) → arma::imat (column-major integers)
+static arma::imat js_to_imat(const val& data, int rows, int cols) {
+    std::vector<int> v = vecFromJSArray<int>(data);
+    arma::imat m(v.data(), cols, rows);  // read as (cols × rows) col-major
+    return m.t();                         // transpose → (rows × cols)
+}
+
 // arma::mat (column-major) → JS { data: Float64Array, rows, cols }
 static val mat_to_js(const arma::mat& m) {
     // Transpose to row-major for JS consumers.
@@ -294,6 +301,63 @@ static val accumulate_unit_with_rows(const val& codes_data, int rows, int cols,
     return result;
 }
 
+// accumulate_tensor_unit(tensor, dims, dims_sender, dims_receiver, dims_mode,
+//                        context_lookup, cl_rows, cl_cols,
+//                        unit_rows, codes, rows, cols, times, ordered)
+// → { connection_counts: Float64Array,
+//     row_connection_counts: { data: Float64Array, rows, cols } }
+//
+// tensor           — Float64Array, flat column-major, shape described by dims
+// dims             — Int32Array  — sizes of each tensor axis
+// dims_sender      — Int32Array  — which tensor axes correspond to sender factors
+// dims_receiver    — Int32Array  — which tensor axes correspond to receiver factors
+// dims_mode        — Int32Array  — which tensor axes correspond to mode factors
+// context_lookup   — Int32Array, row-major (n_context_rows × n_factors), 0-based
+// cl_rows/cl_cols  — shape of context_lookup
+// unit_rows        — Int32Array, 0-based response-row indices for this unit
+// codes            — Float64Array, row-major (rows × cols)
+// times            — Float64Array, one timestamp per context row
+// ordered          — bool (true → directed n²; false → undirected upper-tri)
+static val accumulate_tensor_unit(
+        const val& tensor_val,
+        const val& dims_val,
+        const val& dims_sender_val,
+        const val& dims_receiver_val,
+        const val& dims_mode_val,
+        const val& context_lookup_val, int cl_rows, int cl_cols,
+        const val& unit_rows_val,
+        const val& codes_val, int rows, int cols,
+        const val& times_val,
+        bool ordered) {
+
+    std::vector<double> tv = vecFromJSArray<double>(tensor_val);
+    arma::vec tensor(tv.data(), tv.size());
+
+    std::vector<int> dims          = vecFromJSArray<int>(dims_val);
+    std::vector<int> dims_sender   = vecFromJSArray<int>(dims_sender_val);
+    std::vector<int> dims_receiver = vecFromJSArray<int>(dims_receiver_val);
+    std::vector<int> dims_mode     = vecFromJSArray<int>(dims_mode_val);
+    std::vector<int> unit_rows     = vecFromJSArray<int>(unit_rows_val);
+
+    arma::imat context_lookup = js_to_imat(context_lookup_val, cl_rows, cl_cols);
+    arma::mat  codes_mat      = js_to_mat(codes_val, rows, cols);
+
+    std::vector<double> timev = vecFromJSArray<double>(times_val);
+    arma::vec times_vec(timev.data(), timev.size());
+
+    qe::TensorNetworks r = qe::apply_tensor_unit(
+        tensor, dims, dims_sender, dims_receiver, dims_mode,
+        context_lookup, unit_rows, codes_mat, times_vec, ordered);
+
+    std::vector<double> cc(r.connection_counts.memptr(),
+                           r.connection_counts.memptr() + r.connection_counts.n_elem);
+
+    val result = val::object();
+    result.set("connection_counts",     val::array(cc.begin(), cc.end()));
+    result.set("row_connection_counts", mat_to_js(r.row_connection_counts));
+    return result;
+}
+
 // ── Rotation ──────────────────────────────────────────────────────────────────
 
 // ena_svd(data, rows, cols)
@@ -385,6 +449,7 @@ EMSCRIPTEN_BINDINGS(libqe) {
     function("flat_index",                            &flat_index);
     function("accumulate_unit",                       &accumulate_unit);
     function("accumulate_unit_with_rows",             &accumulate_unit_with_rows);
+    function("accumulate_tensor_unit",                &accumulate_tensor_unit);
 
     // Rotation
     function("ena_svd",                               &ena_svd);

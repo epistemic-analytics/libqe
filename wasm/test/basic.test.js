@@ -138,6 +138,40 @@ test('deflate: removes variance along axis', () => {
     [0, 2, 4].forEach(i => expect(Math.abs(out.data[i])).toBeCloseTo(0, 8));
 });
 
+test('accumulate_tensor_unit: default 1-D tensor smoke test', () => {
+    // Default tensor: dims=[2], tensor=[weight=1, window=2].
+    // IS_DEFAULT path: every ground row within 2 time-units gets weight=1.
+    //
+    // 4 context rows × 2 codes, times = [0,1,2,3], all rows belong to the unit.
+    // No extra context factors — supply a 4×1 all-zeros context_lookup (values
+    // are only read in the non-default path, so content doesn't matter here).
+
+    const tensor  = new Float64Array([1, 2]);   // [weight=1, window=2]
+    const dims    = new Int32Array([2]);         // 1-D tensor of size 2
+
+    // No extra context factors — supply a single dummy column of zeros
+    const cl      = new Int32Array([0, 0, 0, 0]);  // 4×1, all zeros
+    const urows   = new Int32Array([0, 1, 2, 3]);
+    const codes   = new Float64Array([1,0, 0,1, 1,1, 0,0]);
+    const times   = new Float64Array([0, 1, 2, 3]);
+
+    const out = qe.accumulate_tensor_unit(
+        tensor, dims,
+        new Int32Array([]),   // dims_sender  (none)
+        new Int32Array([]),   // dims_receiver (none)
+        new Int32Array([]),   // dims_mode    (none)
+        cl, 4, 1,
+        urows, codes, 4, 2, times,
+        /*ordered=*/true
+    );
+
+    // connection_counts: length n_codes² = 4
+    expect(out.connection_counts.length).toBe(4);
+    // row_connection_counts: n_unit_rows × n_codes² = 4×4
+    expect(out.row_connection_counts.rows).toBe(4);
+    expect(out.row_connection_counts.cols).toBe(4);
+});
+
 test('means_rotation: returns rotation with column_names', () => {
     const data = new Float64Array([
         1,0, 0,1,  // group a

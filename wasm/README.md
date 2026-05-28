@@ -93,6 +93,7 @@ Access a cell: `data[row * cols + col]`
 | `flat_index(indices, dims)` | Column-major linear index |
 | `accumulate_unit(codes, rows, cols, unit_rows, decay_fn, ordered)` | Ground/response accumulation for one unit (tma). `decay_fn(Float64Array) → Float64Array` |
 | `accumulate_unit_with_rows(codes, rows, cols, unit_rows, decay_fn, ordered)` | Like `accumulate_unit` but also returns per-response-row networks → `{ networks, row_networks }` |
+| `accumulate_tensor_unit(tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, cl_rows, cl_cols, unit_rows, codes, rows, cols, times, ordered)` | tma tensor accumulation for one unit → `{ connection_counts: Float64Array, row_connection_counts: matObj }`. All index arrays are **0-based Int32Array**; `tensor` is flat column-major `Float64Array`; `context_lookup` is row-major `Int32Array (n_context_rows × n_factors)` |
 
 ### Rotation
 
