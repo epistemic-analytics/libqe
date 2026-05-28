@@ -17,5 +17,7 @@
 #include "modeling.hpp"
 #include "accumulation.hpp"
 #include "rotation.hpp"
+#include "lasso.hpp"
+#include "generalized_rotation.hpp"
 
 #endif // LIBQE_HPP

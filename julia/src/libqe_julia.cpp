@@ -491,4 +491,52 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
             }
             return pack_rotation(qe::means_rotation(view_mat(m, rows, cols), pairs));
         });
+
+    // generalized_means_rotation — Lasso-based GMR.
+    // Index vectors (x1_cols, x_subset, y1_cols) are 0-based Int32 vectors.
+    // Pass an empty vector for x_subset to use all rows.
+    mod.method("generalized_means_rotation",
+        [](jlcxx::ArrayRef<double> V,  int32_t vr, int32_t vc,
+           jlcxx::ArrayRef<double> xm, int32_t xr, int32_t xc,
+           jlcxx::ArrayRef<double> x_target,
+           const std::vector<int32_t>& x1_cols_v,
+           bool x_categorical, int32_t x_n_groups,
+           const std::vector<int32_t>& x_subset_v,
+           bool has_y,
+           jlcxx::ArrayRef<double> ym, int32_t yr, int32_t yc,
+           jlcxx::ArrayRef<double> y_target,
+           const std::vector<int32_t>& y1_cols_v,
+           bool y_categorical, int32_t y_n_groups,
+           int32_t n_lambda, int32_t k_folds, double lasso_eps)
+           -> RotationResultJ {
+
+            auto to_uvec = [](const std::vector<int32_t>& v) {
+                arma::uvec out(v.size());
+                for (size_t i = 0; i < v.size(); ++i)
+                    out(i) = static_cast<arma::uword>(v[i]);
+                return out;
+            };
+            auto ref_to_vec = [](jlcxx::ArrayRef<double> a) {
+                return arma::vec(a.data(), a.size());
+            };
+
+            qe::GeneralizedRotationParams p;
+            p.x_model_matrix = view_mat(xm, xr, xc);
+            p.x_target       = ref_to_vec(x_target);
+            p.x1_cols        = to_uvec(x1_cols_v);
+            p.x_categorical  = x_categorical;
+            p.x_n_groups     = static_cast<arma::uword>(x_n_groups);
+            p.x_subset       = to_uvec(x_subset_v);   // empty → use all rows
+            p.has_y          = has_y;
+            p.y_model_matrix = view_mat(ym, yr, yc);
+            p.y_target       = ref_to_vec(y_target);
+            p.y1_cols        = to_uvec(y1_cols_v);
+            p.y_categorical  = y_categorical;
+            p.y_n_groups     = static_cast<arma::uword>(y_n_groups);
+            p.n_lambda       = static_cast<int>(n_lambda);
+            p.k_folds        = static_cast<int>(k_folds);
+            p.lasso_eps      = lasso_eps;
+
+            return pack_rotation(qe::generalized_means_rotation(view_mat(V, vr, vc), p));
+        });
 }

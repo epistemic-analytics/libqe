@@ -578,4 +578,76 @@ NB_MODULE(_pylibqe, m) {
         "'SVD{k+1}', ..., 'SVDp'].\n\n"
         "MATCH-RENA NOTE: no guard against zero-norm mean-difference vectors\n"
         "(latent bug carried forward from rENA verbatim).");
+
+    rot.def("generalized_means_rotation",
+        [make_py_rot](NpMat V,
+                      NpMat x_model, NpVec x_target,
+                      std::vector<int> x1_cols,
+                      bool x_categorical, int x_n_groups,
+                      std::vector<int> x_subset,
+                      bool has_y,
+                      NpMat y_model, NpVec y_target,
+                      std::vector<int> y1_cols,
+                      bool y_categorical, int y_n_groups,
+                      int n_lambda, int k_folds, double lasso_eps) {
+            auto to_uvec = [](const std::vector<int>& v) {
+                arma::uvec out(v.size());
+                for (std::size_t i = 0; i < v.size(); ++i)
+                    out(i) = static_cast<arma::uword>(v[i]);
+                return out;
+            };
+
+            qe::GeneralizedRotationParams p;
+            p.x_model_matrix = to_mat(x_model);
+            p.x_target       = to_vec(x_target);
+            p.x1_cols        = to_uvec(x1_cols);
+            p.x_categorical  = x_categorical;
+            p.x_n_groups     = static_cast<arma::uword>(x_n_groups);
+            p.x_subset       = to_uvec(x_subset);   // empty list → use all rows
+            p.has_y          = has_y;
+            p.y_model_matrix = to_mat(y_model);
+            p.y_target       = to_vec(y_target);
+            p.y1_cols        = to_uvec(y1_cols);
+            p.y_categorical  = y_categorical;
+            p.y_n_groups     = static_cast<arma::uword>(y_n_groups);
+            p.n_lambda       = n_lambda;
+            p.k_folds        = k_folds;
+            p.lasso_eps      = lasso_eps;
+
+            return make_py_rot(qe::generalized_means_rotation(to_mat(V), p));
+        },
+        "V"_a, "x_model"_a, "x_target"_a, "x1_cols"_a,
+        "x_categorical"_a, "x_n_groups"_a, "x_subset"_a,
+        "has_y"_a,
+        "y_model"_a, "y_target"_a, "y1_cols"_a,
+        "y_categorical"_a, "y_n_groups"_a,
+        "n_lambda"_a=50, "k_folds"_a=5, "lasso_eps"_a=0.01,
+        "Generalized Means Rotation (GMR) with Lasso-based covariate adjustment.\n\n"
+        "Mirrors rENA's ``ena.rotate.by.generalized()``. The x axis is the direction\n"
+        "in ENA space most explained by ``x_target`` after controlling for covariates\n"
+        "via Lasso (coordinate-descent, k-fold CV). The y axis is either a second GMR\n"
+        "axis (``has_y=True``) or the leading SVD of the x-deflated space.\n\n"
+        "All index lists (``x1_cols``, ``x_subset``, ``y1_cols``) are **0-based int**.\n"
+        "Pass an empty list ``[]`` for ``x_subset`` to use all rows.\n"
+        "Pass empty arrays/lists for all ``y_*`` arguments when ``has_y=False``.\n\n"
+        "Parameters\n----------\n"
+        "V            : ndarray (n_units × n_dims)   ENA point matrix\n"
+        "x_model      : ndarray (n_units × p)        model matrix for x axis\n"
+        "x_target     : ndarray (n_units,)            target variable\n"
+        "x1_cols      : list[int]  0-based target column indices in x_model\n"
+        "x_categorical: bool\n"
+        "x_n_groups   : int   number of groups (only used when x_categorical=True)\n"
+        "x_subset     : list[int]  0-based row indices; [] = use all rows\n"
+        "has_y        : bool  True → compute second GMR axis; False → SVD fallback\n"
+        "y_model      : ndarray (n_units × p)  (ignored when has_y=False)\n"
+        "y_target     : ndarray (n_units,)     (ignored when has_y=False)\n"
+        "y1_cols      : list[int]              (ignored when has_y=False)\n"
+        "y_categorical: bool                   (ignored when has_y=False)\n"
+        "y_n_groups   : int                    (ignored when has_y=False)\n"
+        "n_lambda     : int    lambda path length (default 50)\n"
+        "k_folds      : int    CV folds for lambda selection (default 5)\n"
+        "lasso_eps    : float  lambda_min = lasso_eps * lambda_max (default 0.01)\n\n"
+        "Returns RotationResult with column_names = ['GMR1', 'GMR2'|'SVD2',\n"
+        "'SVD3', ..., 'SVDp'].\n\n"
+        "Reference: Zhiqiang Cai, commit 46776a1981a90b3a3b2861ed1010e9dbb7acf901.");
 }
