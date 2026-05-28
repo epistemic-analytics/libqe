@@ -24,14 +24,14 @@ Return values are always freshly allocated numpy arrays owned by Python.
 
 | Function | Returns | Notes |
 |----------|---------|-------|
-| `normalize_networks(m)` | `2-D ndarray` | Row-wise L2 normalization. Zero rows left unchanged. |
-| `scale_networks(m)` | `2-D ndarray` | Max-norm scaling: divide all rows by the largest row L2 norm |
+| `normalize_networks(m)` |`accumulate_stanza(codes, window_back=1, window_forward=0, binary=True, ordered=False)` | `2-D ndarray` | Stanza-window accumulation. `ordered=False` (default): undirected upper-tri, returns `n_rows × choose_two(n_codes)`. `ordered=True`: directed, returns `n_rows × n_codes²`.| Row-wise L2 normalization. Zero rows left unchanged. |
+| `scale_networks(m)` |`accumulate_stanza(codes, window_back=1, window_forward=0, binary=True, ordered=False)` | `2-D ndarray` | Stanza-window accumulation. `ordered=False` (default): undirected upper-tri, returns `n_rows × choose_two(n_codes)`. `ordered=True`: directed, returns `n_rows × n_codes²`.| Max-norm scaling: divide all rows by the largest row L2 norm |
 
 ### `pylibqe.modeling`
 
 | Function | Returns | Notes |
 |----------|---------|-------|
-| `center_points(values)` | `2-D ndarray` | Subtract column means |
+| `center_points(values)` |`accumulate_stanza(codes, window_back=1, window_forward=0, binary=True, ordered=False)` | `2-D ndarray` | Stanza-window accumulation. `ordered=False` (default): undirected upper-tri, returns `n_rows × choose_two(n_codes)`. `ordered=True`: directed, returns `n_rows × n_codes²`.| Subtract column means |
 | `mean_ci(points, conf_level=0.95)` | `n_dims × 3 ndarray` | `[mean, ci_lower, ci_upper]` — matches rENA `t.test` exactly |
 | `outlier_ci(points, iqr_factor=1.5)` | `n_dims × 2 ndarray` | `[lower, upper]` symmetric around 0 — matches rENA IQR formula |
 | `ena_correlation(points, centroids, conf_level=0.95)` | `n_units × 3 ndarray` | Pearson r with CI: `[r, ci_lower, ci_upper]` |
@@ -45,10 +45,10 @@ Return values are always freshly allocated numpy arrays owned by Python.
 
 | Function | Returns | Notes |
 |----------|---------|-------|
-| `connection_matrix(ground, response, response_weight=1.0, ordered=True)` | `2-D ndarray` | Core adjacency math for one ground+response event pair |
-| `accumulate_stanza(codes, window_back=1, window_forward=0, binary=True)` | `2-D ndarray` | rENA stanza-window. `codes` = code matrix for one conversation. Returns `n_rows × choose_two(n_codes)` |
-| `row_connections(codes, binary=True)` | `2-D ndarray` | Per-row upper-tri co-occurrence without windowing |
-| `rolling_window_sum(codes, window_size=1)` | `2-D ndarray` | Rolling backward sum of raw code values |
+| `connection_matrix(ground, response, response_weight=1.0, ordered=True)` |`accumulate_stanza(codes, window_back=1, window_forward=0, binary=True, ordered=False)` | `2-D ndarray` | Stanza-window accumulation. `ordered=False` (default): undirected upper-tri, returns `n_rows × choose_two(n_codes)`. `ordered=True`: directed, returns `n_rows × n_codes²`.| Core adjacency math for one ground+response event pair |
+| `accumulate_stanza(codes, window_back=1, window_forward=0, binary=True, ordered=False)` | `2-D ndarray` | Stanza-window accumulation. `ordered=False` (default): undirected upper-tri, returns `n_rows × choose_two(n_codes)`. `ordered=True`: directed, returns `n_rows × n_codes²`.| `2-D ndarray` | rENA stanza-window. `codes` = code matrix for one conversation. Returns `n_rows × choose_two(n_codes)` |
+| `row_connections(codes, binary=True)` |`accumulate_stanza(codes, window_back=1, window_forward=0, binary=True, ordered=False)` | `2-D ndarray` | Stanza-window accumulation. `ordered=False` (default): undirected upper-tri, returns `n_rows × choose_two(n_codes)`. `ordered=True`: directed, returns `n_rows × n_codes²`.| Per-row upper-tri co-occurrence without windowing |
+| `rolling_window_sum(codes, window_size=1)` |`accumulate_stanza(codes, window_back=1, window_forward=0, binary=True, ordered=False)` | `2-D ndarray` | Stanza-window accumulation. `ordered=False` (default): undirected upper-tri, returns `n_rows × choose_two(n_codes)`. `ordered=True`: directed, returns `n_rows × n_codes²`.| Rolling backward sum of raw code values |
 | `flat_index(indices, dims)` | `int` | Column-major linear index. `indices` and `dims` are **0-based** |
 | `accumulate_unit(codes, unit_rows, decay_fn, ordered=False)` | `UnitNetworks` | tma ground/response accumulation. `unit_rows` 0-based int list. `decay_fn(dists) -> weights` |
 | `accumulate_unit_with_rows(codes, unit_rows, decay_fn, ordered=False)` | `UnitNetworks` | Like above + per-row networks |
@@ -62,7 +62,7 @@ Return values are always freshly allocated numpy arrays owned by Python.
 | Function | Returns | Notes |
 |----------|---------|-------|
 | `ena_svd(points)` | `RotationResult` | SVD-based ENA rotation |
-| `deflate(data, axis)` | `2-D ndarray` | Project out a single axis |
+| `deflate(data, axis)` |`accumulate_stanza(codes, window_back=1, window_forward=0, binary=True, ordered=False)` | `2-D ndarray` | Stanza-window accumulation. `ordered=False` (default): undirected upper-tri, returns `n_rows × choose_two(n_codes)`. `ordered=True`: directed, returns `n_rows × n_codes²`.| Project out a single axis |
 | `orthogonal_svd(points, fixed_axes)` | `RotationResult` | SVD constrained to be orthogonal to fixed axes |
 | `complete_rotation(points, axes)` | `RotationResult` | Complete rotation given pre-specified axes |
 | `means_rotation(points, groups)` | `RotationResult` | Means rotation (MR) — rotate toward group mean difference |

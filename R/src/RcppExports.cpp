@@ -192,8 +192,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // accumulate_stanza
-arma::mat accumulate_stanza(arma::mat codes, int window_back, int window_forward, bool binary);
-RcppExport SEXP _libqe_accumulate_stanza(SEXP codesSEXP, SEXP window_backSEXP, SEXP window_forwardSEXP, SEXP binarySEXP) {
+arma::mat accumulate_stanza(arma::mat codes, int window_back, int window_forward, bool binary, bool ordered);
+RcppExport SEXP _libqe_accumulate_stanza(SEXP codesSEXP, SEXP window_backSEXP, SEXP window_forwardSEXP, SEXP binarySEXP, SEXP orderedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -201,7 +201,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type window_back(window_backSEXP);
     Rcpp::traits::input_parameter< int >::type window_forward(window_forwardSEXP);
     Rcpp::traits::input_parameter< bool >::type binary(binarySEXP);
-    rcpp_result_gen = Rcpp::wrap(accumulate_stanza(codes, window_back, window_forward, binary));
+    Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
+    rcpp_result_gen = Rcpp::wrap(accumulate_stanza(codes, window_back, window_forward, binary, ordered));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -367,7 +368,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_libqe_directed_node_positions", (DL_FUNC) &_libqe_directed_node_positions, 3},
     {"_libqe_directed_node_positions_combine_pairs", (DL_FUNC) &_libqe_directed_node_positions_combine_pairs, 3},
     {"_libqe_connection_matrix", (DL_FUNC) &_libqe_connection_matrix, 4},
-    {"_libqe_accumulate_stanza", (DL_FUNC) &_libqe_accumulate_stanza, 4},
+    {"_libqe_accumulate_stanza", (DL_FUNC) &_libqe_accumulate_stanza, 5},
     {"_libqe_flat_index", (DL_FUNC) &_libqe_flat_index, 2},
     {"_libqe_row_connections", (DL_FUNC) &_libqe_row_connections, 2},
     {"_libqe_rolling_window_sum", (DL_FUNC) &_libqe_rolling_window_sum, 2},

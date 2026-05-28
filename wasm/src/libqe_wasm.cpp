@@ -175,12 +175,14 @@ static val directed_node_positions(const val& lw_data, int lw_rows, int lw_cols,
 
 // ── Accumulation ─────────────────────────────────────────────────────────────
 
-// accumulate_stanza(data, rows, cols, window_back, window_forward, binary)
-// → { data, rows, cols }
+// accumulate_stanza(data, rows, cols, window_back, window_forward, binary, ordered)
+// ordered=false → { data, rows, choose_two(cols) }
+// ordered=true  → { data, rows, cols² }
 static val accumulate_stanza(const val& data, int rows, int cols,
-                         int window_back, int window_forward, bool binary) {
+                         int window_back, int window_forward, bool binary,
+                         bool ordered) {
     return mat_to_js(qe::accumulate_stanza(
-        js_to_mat(data, rows, cols), window_back, window_forward, binary));
+        js_to_mat(data, rows, cols), window_back, window_forward, binary, ordered));
 }
 
 // row_connections(data, rows, cols, binary) → { data, rows, cols }

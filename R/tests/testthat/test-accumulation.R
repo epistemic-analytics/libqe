@@ -157,3 +157,43 @@ test_that("rolling_window_sum: output dimensions match input", {
     out   <- rolling_window_sum(codes, 2L)
     expect_equal(dim(out), dim(codes))
 })
+
+# --- accumulate_stanza ordered=TRUE (directed) ---
+
+test_that("accumulate_stanza: ordered=TRUE returns n_rows x n_codes^2", {
+    codes <- matrix(c(1, 1, 0,
+                      1, 0, 1,
+                      0, 1, 1), nrow = 3, byrow = TRUE)
+    out <- accumulate_stanza(codes, window_back = 2L, binary = TRUE, ordered = TRUE)
+    expect_equal(dim(out), c(3L, 9L))  # 3 rows, 3^2 = 9 columns
+})
+
+test_that("accumulate_stanza: ordered=TRUE row 1 has zero ground (no prior rows)", {
+    codes <- matrix(c(1, 1, 0,
+                      1, 0, 1), nrow = 2, byrow = TRUE)
+    out <- accumulate_stanza(codes, window_back = 2L, binary = FALSE, ordered = TRUE)
+    # Row 1: no prior rows → ground = zeros → connection_matrix(0,response) = 0.5*resp⊗resp (diag zeroed)
+    # response = (1,1,0): resp⊗resp off-diagonal: [1,2]=1, [2,1]=1; all others 0; scaled by 0.5
+    expect_equal(out[1, ], as.vector(0.5 * (matrix(c(1,1,0), ncol=1) %*% matrix(c(1,1,0), nrow=1) - diag(c(1,1,0)))))
+})
+
+test_that("accumulate_stanza: ordered=TRUE vs FALSE give different column counts", {
+    codes <- matrix(runif(12), nrow = 4, ncol = 3)
+    out_undirected <- accumulate_stanza(codes, window_back = 2L, ordered = FALSE)
+    out_directed   <- accumulate_stanza(codes, window_back = 2L, ordered = TRUE)
+    expect_equal(ncol(out_undirected), 3L)   # choose(3,2)
+    expect_equal(ncol(out_directed),   9L)   # 3^2
+    expect_equal(nrow(out_undirected), nrow(out_directed))
+})
+
+test_that("accumulate_stanza: ordered=TRUE binary binarises non-zero entries", {
+    codes <- matrix(c(2, 3,
+                      1, 1,
+                      1, 2), nrow = 3, byrow = TRUE)
+    out_bin  <- accumulate_stanza(codes, window_back = 3L, binary = TRUE,  ordered = TRUE)
+    out_cont <- accumulate_stanza(codes, window_back = 3L, binary = FALSE, ordered = TRUE)
+    # binary output has only 0s and 1s
+    expect_true(all(out_bin %in% c(0, 1)))
+    # continuous output can have values > 1
+    expect_true(any(out_cont > 1))
+})

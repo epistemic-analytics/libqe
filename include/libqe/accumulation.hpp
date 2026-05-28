@@ -43,37 +43,60 @@ inline arma::mat connection_matrix(
 // Traditional stanza-window accumulation (rENA model)
 // ---------------------------------------------------------------------------
 
-// For each row k in `codes` (one conversation), compute the co-occurrence
-// vector as:
+// For each row k in `codes` (one conversation), compute the connection vector:
 //
+// ordered == false (undirected, default — rENA stanza model):
 //   sum of codes in window [k - window_back, k + window_forward]
 //   → upper-triangle outer-product (code_connections)
 //   minus back-reference and forward-reference corrections
+//   Returns n_rows × choose_two(n_codes).
 //
-// Returns a matrix with the same number of rows as `codes` and
-// choose_two(n_codes) columns.
+// ordered == true (directed):
+//   focal row k = response; sum of prior rows [earliest, k-1] = ground
+//   → connection_matrix(ground, response, 1.0, true), then vectorised
+//   window_forward is ignored (future rows cannot be causal ground context)
+//   Returns n_rows × n_codes².
 //
-// Equivalent to ref_window_df() in rENA/ena.cpp.
+// Equivalent to ref_window_df() in rENA/ena.cpp (undirected case).
 inline arma::mat accumulate_stanza(
     arma::mat codes,
     int window_back    = 1,
     int window_forward = 0,
-    bool binary        = true
+    bool binary        = true,
+    bool ordered       = false
 ) {
     int n_rows  = codes.n_rows;
     int n_codes = codes.n_cols;
-    int n_tri   = choose_two(n_codes);
     const int INT_MAX_VAL = std::numeric_limits<int>::max();
 
+    // Shared helper: earliest row index for focal row k
+    auto get_earliest = [&](int row) -> int {
+        if (window_back == INT_MAX_VAL || window_back == 0)
+            return (window_back == 0) ? row : 0;
+        return std::max(0, row - (window_back - 1));
+    };
+
+    if (ordered) {
+        arma::mat out(n_rows, n_codes * n_codes, arma::fill::zeros);
+        for (int row = 0; row < n_rows; row++) {
+            int earliest = get_earliest(row);
+            arma::rowvec response = codes.row(row);
+            arma::rowvec ground(n_codes, arma::fill::zeros);
+            if (row > earliest)
+                ground = arma::sum(codes.rows(earliest, row - 1));
+            out.row(row) = arma::vectorise(
+                connection_matrix(ground, response, 1.0, true)).t();
+        }
+        if (binary) out.elem(arma::find(out > 0)).ones();
+        return out;
+    }
+
+    // Undirected: existing rENA stanza-window logic
+    int n_tri = choose_two(n_codes);
     arma::mat out(n_rows, n_tri, arma::fill::zeros);
 
     for (int row = 0; row < n_rows; row++) {
-        int earliest = 0;
-        if (window_back == INT_MAX_VAL || window_back == 0) {
-            earliest = (window_back == 0) ? row : 0;
-        } else {
-            earliest = std::max(0, row - (window_back - 1));
-        }
+        int earliest = get_earliest(row);
 
         int latest = row;
         if (window_forward == INT_MAX_VAL || row + window_forward >= n_rows) {
@@ -86,15 +109,13 @@ inline arma::mat accumulate_stanza(
         arma::mat summed      = arma::sum(window_rows);
         arma::rowvec to_ut    = code_connections(summed);
 
-        // Back-reference correction: subtract contribution of rows that are
-        // not the focal row and not within window_back of it
-        int head_rows = 0;
+        // Back-reference correction
         int win_rows  = latest - earliest + 1;
         if (win_rows > 0 && window_back > 1 && row - 1 >= 0) {
-            head_rows = win_rows - 1 - window_forward;
+            int head_rows = win_rows - 1 - window_forward;
             if (head_rows > 0) {
-                arma::mat refs     = window_rows.head_rows(head_rows);
-                arma::mat ref_sum  = arma::sum(refs);
+                arma::mat refs    = window_rows.head_rows(head_rows);
+                arma::mat ref_sum = arma::sum(refs);
                 to_ut -= code_connections(ref_sum);
             }
         }

@@ -27,7 +27,7 @@ qe.connection_names(['Concept A', 'Concept B', 'Concept C']);
 
 // Stanza-window accumulation
 const codes = new Float64Array([1,1,0,  1,0,1,  0,1,1]);  // 3×3 row-major
-const out   = qe.accumulate_stanza(codes, 3, 3, /*back=*/2, /*forward=*/0, /*binary=*/true);
+const out   = qe.accumulate_stanza(codes, 3, 3, /*back=*/2, /*forward=*/0, /*binary=*/true, /*ordered=*/false);
 // out → { data: Float64Array, rows: 3, cols: 3 }
 
 // Group confidence interval
@@ -84,7 +84,7 @@ Access a cell: `data[row * cols + col]`
 
 | Function | Description |
 |----------|-------------|
-| `accumulate_stanza(data, rows, cols, back, forward, binary)` | rENA stanza-window |
+| `accumulate_stanza(data, rows, cols, back, forward, binary, ordered)` | Stanza-window. `ordered=false`: undirected upper-tri. `ordered=true`: directed n² output| rENA stanza-window |
 | `row_connections(data, rows, cols, binary)` | Per-row co-occurrence |
 | `rolling_window_sum(data, rows, cols, window_size)` | Rolling backward sum |
 | `flat_index(indices, dims)` | Column-major linear index |

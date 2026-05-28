@@ -73,7 +73,7 @@ All exported R functions are prefixed ``.
 | Function | Description |
 |----------|-------------|
 | `connection_matrix(ground, response, response_weight, ordered)` | Core adjacency math for one ground+response event pair. `ordered = TRUE` → directed; `FALSE` → undirected. |
-| `accumulate_stanza(codes, window_back, window_forward, binary)` | Traditional stanza-window accumulation (rENA model). `codes` is the code matrix for **one conversation**. Returns a matrix with `choose(n_codes, 2)` columns. Use `.Machine$integer.max` for an infinite window. |
+| `accumulate_stanza(codes, window_back, window_forward, binary, ordered=FALSE)` | Stanza-window accumulation. `ordered=FALSE` (default): undirected upper-tri, returns `n_rows × choose(n_codes, 2)`. `ordered=TRUE`: directed — focal row as response, prior window rows as ground, returns `n_rows × n_codes²`. Use `.Machine$integer.max` for an infinite back window.| Traditional stanza-window accumulation (rENA model). `codes` is the code matrix for **one conversation**. Returns a matrix with `choose(n_codes, 2)` columns. Use `.Machine$integer.max` for an infinite window. |
 | `row_connections(codes, binary)` | Per-row upper-triangle co-occurrence matrix without windowing. |
 | `rolling_window_sum(codes, window_size)` | Rolling backward sum of raw code values (no upper-tri transform). |
 | `accumulate_unit(codes, unit_rows, decay_fn, ordered)` | Ground/response accumulation for one unit (tma model). `decay_fn` is an R function mapping a distance vector to weights. `unit_rows` are **0-based**. |

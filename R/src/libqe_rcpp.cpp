@@ -202,21 +202,30 @@ arma::mat connection_matrix(arma::rowvec ground, arma::rowvec response,
 //' Traditional stanza-window accumulation (rENA model)
 //'
 //' For each row k in a single conversation's code matrix, accumulates
-//' co-occurrences over a back/forward window and returns the upper-triangle
-//' connection vector.
+//' connections over a back/forward window.
+//'
+//' \strong{Undirected} (\code{ordered = FALSE}, default): upper-triangle
+//' co-occurrences with back/forward-reference corrections.
+//' Returns \code{n_rows × choose_two(n_codes)}.
+//'
+//' \strong{Directed} (\code{ordered = TRUE}): focal row k as response,
+//' sum of prior window rows as ground, using the directed connection formula.
+//' \code{window_forward} is ignored. Returns \code{n_rows × n_codes²}.
 //'
 //' @param codes          Numeric matrix (rows = lines, cols = codes) for ONE conversation
 //' @param window_back    Number of prior lines in window (default 1); use .Machine$integer.max for Inf
-//' @param window_forward Number of subsequent lines (default 0)
+//' @param window_forward Number of subsequent lines (default 0; ignored when ordered = TRUE)
 //' @param binary         If TRUE, binarise non-zero connection counts
-//' @return Numeric matrix (same n_rows, choose_two(n_codes) columns)
+//' @param ordered        If TRUE, return directed n² output; FALSE (default) returns upper-tri
+//' @return Undirected: (n_rows × choose_two(n_codes)); directed: (n_rows × n_codes²)
 //' @export
 // [[Rcpp::export]]
 arma::mat accumulate_stanza(arma::mat codes,
                             int window_back    = 1,
                             int window_forward = 0,
-                            bool binary        = true) {
-    return qe::accumulate_stanza(codes, window_back, window_forward, binary);
+                            bool binary        = true,
+                            bool ordered       = false) {
+    return qe::accumulate_stanza(codes, window_back, window_forward, binary, ordered);
 }
 
 //' Compute a column-major linear index into a multi-dimensional array

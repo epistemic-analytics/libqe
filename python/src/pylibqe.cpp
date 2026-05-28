@@ -331,14 +331,15 @@ NB_MODULE(_pylibqe, m) {
         "ordered=False (undirected): symmetric outer-product");
 
     acc.def("accumulate_stanza", [](NpMat codes, int window_back,
-                                 int window_forward, bool binary) {
+                                 int window_forward, bool binary, bool ordered) {
         return from_mat(qe::accumulate_stanza(
-            to_mat(codes), window_back, window_forward, binary));
+            to_mat(codes), window_back, window_forward, binary, ordered));
     }, "codes"_a, "window_back"_a = 1, "window_forward"_a = 0, "binary"_a = true,
-        "Traditional stanza-window accumulation (rENA model).\n"
-        "For each row, accumulates co-occurrences over the surrounding window "
-        "and applies back/forward-reference corrections.\n"
-        "Returns (n_rows × choose_two(n_codes)) matrix.");
+       "ordered"_a = false,
+        "Stanza-window accumulation.\n"
+        "ordered=False (default): upper-tri co-occurrences, returns (n_rows × choose_two(n_codes)).\n"
+        "ordered=True: directed — focal row as response, prior window rows as ground,\n"
+        "returns (n_rows × n_codes²). window_forward is ignored when ordered=True.");
 
     acc.def("row_connections", [](NpMat codes, bool binary) {
         return from_mat(qe::row_connections(to_mat(codes), binary));

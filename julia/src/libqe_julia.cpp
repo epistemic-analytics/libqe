@@ -115,8 +115,8 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
     // ── Adjacency ─────────────────────────────────────────────────────────────
 
     // tri_indices(len, row) → Matrix{Int32}  (2 × choose_two(len))
-    mod.method("lq_tri_indices", [](int32_t len, int32_t row) -> std::vector<int32_t> {
-        arma::umat idx = qe::tri_indices(len, row);
+    mod.method("connection_indices", [](int32_t len, int32_t row) -> std::vector<int32_t> {
+        arma::umat idx = qe::connection_indices(len, row);
         std::vector<int32_t> v(idx.n_elem);
         for (arma::uword i = 0; i < idx.n_elem; ++i)
             v[i] = static_cast<int32_t>(idx(i));
@@ -124,70 +124,70 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
     });
 
     // vector_to_upper_tri(v, n) → Vector{Float64}
-    mod.method("lq_vector_to_upper_tri", [](jlcxx::ArrayRef<double> v, int32_t n)
+    mod.method("code_connections", [](jlcxx::ArrayRef<double> v, int32_t n)
                                           -> std::vector<double> {
         arma::mat row(v.data(), 1, n, false, true);
-        return pack(qe::vector_to_upper_tri(row));
+        return pack(qe::code_connections(row));
     });
 
     // directed_to_upper_tri(v) → Vector{Float64}
-    mod.method("lq_directed_to_upper_tri", [](jlcxx::ArrayRef<double> v)
+    mod.method("fold_directed_network", [](jlcxx::ArrayRef<double> v)
                                             -> std::vector<double> {
         arma::vec av(v.data(), v.size(), false, true);
-        return pack(qe::directed_to_upper_tri(av));
+        return pack(qe::fold_directed_network(av));
     });
 
     // adjacency_matrix_to_vector(m, rows, cols, full) → Vector{Float64}
-    mod.method("lq_adjacency_matrix_to_vector",
+    mod.method("network_to_vector",
         [](jlcxx::ArrayRef<double> m, int32_t rows, int32_t cols, bool full)
          -> std::vector<double> {
-            return pack(qe::adjacency_matrix_to_vector(view_mat(m, rows, cols), full));
+            return pack(qe::network_to_vector(view_mat(m, rows, cols), full));
         });
 
     // svector_to_upper_tri(names) → Vector{String}
-    mod.method("lq_svector_to_upper_tri",
+    mod.method("connection_names",
         [](const std::vector<std::string>& names) -> std::vector<std::string> {
-            return qe::svector_to_upper_tri(names);
+            return qe::connection_names(names);
         });
 
     // ── Normalization ─────────────────────────────────────────────────────────
 
-    mod.method("lq_sphere_norm",
+    mod.method("normalize_networks",
         [](jlcxx::ArrayRef<double> m, int32_t rows, int32_t cols)
          -> std::vector<double> {
-            return pack(qe::sphere_norm(view_mat(m, rows, cols)));
+            return pack(qe::normalize_networks(view_mat(m, rows, cols)));
         });
 
-    mod.method("lq_skip_sphere_norm",
+    mod.method("scale_networks",
         [](jlcxx::ArrayRef<double> m, int32_t rows, int32_t cols)
          -> std::vector<double> {
-            return pack(qe::skip_sphere_norm(view_mat(m, rows, cols)));
+            return pack(qe::scale_networks(view_mat(m, rows, cols)));
         });
 
     // ── Modeling ──────────────────────────────────────────────────────────────
 
-    mod.method("lq_center_data",
+    mod.method("center_points",
         [](jlcxx::ArrayRef<double> m, int32_t rows, int32_t cols)
          -> std::vector<double> {
-            return pack(qe::center_data(view_mat(m, rows, cols)));
+            return pack(qe::center_points(view_mat(m, rows, cols)));
         });
 
     // group_ci → n_dims × 3 [mean, lower, upper]; returned flat (col-major)
-    mod.method("lq_group_ci",
+    mod.method("mean_ci",
         [](jlcxx::ArrayRef<double> m, int32_t rows, int32_t cols, double conf_level)
          -> std::vector<double> {
-            return pack(qe::group_ci(view_mat(m, rows, cols), conf_level));
+            return pack(qe::mean_ci(view_mat(m, rows, cols), conf_level));
         });
 
     // outlier_ci → n_dims × 2 [lower, upper]; returned flat (col-major)
-    mod.method("lq_outlier_ci",
+    mod.method("outlier_ci",
         [](jlcxx::ArrayRef<double> m, int32_t rows, int32_t cols, double iqr_factor)
          -> std::vector<double> {
             return pack(qe::outlier_ci(view_mat(m, rows, cols), iqr_factor));
         });
 
     // ena_correlation → n_units × 3 [r, lower, upper]
-    mod.method("lq_ena_correlation",
+    mod.method("ena_correlation",
         [](jlcxx::ArrayRef<double> pts, int32_t pr, int32_t pc,
            jlcxx::ArrayRef<double> cen, int32_t cr, int32_t cc,
            double conf_level) -> std::vector<double> {
@@ -195,15 +195,15 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
                                             view_mat(cen, cr, cc), conf_level));
         });
 
-    mod.method("lq_lws_lsq_positions",
+    mod.method("node_positions",
         [](jlcxx::ArrayRef<double> adj, int32_t ar, int32_t ac,
            jlcxx::ArrayRef<double> t,   int32_t tr, int32_t tc,
            int32_t num_dims) -> NodePositionsResult {
-            return pack_positions(qe::lws_lsq_positions(
+            return pack_positions(qe::node_positions(
                 view_mat(adj, ar, ac), view_mat(t, tr, tc), num_dims));
         });
 
-    mod.method("lq_directed_node_positions",
+    mod.method("directed_node_positions",
         [](jlcxx::ArrayRef<double> lw, int32_t lr, int32_t lc,
            jlcxx::ArrayRef<double> pt, int32_t pr, int32_t pc,
            int32_t num_dims) -> NodePositionsResult {
@@ -211,50 +211,50 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
                 view_mat(lw, lr, lc), view_mat(pt, pr, pc), num_dims));
         });
 
-    mod.method("lq_directed_node_positions_ground_response",
+    mod.method("directed_node_positions_combine_pairs",
         [](jlcxx::ArrayRef<double> lw, int32_t lr, int32_t lc,
            jlcxx::ArrayRef<double> pt, int32_t pr, int32_t pc,
            int32_t num_dims) -> NodePositionsResult {
-            return pack_positions(qe::directed_node_positions_ground_response(
-                view_mat(lw, lr, lc), view_mat(pt, pr, pc), num_dims));
+            return pack_positions(qe::directed_node_positions(
+                view_mat(lw, lr, lc), view_mat(pt, pr, pc), num_dims, true));
         });
 
     // ── Accumulation ──────────────────────────────────────────────────────────
 
-    mod.method("lq_calculate_adjacency_matrix",
+    mod.method("connection_matrix",
         [](jlcxx::ArrayRef<double> ground, int32_t gn,
            jlcxx::ArrayRef<double> resp,   int32_t rn,
            double response_weight, bool ordered) -> std::vector<double> {
             arma::rowvec g(ground.data(), gn, false, true);
             arma::rowvec r(resp.data(),   rn, false, true);
-            return pack(qe::calculate_adjacency_matrix(g, r, response_weight, ordered));
+            return pack(qe::connection_matrix(g, r, response_weight, ordered));
         });
 
-    mod.method("lq_stanza_window",
+    mod.method("accumulate_stanza",
         [](jlcxx::ArrayRef<double> codes, int32_t rows, int32_t cols,
-           int32_t window_back, int32_t window_forward, bool binary)
+           int32_t window_back, int32_t window_forward, bool binary, bool ordered)
          -> std::vector<double> {
-            return pack(qe::stanza_window(view_mat(codes, rows, cols),
-                                          window_back, window_forward, binary));
+            return pack(qe::accumulate_stanza(view_mat(codes, rows, cols),
+                                          window_back, window_forward, binary, ordered));
         });
 
-    mod.method("lq_rows_to_co_occurrences",
+    mod.method("row_connections",
         [](jlcxx::ArrayRef<double> codes, int32_t rows, int32_t cols, bool binary)
          -> std::vector<double> {
-            return pack(qe::rows_to_co_occurrences(view_mat(codes, rows, cols), binary));
+            return pack(qe::row_connections(view_mat(codes, rows, cols), binary));
         });
 
-    mod.method("lq_rolling_window_sum",
+    mod.method("rolling_window_sum",
         [](jlcxx::ArrayRef<double> codes, int32_t rows, int32_t cols, int32_t window_size)
          -> std::vector<double> {
             return pack(qe::rolling_window_sum(view_mat(codes, rows, cols), window_size));
         });
 
-    mod.method("lq_calculate_1d_index",
+    mod.method("flat_index",
         [](const std::vector<int32_t>& indices, const std::vector<int32_t>& dims) -> int32_t {
             std::vector<int> idx(indices.begin(), indices.end());
             std::vector<int> d(dims.begin(),    dims.end());
-            return static_cast<int32_t>(qe::calculate_1d_index(idx, d));
+            return static_cast<int32_t>(qe::flat_index(idx, d));
         });
 
     // ── Accumulation — callback-based ─────────────────────────────────────────
@@ -267,7 +267,7 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
     // jl_value_t* which is extracted via Julia's C API (jl_array_data /
     // jl_array_len) to construct an arma::vec view without copying.
 
-    mod.method("lq_accumulate_unit",
+    mod.method("accumulate_unit",
         [](jlcxx::ArrayRef<double> codes, int32_t rows, int32_t cols,
            const std::vector<int32_t>& unit_rows_i32,
            jlcxx::JuliaFunction decay_fn,
@@ -286,7 +286,7 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
                                             unit_rows, cpp_decay, ordered));
         });
 
-    mod.method("lq_accumulate_unit_with_rows",
+    mod.method("accumulate_unit_with_rows",
         [](jlcxx::ArrayRef<double> codes, int32_t rows, int32_t cols,
            const std::vector<int32_t>& unit_rows_i32,
            jlcxx::JuliaFunction decay_fn,

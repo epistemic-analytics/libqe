@@ -4,7 +4,7 @@ Julia bindings for [libqe](https://gitlab.com/epistemic-analytics/qe-packages/li
 the shared C++ core for Quantitative Ethnography packages.
 
 Built with [CxxWrap.jl](https://github.com/JuliaInterop/CxxWrap.jl).
-All functions accept standard Julia `Matrix{Float64}` / `Vector{Float64}` arguments.
+All functions accept standard Julia`accumulate_stanza(codes; window_back=1, window_forward=0, binary=true, ordered=false)` | `Matrix{Float64}` | Stanza-window accumulation. `ordered=false` (default): undirected upper-tri, returns `n_rows × choose_two(n_codes)`. `ordered=true`: directed, returns `n_rows × n_codes²`./ `Vector{Float64}` arguments.
 Matrix inputs are **zero-copy** across the C++ boundary (Julia and Armadillo are both
 column-major).
 
@@ -78,14 +78,14 @@ mean_ci(pts)
 
 | Function | Returns | Notes |
 |----------|---------|-------|
-| `normalize_networks(m)` | `Matrix{Float64}` | Row-wise L2 normalization. Zero rows left unchanged. |
-| `scale_networks(m)` | `Matrix{Float64}` | Max-norm scaling: divide all rows by the largest row L2 norm |
+| `normalize_networks(m)` |`accumulate_stanza(codes; window_back=1, window_forward=0, binary=true, ordered=false)` | `Matrix{Float64}` | Stanza-window accumulation. `ordered=false` (default): undirected upper-tri, returns `n_rows × choose_two(n_codes)`. `ordered=true`: directed, returns `n_rows × n_codes²`.| Row-wise L2 normalization. Zero rows left unchanged. |
+| `scale_networks(m)` |`accumulate_stanza(codes; window_back=1, window_forward=0, binary=true, ordered=false)` | `Matrix{Float64}` | Stanza-window accumulation. `ordered=false` (default): undirected upper-tri, returns `n_rows × choose_two(n_codes)`. `ordered=true`: directed, returns `n_rows × n_codes²`.| Max-norm scaling: divide all rows by the largest row L2 norm |
 
 ### Modeling
 
 | Function | Returns | Notes |
 |----------|---------|-------|
-| `center_points(m)` | `Matrix{Float64}` | Subtract column means |
+| `center_points(m)` |`accumulate_stanza(codes; window_back=1, window_forward=0, binary=true, ordered=false)` | `Matrix{Float64}` | Stanza-window accumulation. `ordered=false` (default): undirected upper-tri, returns `n_rows × choose_two(n_codes)`. `ordered=true`: directed, returns `n_rows × n_codes²`.| Subtract column means |
 | `mean_ci(pts; conf_level=0.95)` | `n_dims × 3 Matrix` | `[mean, ci_lower, ci_upper]` — matches rENA `t.test` exactly |
 | `outlier_ci(pts; iqr_factor=1.5)` | `n_dims × 2 Matrix` | `[lower, upper]` symmetric around 0 — matches rENA IQR formula |
 | `ena_correlation(pts, centroids; conf_level=0.95)` | `n_units × 3 Matrix` | Pearson r with CI: `[r, ci_lower, ci_upper]` |
@@ -96,10 +96,10 @@ mean_ci(pts)
 
 | Function | Returns | Notes |
 |----------|---------|-------|
-| `connection_matrix(ground, response; response_weight=1.0, ordered=true)` | `Matrix{Float64}` | Core adjacency math for one ground+response event pair |
-| `accumulate_stanza(codes; window_back=1, window_forward=0, binary=true)` | `Matrix{Float64}` | rENA stanza-window. `codes` = code matrix for one conversation. Returns `n_rows × choose_two(n_codes)` |
-| `row_connections(codes; binary=true)` | `Matrix{Float64}` | Per-row upper-tri co-occurrence without windowing |
-| `rolling_window_sum(codes; window_size=1)` | `Matrix{Float64}` | Rolling backward sum of raw code values |
+| `connection_matrix(ground, response; response_weight=1.0, ordered=true)` |`accumulate_stanza(codes; window_back=1, window_forward=0, binary=true, ordered=false)` | `Matrix{Float64}` | Stanza-window accumulation. `ordered=false` (default): undirected upper-tri, returns `n_rows × choose_two(n_codes)`. `ordered=true`: directed, returns `n_rows × n_codes²`.| Core adjacency math for one ground+response event pair |
+| `accumulate_stanza(codes; window_back=1, window_forward=0, binary=true, ordered=false)` | `Matrix{Float64}` | Stanza-window accumulation. `ordered=false` (default): undirected upper-tri, returns `n_rows × choose_two(n_codes)`. `ordered=true`: directed, returns `n_rows × n_codes²`.| `Matrix{Float64}` | rENA stanza-window. `codes` = code matrix for one conversation. Returns `n_rows × choose_two(n_codes)` |
+| `row_connections(codes; binary=true)` |`accumulate_stanza(codes; window_back=1, window_forward=0, binary=true, ordered=false)` | `Matrix{Float64}` | Stanza-window accumulation. `ordered=false` (default): undirected upper-tri, returns `n_rows × choose_two(n_codes)`. `ordered=true`: directed, returns `n_rows × n_codes²`.| Per-row upper-tri co-occurrence without windowing |
+| `rolling_window_sum(codes; window_size=1)` |`accumulate_stanza(codes; window_back=1, window_forward=0, binary=true, ordered=false)` | `Matrix{Float64}` | Stanza-window accumulation. `ordered=false` (default): undirected upper-tri, returns `n_rows × choose_two(n_codes)`. `ordered=true`: directed, returns `n_rows × n_codes²`.| Rolling backward sum of raw code values |
 | `flat_index(indices, dims)` | `Int` | Column-major linear index. `indices` and `dims` are **0-based** |
 | `accumulate_unit(codes, unit_rows, decay_fn; ordered=false)` | `Vector{Float64}` | tma ground/response accumulation. `unit_rows` are **0-based** `Vector{Int32}` |
 | `accumulate_unit_with_rows(codes, unit_rows, decay_fn; ordered=false)` | `NamedTuple` | Like `accumulate_unit` + per-response-row networks → `(networks, row_networks)` |
