@@ -173,13 +173,51 @@ test('accumulate_tensor_unit: default 1-D tensor smoke test', () => {
 });
 
 test('means_rotation: returns rotation with column_names', () => {
+    // 4 units × 4 ENA dims (row-major).  Group a = rows 0–1, group b = rows 2–3.
     const data = new Float64Array([
-        1,0, 0,1,  // group a
-        2,1, 1,2,  // group b
-        0,0, 3,3,
+        1, 0, 0, 1,   // unit 0 — group a
+        0, 1, 1, 0,   // unit 1 — group a
+        2, 1, 1, 2,   // unit 2 — group b
+        1, 2, 2, 1,   // unit 3 — group b
     ]);
-    const groupPairs = [{ a: new Int32Array([0,1]), b: new Int32Array([2,3]) }];
+    const groupPairs = [{ a: new Int32Array([0, 1]), b: new Int32Array([2, 3]) }];
     const r = qe.means_rotation(data, 4, 4, groupPairs);
     expect(r.rotation.rows).toBe(4);
+    expect(r.rotation.cols).toBe(4);
     expect(r.eigenvalues.length).toBe(4);
+    expect(r.column_names[0]).toBe('MR1');
+});
+
+test('generalized_means_rotation: numeric target returns GMR1/SVD2', () => {
+    // 6 units × 3 ENA dims, numeric target, no covariates, no y axis.
+    const V = new Float64Array([
+        1, 0, 0,
+        0, 1, 0,
+        1, 1, 0,
+        0, 0, 1,
+        1, 0, 1,
+        0, 1, 1,
+    ]);
+    const xModel  = new Float64Array([1, 2, 3, 4, 5, 6]);  // 6×1 model matrix
+    const xTarget = new Float64Array([1, 2, 3, 4, 5, 6]);  // same numeric target
+    const x1Cols  = new Int32Array([0]);                    // only column is target
+    const xSubset = new Int32Array([]);                     // use all rows
+    const dummy1  = new Float64Array(6);                    // ignored y params
+    const dummyM  = new Float64Array(6);                    //  (1-col zero matrix)
+    const dummy0  = new Int32Array([]);
+
+    const r = qe.generalized_means_rotation(
+        V,     6, 3,
+        xModel, 6, 1, xTarget, x1Cols,
+        /*x_categorical=*/false, /*x_n_groups=*/0, xSubset,
+        /*has_y=*/false,
+        dummyM, 6, 1, dummy1, dummy0,
+        /*y_categorical=*/false, /*y_n_groups=*/0,
+        /*n_lambda=*/10, /*k_folds=*/3, /*lasso_eps=*/0.01
+    );
+    expect(r.rotation.rows).toBe(3);
+    expect(r.rotation.cols).toBe(3);
+    expect(r.eigenvalues.length).toBe(3);
+    expect(r.column_names[0]).toBe('GMR1');
+    expect(r.column_names[1]).toBe('SVD2');
 });
