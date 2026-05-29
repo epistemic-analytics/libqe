@@ -1,6 +1,7 @@
 #ifndef LIBQE_ROTATION_HPP
 #define LIBQE_ROTATION_HPP
 
+#include "linalg_fallback.hpp"
 #include <armadillo>
 #include <stdexcept>
 #include <string>
@@ -40,7 +41,7 @@ struct GroupPair {
 inline RotationResult ena_svd(const arma::mat& points) {
     arma::mat U, V;
     arma::vec s;
-    arma::svd(U, s, V, points);
+    qe::linalg::svd(U, s, V, points);
 
     const arma::uword p     = points.n_cols;
     const double      denom = points.n_rows > 1
@@ -107,7 +108,7 @@ inline RotationResult orthogonal_svd(
     }
 
     arma::mat Q, R;
-    arma::qr(Q, R, weights);                            // Q is p x p
+    qe::linalg::qr_full(Q, R, weights);                 // Q is p x p
 
     arma::mat rotation(p, p);
     arma::vec eigenvalues(p, arma::fill::zeros);

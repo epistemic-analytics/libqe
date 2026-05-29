@@ -75,13 +75,14 @@ test('accumulate_stanza: ordered=true gives n_codes² columns', () => {
     expect(out.cols).toBe(9);
 });
 
-test('connection_matrix: ordered=false diagonal is zero', () => {
+test('connection_matrix: ordered=false result is symmetric', () => {
     const g = new Float64Array([1, 0, 1]);
     const r = new Float64Array([1, 1, 0]);
     const m = qe.connection_matrix(g, 3, r, 3, 1.0, false);
-    // result is n_codes × n_codes; diagonal entries should be zero (unordered)
-    const diag = [m.data[0], m.data[4], m.data[8]];
-    diag.forEach(v => expect(v).toBeCloseTo(0, 10));
+    // unordered result is symmetric: m[i,j] == m[j,i] (row-major, 3×3)
+    expect(m.data[1]).toBeCloseTo(m.data[3], 10);   // (0,1) vs (1,0)
+    expect(m.data[2]).toBeCloseTo(m.data[6], 10);   // (0,2) vs (2,0)
+    expect(m.data[5]).toBeCloseTo(m.data[7], 10);   // (1,2) vs (2,1)
 });
 
 test('accumulate_unit: output length is choose_two(n_codes) when unordered', () => {
@@ -109,9 +110,9 @@ test('accumulate_unit_with_rows: networks + row_networks returned', () => {
     const out = qe.accumulate_unit_with_rows(codes, 3, 2, unitRows, decayFn, false);
     // choose(2,2) = 1 connection
     expect(out.networks.length).toBe(1);
-    // row_networks: 3 rows × 1 col
+    // row_networks: always 3 rows × n_codes² cols (full square, before folding)
     expect(out.row_networks.rows).toBe(3);
-    expect(out.row_networks.cols).toBe(1);
+    expect(out.row_networks.cols).toBe(4);   // 2² = 4 for n_codes=2
 });
 
 // ── Rotation ──────────────────────────────────────────────────────────────────
@@ -189,29 +190,34 @@ test('means_rotation: returns rotation with column_names', () => {
 });
 
 test('generalized_means_rotation: numeric target returns GMR1/SVD2', () => {
-    // 6 units × 3 ENA dims, numeric target, no covariates, no y axis.
+    // 10 units × 3 ENA dims, numeric target, no covariates, no y axis.
+    // Use diverse floating-point data to avoid numerical edge cases in the
+    // no-BLAS/LAPACK WASM environment (e.g. near-zero after orthogonalization).
     const V = new Float64Array([
-        1, 0, 0,
-        0, 1, 0,
-        1, 1, 0,
-        0, 0, 1,
-        1, 0, 1,
-        0, 1, 1,
+        0.5, 0.2, 0.8,
+        0.3, 0.7, 0.1,
+        0.8, 0.4, 0.6,
+        0.1, 0.9, 0.3,
+        0.6, 0.1, 0.7,
+        0.4, 0.8, 0.2,
+        0.7, 0.3, 0.9,
+        0.2, 0.6, 0.4,
+        0.9, 0.5, 0.1,
+        0.3, 0.4, 0.7,
     ]);
-    const xModel  = new Float64Array([1, 2, 3, 4, 5, 6]);  // 6×1 model matrix
-    const xTarget = new Float64Array([1, 2, 3, 4, 5, 6]);  // same numeric target
-    const x1Cols  = new Int32Array([0]);                    // only column is target
-    const xSubset = new Int32Array([]);                     // use all rows
-    const dummy1  = new Float64Array(6);                    // ignored y params
-    const dummyM  = new Float64Array(6);                    //  (1-col zero matrix)
+    const xTarget = new Float64Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    const xModel  = xTarget;                   // 10×1 model matrix
+    const x1Cols  = new Int32Array([0]);        // only column is target
+    const xSubset = new Int32Array([]);         // use all rows
+    const dummy   = new Float64Array(10);       // ignored y params
     const dummy0  = new Int32Array([]);
 
     const r = qe.generalized_means_rotation(
-        V,     6, 3,
-        xModel, 6, 1, xTarget, x1Cols,
+        V,      10, 3,
+        xModel, 10, 1, xTarget, x1Cols,
         /*x_categorical=*/false, /*x_n_groups=*/0, xSubset,
         /*has_y=*/false,
-        dummyM, 6, 1, dummy1, dummy0,
+        dummy, 10, 1, dummy, dummy0,
         /*y_categorical=*/false, /*y_n_groups=*/0,
         /*n_lambda=*/10, /*k_folds=*/3, /*lasso_eps=*/0.01
     );

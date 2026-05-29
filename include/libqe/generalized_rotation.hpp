@@ -37,8 +37,9 @@
 #ifndef LIBQE_GENERALIZED_ROTATION_HPP
 #define LIBQE_GENERALIZED_ROTATION_HPP
 
-#include "rotation.hpp"   // ena_svd, complete_rotation, RotationResult
-#include "lasso.hpp"      // lasso_x1_contribution
+#include "linalg_fallback.hpp"  // qe::linalg::eig_sym (works w/o LAPACK)
+#include "rotation.hpp"         // ena_svd, complete_rotation, RotationResult
+#include "lasso.hpp"            // lasso_x1_contribution
 
 #include <armadillo>
 #include <stdexcept>
@@ -101,8 +102,8 @@ inline arma::vec gmr_direction(
         arma::mat  SB     = between_group_scatter(Vx, labels, n_groups);
 
         arma::vec eigval; arma::mat eigvec;
-        arma::eig_sym(eigval, eigvec, SB);      // ascending order
-        r = eigvec.col(eigvec.n_cols - 1);      // largest eigenvalue → last col
+        qe::linalg::eig_sym(eigval, eigvec, SB);  // ascending order
+        r = eigvec.col(eigvec.n_cols - 1);         // largest eigenvalue → last col
     } else {
         // Centre target to get the OLS slope (mirrors R's lm() intercept handling)
         arma::vec tc   = target - arma::mean(target);

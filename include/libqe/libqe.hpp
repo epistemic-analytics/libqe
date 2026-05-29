@@ -16,6 +16,7 @@
 #include "normalization.hpp"
 #include "modeling.hpp"
 #include "accumulation.hpp"
+#include "linalg_fallback.hpp"
 #include "rotation.hpp"
 #include "lasso.hpp"
 #include "generalized_rotation.hpp"
