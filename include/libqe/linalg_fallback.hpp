@@ -114,26 +114,37 @@ inline void eig_sym(arma::vec& eigval, arma::mat& eigvec, const arma::mat& S) {
 }
 
 // ── qr_full ───────────────────────────────────────────────────────────────────
-// Thin QR: Q (n×p) has orthonormal columns, R (p×p) is upper triangular.
-// Sign convention: positive diagonal of R.
+// Full QR: Q (n×n) is a square orthogonal matrix, R (n×p) is upper trapezoidal.
+// Matches arma::qr() which returns a full Q, not just the thin factor.
+// The caller (orthogonal_svd) relies on Q being n×n to extract Q.cols(k, n-1).
 inline void qr_full(arma::mat& Q, arma::mat& R, const arma::mat& A) {
 #if defined(ARMA_USE_LAPACK)
     arma::qr(Q, R, A);
-    // Ensure positive diagonal (arma::qr may return Q with arbitrary signs)
-    for (arma::uword j = 0; j < R.n_cols; ++j) {
-        if (R(j, j) < 0.0) { Q.col(j) *= -1.0; R.row(j) *= -1.0; }
-    }
 #else
+    // Build a full n×n orthogonal matrix.
+    // Step 1: thin QR via modified Gram-Schmidt (gives first k=A.n_cols columns).
+    // Step 2: extend to a full ONB using random vectors + re-orthogonalisation.
     const arma::uword n = A.n_rows, p = A.n_cols;
-    Q = A;
-    R.zeros(p, p);
-    detail::mgs(Q);          // Q now has orthonormal columns (MGS)
-    R = Q.t() * A;           // recover R from Q and A
-    // clamp small off-diagonals to zero for cleaner upper-triangular form
+
+    // Start with all n columns of A padded with random vectors if n > p.
+    arma::mat Qfull(n, n, arma::fill::zeros);
+    // Copy A's columns first
+    for (arma::uword j = 0; j < p && j < n; ++j)
+        Qfull.col(j) = A.col(j);
+    // Fill remaining columns with standard basis vectors (or random fallback)
+    for (arma::uword j = p; j < n; ++j) {
+        Qfull(j, j) = 1.0;   // standard basis e_j
+    }
+    // Full MGS orthonormalization
+    detail::mgs(Qfull);
+    Q = Qfull;
+
+    // R is n×p (upper trapezoidal); only first p rows are non-zero
+    R = Q.t() * A;
+    // Zero the strictly lower-triangular part of R[0:p, 0:p]
     for (arma::uword j = 0; j < p; ++j)
-        for (arma::uword i = j + 1; i < p; ++i)
+        for (arma::uword i = j + 1; i < n; ++i)
             R(i, j) = 0.0;
-    (void)n;
 #endif
 }
 

@@ -9,7 +9,7 @@ class LibqeWasmConan(ConanFile):
 
     def requirements(self):
         # Armadillo headers — libqe headers come from ../include/ directly.
-        self.requires("armadillo/12.6.4")
+        self.requires("armadillo/15.2.6")
 
     def generate(self):
         # Propagate ARMA_DONT_USE_BLAS/LAPACK to the CMake build so that
