@@ -400,7 +400,9 @@ inline NodePositions directed_node_positions(arma::mat line_weights,
         int z = 0;
         for (int x = 0; x < num_nodes; x++)
             for (int y = 0; y < num_nodes; y++) {
-                nw(k, x) += curr[z]; nw(k, y) += curr[z]; z++;
+                nw(k, x) += curr[z];
+                if (x != y) nw(k, y) += curr[z];
+                z++;
             }
     }
     for (int k = 0; k < row_count; k++) {
