@@ -7,7 +7,7 @@ function for direct use and testing in R.
 ## Installation
 
 ```r
-install.packages("libqe", repos = "https://rena.qe-libs.org")
+install.packages("libqe", repos = c("https://cran.qe-libs.org", "https://cran.rstudio.com"))
 ```
 
 From source (within the repo root):

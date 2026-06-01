@@ -67,7 +67,7 @@ Edit headers in `include/libqe/` only. The R `configure` script and
 
 ```r
 # From the QE package repository
-install.packages("libqe", repos = "https://rena.qe-libs.org")
+install.packages("libqe", repos = c("https://cran.qe-libs.org", "https://cran.rstudio.com"))
 
 # From source (within the repo)
 R CMD INSTALL R/
