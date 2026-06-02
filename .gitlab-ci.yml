@@ -104,29 +104,17 @@ test:conan:
     - conan create . --test-folder=conan-test --build=missing
 
 # ── WASM JS tests ─────────────────────────────────────────────────────────────
+# Override needs: so the test consumes the compiled dist/ artifact from build:wasm.
+# The rest of the job (image, registry setup, script) comes from the template.
 test:wasm:
-  stage: test
   needs: [build:wasm]
-  image: node:20-slim
-  script:
-    - cd wasm
-    - npm ci
-    - npm test
 
 # ── Publish to GitLab Package Registry (version tags only) ───────────────────
+# npm publishing is handled by cranqe — see packages.yml wasm target.
+# Conan publishing remains here as it is libqe-specific.
 #
-# Trigger: push a tag matching vMAJOR.MINOR.PATCH, e.g. v0.2.0
-#
-# The tag drives the package version via set_version() in conanfile.py.
-# Authentication uses the built-in CI_JOB_TOKEN — no personal access token
-# or deploy key needed.
-#
-# Consumers add the Conan registry with:
-#   conan remote add gitlab \
-#     "https://gitlab.com/api/v4/packages/conan"
-#
-# Consumers add the npm registry with (one-time, then npm install works):
-#   echo "@qe-libs:registry=https://gitlab.com/api/v4/projects/epistemic-analytics%2Fqe-packages%2Flibqe/packages/npm/" >> ~/.npmrc
+# Consumers install @qe-libs/* packages with:
+#   echo "@qe-libs:registry=https://gitlab.com/api/v4/projects/22522458/packages/npm/" >> ~/.npmrc
 publish:conan:
   stage: publish
   needs: []
@@ -151,20 +139,10 @@ publish:conan:
     - conan upload "libqe/${PKG_VERSION}@${PKG_USER}/stable"
         --remote=gitlab --confirm
 
-publish:wasm:
-  stage: publish
-  needs: [build:wasm, test:wasm]
-  image: node:20-slim
-  rules:
-    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
-  before_script:
-    - echo "//${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}" >> ~/.npmrc
-  script:
-    - cd wasm
-    - npm version "${CI_COMMIT_TAG#v}" --no-git-tag-version
-    - npm publish --registry "https://${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/"
-
 include:
   - project: 'epistemic-analytics/qe-packages/cranqe'
     ref: main
     file: '/ci-templates/trigger-cranqe.yml'
+  - project: 'epistemic-analytics/qe-packages/cranqe'
+    ref: main
+    file: '/ci-templates/npm-registry.yml'
