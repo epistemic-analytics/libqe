@@ -205,6 +205,33 @@ inline void svd_right(arma::vec& s, arma::mat& V, const arma::mat& A) {
 #endif
 }
 
+// ── solve_spd ─────────────────────────────────────────────────────────────────
+// Solve A*x = b for symmetric positive (semi-)definite A.
+// With LAPACK: delegates to arma::solve(A, b, arma::solve_opts::fast).
+// Without LAPACK: uses the eigendecomposition of A so that no LAPACK symbols
+//   are required.  Near-zero eigenvalues (< tol * max_eigval) are skipped,
+//   making this a pseudo-inverse solve — safe for rank-deficient Gram matrices.
+// A (n×n), b (n×k) → returns x (n×k).
+inline arma::mat solve_spd(const arma::mat& A, const arma::mat& b,
+                            double tol = 1e-12) {
+#if defined(ARMA_USE_LAPACK)
+    return arma::solve(A, b, arma::solve_opts::fast);
+#else
+    arma::vec  eigval;
+    arma::mat  eigvec;
+    eig_sym(eigval, eigvec, A);                     // A = eigvec * diag(eigval) * eigvec^T
+
+    const double thresh = tol * std::abs(eigval.max());
+    arma::vec inv_eigval(eigval.n_elem, arma::fill::zeros);
+    for (arma::uword i = 0; i < eigval.n_elem; ++i)
+        if (std::abs(eigval(i)) > thresh)
+            inv_eigval(i) = 1.0 / eigval(i);
+
+    // x = eigvec * diag(inv_eigval) * eigvec^T * b
+    return eigvec * arma::diagmat(inv_eigval) * eigvec.t() * b;
+#endif
+}
+
 } // namespace linalg
 } // namespace qe
 

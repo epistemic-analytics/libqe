@@ -3,6 +3,7 @@
 
 #include <armadillo>
 #include <cmath>
+#include <libqe/linalg_fallback.hpp>
 
 namespace qe {
 
@@ -368,7 +369,7 @@ inline NodePositions node_positions(arma::mat adj_mats, arma::mat t,
     arma::mat ssA = weights.t() * weights;
     for (int i = 0; i < num_dims; i++) {
         arma::mat ssb = weights.t() * t.col(i);
-        ssX.row(i) = arma::solve(ssA, ssb).t();
+        ssX.row(i) = qe::linalg::solve_spd(ssA, ssb).t();
     }
 
     NodePositions r;
@@ -424,7 +425,7 @@ inline NodePositions directed_node_positions(arma::mat line_weights,
         arma::mat ssA = nw_added.t() * nw_added;
         for (int i = 0; i < num_dims; i++) {
             arma::mat ssb = nw_added.t() * pts_added.col(i);
-            ssX.row(i) = arma::solve(ssA, ssb).t();
+            ssX.row(i) = qe::linalg::solve_spd(ssA, ssb).t();
         }
 
         NodePositions r;
@@ -439,7 +440,7 @@ inline NodePositions directed_node_positions(arma::mat line_weights,
     arma::mat ssA = nw.t() * nw;
     for (int i = 0; i < num_dims; i++) {
         arma::mat ssb = nw.t() * points.col(i);
-        ssX.row(i) = arma::solve(ssA, ssb).t();
+        ssX.row(i) = qe::linalg::solve_spd(ssA, ssb).t();
     }
 
     NodePositions r;
