@@ -78,9 +78,9 @@ Access a cell: `data[row * cols + col]`
 | `mean_ci(data, rows, cols, conf_level)` | t-based CI → `n_dims × 3` `[mean, lower, upper]` |
 | `outlier_ci(data, rows, cols, iqr_factor)` | IQR-based interval → `n_dims × 2` `[lower, upper]` |
 | `ena_correlation(pts, pr, pc, cen, cr, cc, conf_level)` | Pearson r + CI → `n_units × 3` `[r, lower, upper]` |
-| `node_positions(adj, ar, ac, t, tr, tc, dims)` | Undirected ENA node positions |
-| `directed_node_positions(lw, lr, lc, pt, pr, pc, dims)` | Directed ENA node positions |
-| `directed_node_positions_combine_pairs(lw, lr, lc, pt, pr, pc, dims)` | Directed ENA — ground+response rows averaged before solve |
+| `node_positions(adj, ar, ac, t, tr, tc, dims)` | Undirected ENA node positions. `dims` may be omitted or `0` to use all columns of `t` |
+| `directed_node_positions(lw, lr, lc, pt, pr, pc, dims)` | Directed ENA node positions. `dims` may be omitted or `0` to use all columns of `pt` |
+| `directed_node_positions_combine_pairs(lw, lr, lc, pt, pr, pc, dims)` | Directed ENA — ground+response rows averaged before solve. `dims` may be omitted or `0` |
 
 ### Accumulation
 

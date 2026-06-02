@@ -181,14 +181,20 @@ static val ena_correlation(const val& pts, int pt_rows, int pt_cols,
 }
 
 // node_positions(adj_data, adj_rows, adj_cols,
-//                t_data,   t_rows,   t_cols, num_dims)
+//                t_data,   t_rows,   t_cols [, num_dims])
 // → { nodes, centroids, weights, points }  (each a matrix object)
+//
+// num_dims: how many columns of t to project onto.  If omitted or <= 0,
+// defaults to t_cols (use all dimensions).  Embind passes 0 for missing
+// integer arguments, so this default covers the "caller forgot num_dims" case.
 static val node_positions(const val& adj_data, int adj_rows, int adj_cols,
                            const val& t_data,   int t_rows,   int t_cols,
                            int num_dims) {
+    arma::mat t = js_to_mat(t_data, t_rows, t_cols);
+    if (num_dims <= 0) num_dims = static_cast<int>(t.n_cols);
     return node_positions_to_js(qe::node_positions(
         js_to_mat(adj_data, adj_rows, adj_cols),
-        js_to_mat(t_data,   t_rows,   t_cols),
+        t,
         num_dims));
 }
 
@@ -196,9 +202,11 @@ static val node_positions(const val& adj_data, int adj_rows, int adj_cols,
 static val directed_node_positions(const val& lw_data, int lw_rows, int lw_cols,
                                     const val& pt_data,  int pt_rows, int pt_cols,
                                     int num_dims) {
+    arma::mat pt = js_to_mat(pt_data, pt_rows, pt_cols);
+    if (num_dims <= 0) num_dims = static_cast<int>(pt.n_cols);
     return node_positions_to_js(qe::directed_node_positions(
         js_to_mat(lw_data, lw_rows, lw_cols),
-        js_to_mat(pt_data, pt_rows, pt_cols),
+        pt,
         num_dims));
 }
 
@@ -207,9 +215,11 @@ static val directed_node_positions_combine_pairs(
         const val& lw_data, int lw_rows, int lw_cols,
         const val& pt_data, int pt_rows, int pt_cols,
         int num_dims) {
+    arma::mat pt = js_to_mat(pt_data, pt_rows, pt_cols);
+    if (num_dims <= 0) num_dims = static_cast<int>(pt.n_cols);
     return node_positions_to_js(qe::directed_node_positions(
         js_to_mat(lw_data, lw_rows, lw_cols),
-        js_to_mat(pt_data, pt_rows, pt_cols),
+        pt,
         num_dims, /*combine_pairs=*/true));
 }
 

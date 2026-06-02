@@ -65,6 +65,31 @@ test('flat_index matches column-major expectation', () => {
     expect(qe.flat_index([1,2,3], [2,3,4])).toBe(23);
 });
 
+// ── Modeling — node_positions regression ──────────────────────────────────────
+
+test('node_positions: nodes.cols equals num_dims when num_dims passed explicitly', () => {
+    // 3 units × 3 connections (choose(3,2)), 2 dimensions
+    // adj_mats: 3×3 row-major
+    const adj  = new Float64Array([1,0,0, 0,1,0, 0,0,1]);
+    // t (unit points): 3×2 row-major
+    const t    = new Float64Array([0.1,0.2, 0.3,0.4, 0.5,0.6]);
+    const r    = qe.node_positions(adj, 3, 3, t, 3, 2, 2);
+    expect(r.nodes.rows).toBe(3);   // 3 codes → 3 nodes
+    expect(r.nodes.cols).toBe(2);   // 2 dimensions
+    expect(r.nodes.data.length).toBe(6);
+});
+
+test('node_positions: nodes.cols is non-zero when num_dims omitted (defaults to t_cols)', () => {
+    // Regression: Embind passes 0 for missing int args; omitting num_dims used to
+    // produce { rows: 3, cols: 0 } because ssX was created as 0×num_nodes.
+    const adj  = new Float64Array([1,0,0, 0,1,0, 0,0,1]);
+    const t    = new Float64Array([0.1,0.2, 0.3,0.4, 0.5,0.6]);
+    // Simulate the caller omitting num_dims (Embind receives 0)
+    const r    = qe.node_positions(adj, 3, 3, t, 3, 2, 0);
+    expect(r.nodes.cols).toBeGreaterThan(0);
+    expect(r.nodes.cols).toBe(2);
+});
+
 // ── Accumulation — extended ───────────────────────────────────────────────────
 
 test('accumulate_stanza: ordered=true gives n_codes² columns', () => {
