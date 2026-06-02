@@ -4,7 +4,6 @@
 # Prerequisites:
 #   - emscripten (emcc on PATH)
 #   - conan 2.x
-#   - ninja
 #
 # Usage (from repo root or wasm/ directory):
 #   sh wasm/scripts/build.sh   # from libqe/
@@ -23,10 +22,18 @@ conan install "${REPO}" \
     --output-folder="${BUILD}"
 
 echo "==> cmake configure"
+# Detect Ninja; fall back to Unix Makefiles if not on PATH.
+# emcmake may alter PATH so we probe explicitly rather than relying on
+# CMake's generator auto-detection.
+if command -v ninja > /dev/null 2>&1; then
+    GENERATOR_FLAGS="-G Ninja"
+else
+    GENERATOR_FLAGS=""
+fi
 emcmake cmake -B "${BUILD}" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_TOOLCHAIN_FILE="${BUILD}/conan_toolchain.cmake" \
-    -G Ninja \
+    ${GENERATOR_FLAGS} \
     "${REPO}"
 
 echo "==> build"
