@@ -109,35 +109,10 @@ test:conan:
 test:wasm:
   needs: [build:wasm]
 
-# ── Publish to GitLab Package Registry (version tags only) ───────────────────
-# npm publishing is handled by cranqe — see packages.yml wasm target.
-# Conan publishing remains here as it is libqe-specific.
-#
-# Consumers install @qe-libs/* packages with:
-#   echo "@qe-libs:registry=https://gitlab.com/api/v4/projects/22522458/packages/npm/" >> ~/.npmrc
-publish:conan:
-  stage: publish
-  needs: []
-  image: ubuntu:24.04
-  <<: *conan-cache
-  rules:
-    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
-  before_script:
-    - apt-get update -qq
-    - apt-get install -y --no-install-recommends build-essential cmake ninja-build python3-pip
-    - pip3 install conan --break-system-packages
-    - conan profile detect --force
-    - conan remote add gitlab
-        "${CI_API_V4_URL}/packages/conan" --force
-    - conan remote login gitlab ci-job-token
-        --password "${CI_JOB_TOKEN}"
-  script:
-    # CI_COMMIT_TAG is e.g. "v0.2.0"; strip the leading 'v' for the version.
-    - export PKG_VERSION="${CI_COMMIT_TAG#v}"
-    - export PKG_USER="${CI_PROJECT_NAMESPACE}"
-    - conan create . --test-folder=conan-test --build=missing
-    - conan upload "libqe/${PKG_VERSION}@${PKG_USER}/stable"
-        --remote=gitlab --confirm
+# ── Note: Conan publishing is handled by cranqe ───────────────────────────────
+# publish:conan was removed. cranqe builds and uploads to the shared Conan
+# registry (project 22522458) on version tags, the same as npm/wasm.
+# See cranqe packages.yml (libqe language: conan) and scripts/conan/publish.py.
 
 include:
   - project: 'epistemic-analytics/qe-packages/cranqe'
