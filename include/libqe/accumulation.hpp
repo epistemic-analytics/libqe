@@ -1,10 +1,12 @@
+/** @file accumulation.hpp
+ *  @brief Accumulation primitives shared between the rENA stanza-window model
+ *         and the tma ground/response/tensor model.
+ *
+ *  Both models reduce to the same core connection_matrix() operation; they
+ *  differ in how ground and response vectors are assembled from the raw data.
+ */
 #ifndef LIBQE_ACCUMULATION_HPP
 #define LIBQE_ACCUMULATION_HPP
-
-// Accumulation primitives shared between rENA (stanza-window model) and tma
-// (ground/response/tensor model).  Both models reduce to the same core
-// calculate_adjacency_matrix() operation; they differ in how ground and
-// response vectors are assembled from the raw data.
 
 #include <armadillo>
 #include <functional>
@@ -13,18 +15,26 @@
 
 namespace qe {
 
-// ---------------------------------------------------------------------------
-// Core adjacency math
-// ---------------------------------------------------------------------------
+/// @name Core adjacency math
+/// @{
 
-// Compute the connection matrix for one ground+response event pair.
-//
-// ordered == true  (directed ENA):
-//   ground→response cross-product + 0.5 * response self-connection (diagonal zeroed)
-// ordered == false (undirected ENA):
-//   symmetric: (weight * r⊗r) + g⊗r + r⊗g
-//
-// Equivalent to calculate_adjacency_matrix() in tma/code.cpp.
+/** @brief Compute the connection matrix for one ground + response event pair.
+ *
+ *  @param[in] ground          Row vector of accumulated ground codes (length p).
+ *  @param[in] response        Row vector of the focal (response) codes (length p).
+ *  @param[in] response_weight Scalar weight applied to the response self-connection
+ *                             term.  Defaults to 1.0.
+ *  @param[in] ordered         When @c true, produces a directed (asymmetric) matrix:
+ *                             @c ground→response cross-product plus
+ *                             @c 0.5 * response_weight * response self-connection
+ *                             (diagonal zeroed).
+ *                             When @c false, produces a symmetric undirected matrix:
+ *                             @c (response_weight * r⊗r) + g⊗r + r⊗g.
+ *
+ *  @returns A p × p connection matrix.
+ *
+ *  @note Equivalent to @c calculate_adjacency_matrix() in @c tma/code.cpp.
+ */
 inline arma::mat connection_matrix(
     arma::rowvec ground, arma::rowvec response,
     double response_weight = 1.0, bool ordered = true
@@ -39,25 +49,44 @@ inline arma::mat connection_matrix(
     return (response_weight * resp_self) + g_by_r + (response.t() * ground);
 }
 
-// ---------------------------------------------------------------------------
-// Traditional stanza-window accumulation (rENA model)
-// ---------------------------------------------------------------------------
+/// @}
 
-// For each row k in `codes` (one conversation), compute the connection vector:
-//
-// ordered == false (undirected, default — rENA stanza model):
-//   sum of codes in window [k - window_back, k + window_forward]
-//   → upper-triangle outer-product (code_connections)
-//   minus back-reference and forward-reference corrections
-//   Returns n_rows × choose_two(n_codes).
-//
-// ordered == true (directed):
-//   focal row k = response; sum of prior rows [earliest, k-1] = ground
-//   → connection_matrix(ground, response, 1.0, true), then vectorised
-//   window_forward is ignored (future rows cannot be causal ground context)
-//   Returns n_rows × n_codes².
-//
-// Equivalent to ref_window_df() in rENA/ena.cpp (undirected case).
+/// @name Traditional stanza-window accumulation (rENA model)
+/// @{
+
+/** @brief Accumulate connection vectors for every row in one conversation using
+ *         a stanza window.
+ *
+ *  For each focal row @c k in @p codes the function assembles a ground context
+ *  from the surrounding window and calls connection_matrix().
+ *
+ *  @par Ordering semantics
+ *  - @b Undirected (@p ordered = @c false, default — rENA stanza model): the
+ *    window spans [@c k - window_back, @c k + window_forward]; the upper-triangle
+ *    outer-product (code_connections) is computed and back/forward-reference
+ *    corrections are subtracted.  Returns a matrix of shape
+ *    @c n_rows × choose_two(n_codes).
+ *  - @b Directed (@p ordered = @c true): focal row @c k is the response; the
+ *    sum of prior rows [@c earliest, @c k−1] is the ground.
+ *    connection_matrix() is called with @p ordered = @c true and the result is
+ *    vectorised.  @p window_forward is ignored (future rows cannot be causal
+ *    ground context).  Returns a matrix of shape @c n_rows × n_codes².
+ *
+ *  @param[in] codes          Code matrix for one conversation (n_rows × n_codes).
+ *  @param[in] window_back    Number of prior rows included in the window
+ *                            (1 = current row only; INT_MAX = all prior rows).
+ *  @param[in] window_forward Number of future rows included in the window
+ *                            (ignored when @p ordered is @c true).
+ *  @param[in] binary         When @c true, clamp all positive entries to 1.
+ *  @param[in] ordered        When @c true, use directed accumulation; when
+ *                            @c false, use undirected stanza-window accumulation.
+ *
+ *  @returns Connection matrix (n_rows × connection_vector_length) where
+ *           connection_vector_length is choose_two(n_codes) for undirected or
+ *           n_codes² for directed.
+ *
+ *  @note Equivalent to @c ref_window_df() in @c rENA/ena.cpp (undirected case).
+ */
 inline arma::mat accumulate_stanza(
     arma::mat codes,
     int window_back    = 1,
@@ -137,21 +166,39 @@ inline arma::mat accumulate_stanza(
     return out;
 }
 
-// ---------------------------------------------------------------------------
-// Ground/response accumulation (tma model)
-// ---------------------------------------------------------------------------
+/// @}
 
-// Accumulate connections for a single unit from its context rows.
-//
-// `codes`      — full context matrix (all rows visible to this unit), n x p
-// `unit_rows`  — 0-based indices of the rows that *belong* to this unit
-// `decay_fn`   — maps a vector of distances (0 = current, 1 = one step back, …)
-//                to a vector of scalar weights; default = simple window
-// `ordered`    — true → directed/full matrix; false → undirected upper-tri
-//
-// Returns a flat connection vector (length choose_two(p) or p*p).
-// This is the pure-C++ equivalent of accumulate_network() in tma/code.cpp,
-// with the R function callback replaced by std::function.
+/// @name Ground/response accumulation (tma model)
+/// @{
+
+/** @brief Accumulate connections for a single unit from its context rows.
+ *
+ *  For every response row belonging to this unit, the function computes a
+ *  weighted ground vector from all preceding context rows and calls
+ *  connection_matrix().
+ *
+ *  @par Ordering semantics
+ *  When @p ordered is @c false (default), the result is folded into the
+ *  upper-triangle representation (length choose_two(p)).  When @p ordered is
+ *  @c true, the full directed p² vector is returned.
+ *
+ *  @param[in] codes      Full context matrix visible to this unit (n × p).
+ *  @param[in] unit_rows  0-based indices of the rows that belong to this unit.
+ *  @param[in] decay_fn   Callback with signature
+ *                        @c arma::vec(arma::vec distances) that maps a vector
+ *                        of distances (0 = current row, 1 = one step back, …)
+ *                        to a vector of scalar weights; default behaviour is a
+ *                        simple rectangular window.
+ *  @param[in] ordered    When @c true, return a directed flat vector (length p²);
+ *                        when @c false, return an undirected upper-triangle flat
+ *                        vector (length choose_two(p)).
+ *
+ *  @returns Flat connection vector of length choose_two(p) (undirected) or p²
+ *           (directed).
+ *
+ *  @note Equivalent to @c accumulate_network() in @c tma/code.cpp, with the R
+ *        function callback replaced by @c std::function.
+ */
 inline arma::rowvec accumulate_unit(
     const arma::mat& codes,
     const std::vector<int>& unit_rows,
@@ -188,22 +235,42 @@ inline arma::rowvec accumulate_unit(
     return arma::vectorise(g_w_vec).t();
 }
 
-// ---------------------------------------------------------------------------
-// Extended ground/response accumulation — returns per-row connection data
-// ---------------------------------------------------------------------------
+/// @}
 
+/// @name Extended ground/response accumulation — returns per-row connection data
+/// @{
+
+/** @brief Result of accumulate_unit_with_rows().
+ *
+ *  Bundles the unit-level flat connection vector together with the per-response-row
+ *  full p² connection matrices needed by tma's @c accumulate_network().
+ */
 struct UnitNetworks {
-    arma::rowvec networks;      // flat connection vector (p^2 or choose_two(p))
-    arma::mat    row_networks;  // per-response-row full p^2 matrix (n_unit_rows x p^2)
+    arma::rowvec networks;      ///< Flat connection vector (choose_two(p) or p²).
+    arma::mat    row_networks;  ///< Per-response-row full p² matrix (n_unit_rows × p²).
 };
 
-// Like accumulate_unit() but also returns the per-response-row connection
-// matrix needed by tma's accumulate_network().
-//
-// `decay_fn(unit_row, ground_indices)` → weight vector of length
-// ground_indices.n_elem.  The two-argument form lets callers (e.g. the tma
-// Rcpp wrapper) set R environment variables before calling the actual R
-// decay function, without any R-specific code leaking into libqe.
+/** @brief Like accumulate_unit() but also returns the per-response-row connection
+ *         matrix needed by tma's @c accumulate_network().
+ *
+ *  @param[in] codes      Full context matrix visible to this unit (n × p).
+ *  @param[in] unit_rows  0-based indices of the rows that belong to this unit.
+ *  @param[in] decay_fn   Callback with signature
+ *                        @c arma::vec(int unit_row, arma::uvec ground_indices)
+ *                        that returns a weight vector of length
+ *                        @c ground_indices.n_elem.  The two-argument form lets
+ *                        callers (e.g. the tma Rcpp wrapper) set R environment
+ *                        variables before invoking the actual R decay function,
+ *                        without any R-specific code leaking into libqe.
+ *  @param[in] ordered    When @c true, return directed flat vectors (length p²);
+ *                        when @c false, return undirected upper-triangle flat
+ *                        vectors (length choose_two(p)).
+ *
+ *  @returns A UnitNetworks struct containing the aggregated connection vector
+ *           and the per-response-row connection matrices.
+ *
+ *  @note Equivalent to @c accumulate_network() in @c tma/code.cpp (extended form).
+ */
 inline UnitNetworks accumulate_unit_with_rows(
     const arma::mat&                              codes,
     const std::vector<int>&                       unit_rows,
@@ -242,12 +309,20 @@ inline UnitNetworks accumulate_unit_with_rows(
     return result;
 }
 
-// ---------------------------------------------------------------------------
-// Tensor-based multi-modal accumulation (tma model)
-// ---------------------------------------------------------------------------
+/// @}
 
-// Compute the linear index into a column-major multi-dimensional array.
-// Equivalent to flat_index() in tma/code.cpp.
+/// @name Tensor-based multi-modal accumulation (tma model)
+/// @{
+
+/** @brief Compute the linear index into a column-major multi-dimensional array.
+ *
+ *  @param[in] indices  Per-dimension index values (0-based).
+ *  @param[in] dims     Size of each dimension.
+ *
+ *  @returns The scalar column-major flat index.
+ *
+ *  @note Equivalent to @c flat_index() in @c tma/code.cpp.
+ */
 inline int flat_index(const std::vector<int>& indices,
                                const std::vector<int>& dims) {
     if (indices.size() != dims.size())
@@ -260,24 +335,47 @@ inline int flat_index(const std::vector<int>& indices,
     return static_cast<int>(linear);
 }
 
+/** @brief Result of apply_tensor_unit().
+ *
+ *  Bundles the unit-level aggregated connection vector together with the
+ *  per-response-row connection matrices used by the tma tensor accumulation.
+ */
 struct TensorNetworks {
-    arma::rowvec connection_counts;      // unit-level flat vector (p^2)
-    arma::mat    row_connection_counts;  // per-response-row (n_unit_rows x p^2)
+    arma::rowvec connection_counts;      ///< Unit-level flat vector (p²).
+    arma::mat    row_connection_counts;  ///< Per-response-row connection matrix (n_unit_rows × p²).
 };
 
-// Pure-C++ port of tma's apply_tensor() inner logic.
-//
-// `tensor`         — flat column-major array (window and weight values)
-// `dims`           — dimensions of the tensor
-// `dims_sender`    — tensor axis indices for sender factors
-// `dims_receiver`  — tensor axis indices for receiver factors (overridden to
-//                    response values when looking up ground-row windows)
-// `dims_mode`      — tensor axis indices for mode factors
-// `context_lookup` — integer matrix (n_context_rows x n_factors), 0-based
-// `unit_rows`      — 0-based response-row indices for this unit
-// `codes`          — full context code matrix (n_context_rows x n_codes)
-// `times`          — timestamp per context row
-// `ordered`        — true → directed full matrix; false → undirected upper-tri
+/** @brief Pure-C++ port of the tma @c apply_tensor() inner logic.
+ *
+ *  For each response row in @p unit_rows, the function looks up window and
+ *  weight values from the tensor, collects all ground rows that fall within the
+ *  response row's window, and calls connection_matrix() to accumulate the
+ *  connection counts.
+ *
+ *  @param[in] tensor          Flat column-major array containing window and
+ *                             weight values indexed by the factor dimensions.
+ *  @param[in] dims            Sizes of each dimension of @p tensor.
+ *  @param[in] dims_sender     Tensor axis indices corresponding to sender factors.
+ *  @param[in] dims_receiver   Tensor axis indices corresponding to receiver
+ *                             factors; these axes are overridden to the response
+ *                             row's values when looking up window sizes for
+ *                             ground rows.
+ *  @param[in] dims_mode       Tensor axis indices corresponding to mode factors.
+ *  @param[in] context_lookup  Integer matrix (n_context_rows × n_factors, 0-based)
+ *                             mapping each context row to its factor level indices.
+ *  @param[in] unit_rows       0-based response-row indices for this unit.
+ *  @param[in] codes           Full context code matrix (n_context_rows × n_codes).
+ *  @param[in] times           Timestamp associated with each context row
+ *                             (length n_context_rows).
+ *  @param[in] ordered         When @c true, produce a directed full p² result;
+ *                             when @c false, produce an undirected upper-triangle
+ *                             result.
+ *
+ *  @returns A TensorNetworks struct containing the unit-level connection counts
+ *           and the per-response-row connection counts.
+ *
+ *  @note Equivalent to the inner loop of @c apply_tensor() in @c tma/code.cpp.
+ */
 inline TensorNetworks apply_tensor_unit(
     const arma::vec&        tensor,
     const std::vector<int>& dims,
@@ -371,14 +469,22 @@ inline TensorNetworks apply_tensor_unit(
     return result;
 }
 
-// ---------------------------------------------------------------------------
-// Per-row co-occurrence and rolling window (rENA accumulation primitives)
-// ---------------------------------------------------------------------------
+/// @}
 
-// Per-row upper-triangle co-occurrence.
-// For each row, computes code_connections(row) and optionally binarizes.
-// Output: n_rows x choose_two(n_codes).
-// Equivalent to rows_to_co_occurrences() in rENA/ena.cpp.
+/// @name Per-row co-occurrence and rolling window (rENA accumulation primitives)
+/// @{
+
+/** @brief Compute the upper-triangle co-occurrence vector for each row.
+ *
+ *  For each row, calls code_connections() and optionally binarizes the result.
+ *
+ *  @param[in] codes   Code matrix (n_rows × n_codes).
+ *  @param[in] binary  When @c true, clamp all positive entries to 1.
+ *
+ *  @returns Matrix of shape n_rows × choose_two(n_codes).
+ *
+ *  @note Equivalent to @c rows_to_co_occurrences() in @c rENA/ena.cpp.
+ */
 inline arma::mat row_connections(
     const arma::mat& codes,
     bool binary = true
@@ -392,11 +498,21 @@ inline arma::mat row_connections(
     return out;
 }
 
-// Rolling backward window sum of raw code matrix.
-// For each row k, sums rows [max(0, k - window_size + 1), k].
-// Returns a matrix of the same shape as `codes` (no upper-tri transform).
-// window_size <= 0 is treated as 1 (current row only).
-// Equivalent to ref_window_lag() in rENA/ena.cpp.
+/** @brief Rolling backward window sum of the raw code matrix.
+ *
+ *  For each focal row @c k, sums rows [@c max(0, k - window_size + 1), @c k].
+ *  Returns a matrix of the same shape as @p codes — no upper-triangle transform
+ *  is applied.  A @p window_size of 0 or less is treated as 1 (current row only).
+ *
+ *  @param[in] codes        Code matrix (n_rows × n_codes).
+ *  @param[in] window_size  Number of rows to include in the backward window
+ *                          (including the focal row).  Values <= 0 are clamped
+ *                          to 1.
+ *
+ *  @returns Matrix of the same shape as @p codes containing the windowed sums.
+ *
+ *  @note Equivalent to @c ref_window_lag() in @c rENA/ena.cpp.
+ */
 inline arma::mat rolling_window_sum(
     const arma::mat& codes,
     int window_size = 1
@@ -411,6 +527,8 @@ inline arma::mat rolling_window_sum(
     }
     return out;
 }
+
+/// @}
 
 } // namespace qe
 

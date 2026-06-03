@@ -1,3 +1,11 @@
+/**
+ * @file rotation.hpp
+ * @brief Rotation routines for Epistemic Network Analysis (ENA):
+ *        SVD, deflation, orthogonal-SVD, complete (generalized), and
+ *        means rotation.  All routines are designed to match the
+ *        numerical output of the reference R implementation in rENA.
+ */
+
 #ifndef LIBQE_ROTATION_HPP
 #define LIBQE_ROTATION_HPP
 
@@ -10,34 +18,64 @@
 
 namespace qe {
 
-// ---------------------------------------------------------------------------
-// Return type for rotation routines
-// ---------------------------------------------------------------------------
+/// @name Return types
+/// @{
 
+/**
+ * @brief Aggregated result returned by every rotation routine.
+ *
+ * The layout mirrors the output of R's `prcomp()`: `rotation` holds the
+ * right-singular vectors (principal axes), `eigenvalues` holds the
+ * explained-variance values (sdev^2 in R parlance), and `column_names`
+ * carries the human-readable axis labels used downstream for network plots
+ * and loadings tables.
+ */
 struct RotationResult {
-    arma::mat                rotation;       // p x p, column j = rotation axis j
-    arma::vec                eigenvalues;    // length p; matches rENA's sdev^2
-    std::vector<std::string> column_names;   // "MR1", "SVD2", ...
+    arma::mat                rotation;      ///< p x p orthogonal matrix; column j is rotation axis j.
+    arma::vec                eigenvalues;   ///< Length-p vector of sdev^2 values, matching rENA's convention.
+    std::vector<std::string> column_names;  ///< Axis labels, e.g. "MR1", "SVD2", "GMR1".
 };
 
-// Pair of 0-based row-index vectors identifying two groups in a points matrix.
+/**
+ * @brief A pair of 0-based row-index vectors identifying two groups within a
+ *        points matrix.
+ *
+ * Used by means_rotation() to specify which rows belong to group A and which
+ * belong to group B for each successive mean-difference axis.
+ */
 struct GroupPair {
-    arma::uvec a;
-    arma::uvec b;
+    arma::uvec a;  ///< Row indices of group A (0-based).
+    arma::uvec b;  ///< Row indices of group B (0-based).
 };
 
-// ---------------------------------------------------------------------------
-// SVD rotation
-// ---------------------------------------------------------------------------
+/// @}
 
-// Equivalent to rENA's prcomp(points, retx=FALSE, scale=FALSE, center=FALSE, tol=0):
-//   rotation       = V (p x p, full SVD; trailing cols span null space if rank-deficient)
-//   eigenvalues[j] = singular_value[j]^2 / max(1, n - 1)   == sdev^2
-// Caller is responsible for centering upstream.
-//
-// Sign convention: none. Signs come from the underlying LAPACK SVD, matching
-// rENA's long-standing behavior. A deterministic sign rule (e.g. svd_flip)
-// may be added later as an opt-in flag.
+/// @name SVD rotation
+/// @{
+
+/**
+ * @brief Compute a full SVD rotation of a (pre-centered) points matrix.
+ *
+ * Produces the right-singular vectors V as the rotation matrix and scales
+ * each singular value to an eigenvalue (sdev^2) compatible with rENA's
+ * `prcomp()` output.
+ *
+ * @param points  n x p data matrix.  The caller is responsible for
+ *                centering upstream; this function applies no centering.
+ *
+ * @returns A RotationResult where:
+ *   - `rotation`    = V  (p x p full SVD; trailing columns span the null
+ *                         space when the matrix is rank-deficient).
+ *   - `eigenvalues[j]` = s[j]^2 / max(1, n - 1)  (== sdev^2 in R).
+ *   - `column_names`   = {"SVD1", "SVD2", ..., "SVDp"}.
+ *
+ * @note Equivalent to `prcomp(points, retx=FALSE, scale=FALSE,
+ *       center=FALSE, tol=0)` in rENA/R.
+ *
+ * @note Sign convention: none.  Signs follow the underlying LAPACK SVD,
+ *       matching rENA's long-standing behavior.  A deterministic sign rule
+ *       (e.g. svd_flip) may be added later as an opt-in flag.
+ */
 inline RotationResult ena_svd(const arma::mat& points) {
     arma::mat U, V;
     arma::vec s;
@@ -61,34 +99,69 @@ inline RotationResult ena_svd(const arma::mat& points) {
     return {V, eigenvalues, std::move(labels)};
 }
 
-// ---------------------------------------------------------------------------
-// Deflation
-// ---------------------------------------------------------------------------
+/// @}
 
-// Project `data` onto the hyperplane orthogonal to `axis` (unit-norm column):
-//   data - (data * axis) * axis^T
-// Caller is responsible for normalizing `axis`.
+/// @name Deflation
+/// @{
+
+/**
+ * @brief Project a data matrix onto the hyperplane orthogonal to a given axis.
+ *
+ * Computes `data - (data * axis) * axis^T`, effectively removing the
+ * component of every row of `data` that lies along `axis`.
+ *
+ * @param data  n x p data matrix.
+ * @param axis  Unit-norm column vector of length p.  The caller is
+ *              responsible for normalizing `axis` before calling this
+ *              function; no normalization is performed internally.
+ *
+ * @returns n x p matrix with the projection onto `axis` subtracted out.
+ */
 inline arma::mat deflate(const arma::mat& data, const arma::vec& axis) {
     return data - (data * axis) * axis.t();
 }
 
-// ---------------------------------------------------------------------------
-// Orthogonal SVD — orthonormalizes named axes via QR, then completes the
-// rotation from an SVD of the data projected onto the orthogonal complement.
-// ---------------------------------------------------------------------------
-//
-// Mirrors orthogonal_svd() in rENA/R/ena.rotate.by.mean.R:
-//   Q     = qr.Q(qr(weights), complete = TRUE)        // p x p
-//   X_bar = data %*% Q[, k+1:p]                       // n x (p - k)
-//   V     = prcomp(X_bar)$rotation
-//   out   = cbind(Q[, 1:k], Q[, k+1:p] %*% V)
-//
-// IMPORTANT: the named axes in the OUTPUT are the orthonormalized Q columns,
-// not the original `weights` columns. Use complete_rotation() if you need to
-// preserve the input axes verbatim.
-//
-// `weights`       : p x k       (column-norm not required; QR handles it)
-// `named_labels`  : length k    (trailing labels become "SVD{k+1}".."SVDp")
+/// @}
+
+/// @name Orthogonal SVD rotation
+/// @{
+
+/**
+ * @brief Orthonormalize named axes via QR, then complete the rotation with
+ *        an SVD of the data projected onto the orthogonal complement.
+ *
+ * The named axes in `weights` are orthonormalized via a full QR
+ * decomposition.  The first k columns of the resulting Q become the
+ * "fixed" part of the rotation; the remaining p - k columns define a
+ * complementary subspace onto which `data` is projected, and a further SVD
+ * fills those trailing rotation columns.
+ *
+ * @param data          n x p data matrix (caller-centered if required).
+ * @param weights       p x k matrix of named axis directions.  Column norms
+ *                      need not be 1; QR handles normalization internally.
+ * @param named_labels  Length-k vector of labels for the first k rotation
+ *                      axes.  Trailing axes receive labels "SVD{k+1}" ..
+ *                      "SVDp".
+ *
+ * @returns A RotationResult containing the combined p x p rotation,
+ *          eigenvalues for the SVD-filled trailing axes (indices k..p-1;
+ *          the first k eigenvalues are zero), and axis labels.
+ *
+ * @note Equivalent to `orthogonal_svd()` in rENA/R/ena.rotate.by.mean.R:
+ * @code
+ *   Q     = qr.Q(qr(weights), complete = TRUE)   # p x p
+ *   X_bar = data %*% Q[, (k+1):p]                # n x (p - k)
+ *   V     = prcomp(X_bar)$rotation
+ *   out   = cbind(Q[, 1:k], Q[, (k+1):p] %*% V)
+ * @endcode
+ *
+ * @note The named axes in the OUTPUT are the orthonormalized Q columns, NOT
+ *       the original `weights` columns.  Use complete_rotation() if you need
+ *       to preserve input axes verbatim.
+ *
+ * @throws std::runtime_error if `data.n_cols != weights.n_rows` or
+ *         `named_labels.size() != weights.n_cols`.
+ */
 inline RotationResult orthogonal_svd(
     const arma::mat&                data,
     const arma::mat&                weights,
@@ -132,30 +205,49 @@ inline RotationResult orthogonal_svd(
     return {rotation, eigenvalues, std::move(labels)};
 }
 
-// ---------------------------------------------------------------------------
-// Complete rotation — keep named axes verbatim, fill remaining axes from an
-// SVD of the data deflated by all named axes.
-// ---------------------------------------------------------------------------
-//
-// Mirrors the tail of rENA's ena.rotate.by.generalized (canonical version:
-// commit 2c079126 on rENA `origin/main`). The deflation is *parallel* — each
-// projection comes off the original `data`, not from a progressively
-// deflated copy:
-//
-//   defA     = data - data * (sum_j a_j * a_j^T)        (parallel)
-//   svd_v    = prcomp(defA)$rotation
-//   combined = cbind(named_axes, svd_v[, 1:(p - k)])
-//
-// This matches `defA <- A - A %*% v1 %*% t(v1) - A %*% v2 %*% t(v2)` line-
-// for-line. For mutually orthogonal axes the result equals sequential
-// deflation; for non-orthogonal axes it differs.
-//
-// Caller is responsible for ensuring each column of `named_axes` is unit-norm.
-// Orthonormality between columns is NOT assumed.
-//
-// Conventional column labels for generalized rotation are "GMR1", "GMR2",
-// then "SVD{k+1}".."SVDp". The labels are caller-supplied; libqe doesn't bake
-// them in.
+/// @}
+
+/// @name Complete (generalized) rotation
+/// @{
+
+/**
+ * @brief Keep named axes verbatim and fill remaining axes from an SVD of the
+ *        data after parallel deflation by all named axes.
+ *
+ * Unlike orthogonal_svd(), this routine preserves the caller-supplied
+ * `named_axes` exactly (no QR re-orthonormalization).  The complementary
+ * axes are obtained by deflating `data` simultaneously by all named axes and
+ * then running ena_svd() on the result.
+ *
+ * The deflation is **parallel**: every projection is subtracted from the
+ * original `data`, not from a progressively deflated copy:
+ * @code
+ *   defA = data - data * (named_axes * named_axes^T)
+ * @endcode
+ * This matches `defA <- A - A %*% v1 %*% t(v1) - A %*% v2 %*% t(v2)` in
+ * rENA line-for-line.  For mutually orthogonal axes the result is identical
+ * to sequential deflation; for non-orthogonal axes it differs.
+ *
+ * @param data          n x p data matrix.
+ * @param named_axes    p x k matrix of named rotation axes.  Each column
+ *                      must be unit-norm; orthonormality between columns is
+ *                      NOT required.
+ * @param named_labels  Length-k vector of labels for the first k axes.
+ *                      Trailing axes receive labels "SVD{k+1}" .. "SVDp".
+ *                      Conventional labels for generalized rotation are
+ *                      "GMR1", "GMR2", then "SVD{k+1}" onward, but labels
+ *                      are entirely caller-supplied.
+ *
+ * @returns A RotationResult where columns 0..k-1 of `rotation` equal
+ *          `named_axes` verbatim and columns k..p-1 come from the SVD of
+ *          the deflated data.
+ *
+ * @note Equivalent to the tail of `ena.rotate.by.generalized` in rENA
+ *       (canonical version: commit 2c079126 on rENA `origin/main`).
+ *
+ * @throws std::runtime_error if `data.n_cols != named_axes.n_rows` or
+ *         `named_labels.size() != named_axes.n_cols`.
+ */
 inline RotationResult complete_rotation(
     const arma::mat&                data,
     const arma::mat&                named_axes,
@@ -195,18 +287,39 @@ inline RotationResult complete_rotation(
     return {rotation, eigenvalues, std::move(labels)};
 }
 
-// ---------------------------------------------------------------------------
-// Means rotation
-// ---------------------------------------------------------------------------
-//
-// Mirrors rENA/R/ena.rotate.by.mean.R. For each group pair, computes a
-// normalized mean-difference axis on the (progressively deflated) data and
-// stacks the axes into a weights matrix; finishes with orthogonal_svd().
-// Centers `points` first to match rENA's `scale(data, scale=F, center=T)`.
-//
-// MATCH-RENA NOTE: there is NO guard against a zero-norm mean-difference
-// vector — this is a latent bug carried forward from rENA verbatim. It will
-// be addressed as a separate, opt-in change later.
+/// @}
+
+/// @name Means rotation
+/// @{
+
+/**
+ * @brief Compute a means rotation from one or more group pairs.
+ *
+ * For each GroupPair, computes the normalized mean-difference vector on the
+ * progressively deflated data and stacks the resulting unit-norm axes into a
+ * weights matrix.  The final rotation is completed by orthogonal_svd().
+ * The input `points` is mean-centered before any axes are computed, matching
+ * rENA's `scale(data, scale=FALSE, center=TRUE)`.
+ *
+ * @param points  n x p matrix of network positions (raw, not pre-centered).
+ * @param pairs   Ordered list of GroupPair objects.  Each pair contributes
+ *                one "MR" axis in sequence.  Must be non-empty.
+ *
+ * @returns A RotationResult with `column_names` = {"MR1", ..., "MRm",
+ *          "SVD{m+1}", ..., "SVDp"} where m = pairs.size().
+ *
+ * @note Equivalent to `ena.rotate.by.mean()` in rENA/R/ena.rotate.by.mean.R.
+ *       The progressive deflation (each axis is computed on the data after
+ *       removing all previous axes) is the key numerical step.
+ *
+ * @warning There is NO guard against a zero-norm mean-difference vector.
+ *          If the two group means are identical on the current deflated data,
+ *          the axis will contain NaN values (division by zero).  This mirrors
+ *          a latent bug in rENA and is preserved verbatim for numerical
+ *          fidelity; a safe opt-in guard will be added in a future release.
+ *
+ * @throws std::runtime_error if `pairs` is empty.
+ */
 inline RotationResult means_rotation(const arma::mat&              points,
                                       const std::vector<GroupPair>& pairs) {
     if (pairs.empty()) {
@@ -233,6 +346,8 @@ inline RotationResult means_rotation(const arma::mat&              points,
 
     return orthogonal_svd(deflated, weights, labels);
 }
+
+/// @}
 
 }  // namespace qe
 

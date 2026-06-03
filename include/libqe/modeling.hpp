@@ -1,3 +1,8 @@
+/**
+ * @file modeling.hpp
+ * @brief ENA modeling utilities: centering, correlation, confidence intervals,
+ *        and node-position solvers for undirected and directed ENA networks.
+ */
 #ifndef LIBQE_MODELING_HPP
 #define LIBQE_MODELING_HPP
 
@@ -8,25 +13,45 @@
 namespace qe {
 
 // ---------------------------------------------------------------------------
-// Return type for node-position solvers
+/// @name Return types
+/// @{
 // ---------------------------------------------------------------------------
 
+/**
+ * @brief Aggregated result returned by every node-position solver.
+ *
+ * All matrices share the same dimensional conventions:
+ * rows index units (or nodes), columns index rotated dimensions.
+ */
 struct NodePositions {
-    arma::mat nodes;      // n_codes x n_dims
-    arma::mat centroids;  // n_units x n_dims
-    arma::mat weights;    // n_units x n_codes (half-edge weight per node)
-    arma::mat points;     // n_units x n_dims (input rotated points, echoed back)
+    arma::mat nodes;      ///< Solved node locations, n_codes × n_dims.
+    arma::mat centroids;  ///< Per-unit centroids projected onto the node space, n_units × n_dims.
+    arma::mat weights;    ///< Normalised half-edge weight per unit per node, n_units × n_codes.
+    arma::mat points;     ///< Input rotated points echoed back unchanged, n_units × n_dims.
 };
 
+/// @}
+
 // ---------------------------------------------------------------------------
-// Centering
+/// @name Centering
+/// @{
 // ---------------------------------------------------------------------------
 
-// Subtract column means (center-to-origin).
-// Equivalent to center_data_c() in rENA/ena.cpp.
+/**
+ * @brief Subtract column means so that every dimension is centred at the origin.
+ *
+ * @param[in] values  Matrix of ENA unit points (n_units × n_dims).
+ * @returns A copy of @p values with each column mean subtracted (centre-to-origin).
+ *
+ * @note Equivalent to `center_data_c()` in rENA/ena.cpp.
+ */
 inline arma::mat center_points(arma::mat values) {
     return values.each_row() - arma::mean(values);
 }
+
+/// @}
+
+/// @cond INTERNAL
 
 // ---------------------------------------------------------------------------
 // Normal quantile (probit) — pure C++, no R dependency
@@ -214,14 +239,31 @@ inline double iqr(const arma::vec& col) {
 
 } // namespace detail
 
+/// @endcond
+
 // ---------------------------------------------------------------------------
-// Correlation
+/// @name Correlation
+/// @{
 // ---------------------------------------------------------------------------
 
-// Pearson correlation + 95% (or custom) CI between ENA points and centroids.
-// Returns n_dims x 3 matrix: [r, ci_lower, ci_upper].
-// Equivalent to ena_correlation() in rENA/ena.cpp, but uses pure-C++ qnorm
-// instead of Rcpp::qnorm so it works outside R.
+/**
+ * @brief Pearson correlation with Fisher-z confidence interval between ENA
+ *        unit points and their centroids.
+ *
+ * All unique pairs of units are formed; for each pair the per-dimension
+ * difference vectors are computed, then Pearson r is obtained between the
+ * @p points differences and the @p centroids differences.  The confidence
+ * interval is derived via Fisher's z-transform using the pure-C++
+ * `normal_quantile` function so the function works outside R without
+ * `Rcpp::qnorm`.
+ *
+ * @param[in] points      Rotated ENA unit points, n_units × n_dims.
+ * @param[in] centroids   Corresponding centroid coordinates, n_units × n_dims.
+ * @param[in] conf_level  Confidence level for the interval (default 0.95).
+ * @returns An n_dims × 3 matrix whose columns are [r, ci_lower, ci_upper].
+ *
+ * @note Equivalent to `ena_correlation()` in rENA/ena.cpp.
+ */
 inline arma::mat ena_correlation(arma::mat points, arma::mat centroids,
                                   double conf_level = 0.95) {
     int n = points.n_rows;
@@ -249,19 +291,28 @@ inline arma::mat ena_correlation(arma::mat points, arma::mat centroids,
     return out;
 }
 
+/// @}
+
 // ---------------------------------------------------------------------------
-// Group confidence interval
+/// @name Group confidence intervals
+/// @{
 // ---------------------------------------------------------------------------
 
-// Confidence interval for the mean of a group of ENA unit points.
-//
-// For each dimension, computes:
-//   mean  ± t_{α/2, n-1}  ×  (sample SD / sqrt(n))
-//
-// where α = 1 - conf_level and degrees-of-freedom = n - 1.
-//
-// Returns an n_dims × 3 matrix: columns are [mean, ci_lower, ci_upper].
-// When n == 1 the CI bounds are ±Inf; when n == 0 all entries are NaN.
+/**
+ * @brief Student-t confidence interval for the mean of a group of ENA unit points.
+ *
+ * For each dimension d:
+ * @code
+ *   mean ± t_{α/2, n-1} × (sample_sd / sqrt(n))
+ * @endcode
+ * where α = 1 − @p conf_level and degrees-of-freedom = n − 1.
+ *
+ * @param[in] points      ENA unit points for a single group, n_units × n_dims.
+ * @param[in] conf_level  Confidence level for the interval (default 0.95).
+ * @returns An n_dims × 3 matrix whose columns are [mean, ci_lower, ci_upper].
+ *          When n == 0 all entries are NaN.
+ *          When n == 1 the CI bounds are ±Inf.
+ */
 inline arma::mat mean_ci(const arma::mat& points, double conf_level = 0.95) {
     const int n      = static_cast<int>(points.n_rows);
     const int n_dims = static_cast<int>(points.n_cols);
@@ -292,28 +343,30 @@ inline arma::mat mean_ci(const arma::mat& points, double conf_level = 0.95) {
     return out;
 }
 
-// ---------------------------------------------------------------------------
-// Outlier interval
-// ---------------------------------------------------------------------------
-
-// Outlier interval for a group of ENA unit points using the Tukey fence
-// threshold (1.5 × IQR by default).
-//
-// For each dimension d:
-//   half_width[d] = iqr_factor * IQR(points[:, d])
-//   lower[d]      = -half_width[d]
-//   upper[d]      = +half_width[d]
-//
-// The interval is symmetric around 0 — matching rENA's formula:
-//   outlier.interval.values = matrix(...) * c(-1, 1)
-// where the matrix is built from c(IQR(dim1), IQR(dim2), ...) * iqr_factor.
-//
-// IQR uses R's default type-7 / Hyndman–Fan #7 quantile, which is identical
-// to numpy's np.percentile(method="linear").
-//
-// Returns an n_dims × 2 matrix: columns are [lower, upper].
-// When n == 0, all entries are NaN.
-// When n == 1, IQR == 0, so lower == upper == 0.
+/**
+ * @brief Tukey-fence outlier interval for a group of ENA unit points.
+ *
+ * For each dimension d the half-width is computed as:
+ * @code
+ *   half_width[d] = iqr_factor * IQR(points[:, d])
+ * @endcode
+ * and the interval [−half_width, +half_width] is symmetric around zero,
+ * matching rENA's formula:
+ * @code
+ *   outlier.interval.values = matrix(...) * c(-1, 1)
+ * @endcode
+ * where the matrix is built from `c(IQR(dim1), IQR(dim2), ...) * iqr_factor`.
+ *
+ * IQR uses R's default type-7 / Hyndman-Fan #7 quantile, identical to
+ * `numpy.percentile(method="linear")`.
+ *
+ * @param[in] points      ENA unit points for a single group, n_units × n_dims.
+ * @param[in] iqr_factor  Multiplier applied to the IQR (default 1.5, the
+ *                        standard Tukey fence threshold).
+ * @returns An n_dims × 2 matrix whose columns are [lower, upper].
+ *          When n == 0 all entries are NaN.
+ *          When n == 1, IQR == 0, so lower == upper == 0.
+ */
 inline arma::mat outlier_ci(const arma::mat& points, double iqr_factor = 1.5) {
     const int n_dims = static_cast<int>(points.n_cols);
     arma::mat out(n_dims, 2, arma::fill::zeros);
@@ -331,14 +384,34 @@ inline arma::mat outlier_ci(const arma::mat& points, double iqr_factor = 1.5) {
     return out;
 }
 
+/// @}
+
 // ---------------------------------------------------------------------------
-// Node-position solvers
+/// @name Node-position solvers
+/// @{
 // ---------------------------------------------------------------------------
 
-// Multiobjective least-squares node positions for undirected ENA.
-// Half of each line weight is distributed to each of its two endpoint nodes,
-// then an overdetermined system is solved per dimension.
-// Equivalent to lws_lsq_positions() in rENA/ena.cpp.
+/**
+ * @brief Multiobjective least-squares node positions for undirected ENA.
+ *
+ * Half of each adjacency-vector entry (line weight) is distributed to each of
+ * its two endpoint nodes, building a per-unit weight matrix.  Each row is then
+ * L1-normalised.  An overdetermined system is solved per dimension:
+ * @code
+ *   (W^T W) X = W^T T
+ * @endcode
+ * where W is the normalised weight matrix and T contains the rotated unit
+ * points.
+ *
+ * @param[in] adj_mats  Upper-triangular adjacency vectors stacked row-wise,
+ *                      n_units × tri_size.
+ * @param[in] t         Rotated unit points, n_units × n_dims.
+ * @param[in] num_dims  Number of dimensions to solve for.
+ * @returns A @ref NodePositions struct containing `nodes`, `centroids`,
+ *          `weights`, and `points`.
+ *
+ * @note Equivalent to `lws_lsq_positions()` in rENA/ena.cpp.
+ */
 inline NodePositions node_positions(arma::mat adj_mats, arma::mat t,
                                         int num_dims) {
     int tri_size  = adj_mats.n_cols;
@@ -380,13 +453,47 @@ inline NodePositions node_positions(arma::mat adj_mats, arma::mat t,
     return r;
 }
 
-// Least-squares node positions for directed (ordered) ENA.
-// When combine_pairs == false (default): standard directed node positions.
-// When combine_pairs == true: paired ground+response rows are combined before
-//   solving — used for directed ENA where each unit contributes a ground row
-//   and a response row that should be averaged together.
-// Equivalent to directed_node_positions() and
-//   directed_node_positions_with_ground_response_added() in rENA/ena.cpp.
+/**
+ * @brief Least-squares node positions for directed (ordered) ENA.
+ *
+ * Each row of @p line_weights is an n_nodes × n_nodes directed weight matrix
+ * stored in row-major order.  The per-unit node weight for node x accumulates
+ * the full row weight plus all column weights directed at x from other nodes.
+ * Each row is L1-normalised before solving.
+ *
+ * When @p combine_pairs is `false` (the standard directed case) the system:
+ * @code
+ *   (W^T W) X = W^T P
+ * @endcode
+ * is solved directly with W = normalised weight matrix and P = @p points.
+ *
+ * When @p combine_pairs is `true`, adjacent row pairs (ground row k and
+ * response row k+1) are summed before solving:
+ * @code
+ *   W_combined[k/2] = W[k] + W[k+1]
+ *   P_combined[k/2] = P[k] + P[k+1]
+ * @endcode
+ * The system is then solved on the combined matrices, but centroids are
+ * projected back using the original (un-combined) weight matrix so that
+ * every unit retains its own centroid.
+ *
+ * @param[in] line_weights  Directed adjacency vectors, n_units × (n_nodes²).
+ * @param[in] points        Rotated unit points, n_units × n_dims.
+ * @param[in] num_dims      Number of dimensions to solve for.
+ * @param[in] combine_pairs If `true`, sum adjacent row pairs before solving
+ *                          (ground + response model).  Default `false`.
+ * @returns A @ref NodePositions struct containing `nodes`, `centroids`,
+ *          `weights`, and `points`.
+ *
+ * @note Equivalent to `directed_node_positions()` in rENA/ena.cpp when
+ *       @p combine_pairs is `false`.
+ * @note Equivalent to `directed_node_positions_with_ground_response_added()`
+ *       in rENA/ena.cpp when @p combine_pairs is `true`.
+ *
+ * @warning When @p combine_pairs is `true`, @p line_weights must have an even
+ *          number of rows (row_count must be even); odd row counts result in
+ *          an out-of-bounds access when forming the combined matrices.
+ */
 inline NodePositions directed_node_positions(arma::mat line_weights,
                                               arma::mat points, int num_dims,
                                               bool combine_pairs = false) {
@@ -450,6 +557,8 @@ inline NodePositions directed_node_positions(arma::mat line_weights,
     r.points    = points;
     return r;
 }
+
+/// @}
 
 } // namespace qe
 

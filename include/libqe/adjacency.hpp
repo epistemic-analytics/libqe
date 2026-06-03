@@ -1,8 +1,12 @@
+/**
+ * @file adjacency.hpp
+ * @brief Combinatorics and vector/matrix utilities for ENA connection networks.
+ *
+ * Pure C++ / Armadillo — no Rcpp dependency.
+ * Include @c <RcppArmadillo.h> before this header when building inside an R package.
+ */
 #ifndef LIBQE_ADJACENCY_HPP
 #define LIBQE_ADJACENCY_HPP
-
-// Pure C++ / Armadillo — no Rcpp dependency.
-// Include <RcppArmadillo.h> before this header when building inside an R package.
 
 #include <armadillo>
 #include <string>
@@ -12,19 +16,31 @@
 namespace qe {
 
 // ---------------------------------------------------------------------------
-// Combinatorics
+/// @name Combinatorics
+/// @{
 // ---------------------------------------------------------------------------
 
-// n choose 2
+/**
+ * @brief Number of unordered pairs from @p n items (n choose 2).
+ *
+ * @param n Number of codes/nodes.
+ * @returns @c (n * (n - 1)) / 2.
+ */
 inline int choose_two(int n) {
     return (n * (n - 1)) / 2;
 }
 
-// Upper-triangle index pairs for a square matrix of side `len`.
-// row == -1 (default): return 2 x k matrix of [row_idx; col_idx]
-// row ==  0: return only the row indices
-// row ==  1: return only the column indices
-// Equivalent to triIndices() in both rENA/ena.cpp and tma/code.cpp.
+/**
+ * @brief Upper-triangle index pairs for a symmetric matrix of side @p len.
+ *
+ * @param len Side length of the square matrix (number of codes).
+ * @param row Controls what is returned:
+ *   - @c -1 (default): 2 × k matrix of [row_idx; col_idx].
+ *   - @c  0: row indices only (1 × k).
+ *   - @c  1: column indices only (1 × k).
+ * @returns An @c arma::umat of shape 2×k or 1×k depending on @p row.
+ * @note Equivalent to @c triIndices() in rENA/ena.cpp and tma/code.cpp.
+ */
 inline arma::umat connection_indices(int len, int row = -1) {
     int vS = choose_two(len);
     int s  = 0;
@@ -44,13 +60,23 @@ inline arma::umat connection_indices(int len, int row = -1) {
     return (row == -1) ? vR : vRone;
 }
 
+/// @}
+
 // ---------------------------------------------------------------------------
-// Vector ↔ upper-triangle conversions
+/// @name Vector ↔ upper-triangle conversions
+/// @{
 // ---------------------------------------------------------------------------
 
-// Compute pairwise products of elements and return as a flat upper-triangle
-// vector.  v[j] * v[i] for all j < i.
-// Equivalent to vector_to_ut() in rENA/ena.cpp.
+/**
+ * @brief Compute pairwise products and return as a flat upper-triangle vector.
+ *
+ * For each pair @c (j, i) with @c j < i, outputs @c v[j] * v[i].
+ * The result has length @c choose_two(v.size()).
+ *
+ * @param v A 1 × p row vector (or p-element matrix).
+ * @returns A row vector of length @c choose_two(p).
+ * @note Equivalent to @c vector_to_ut() in rENA/ena.cpp.
+ */
 inline arma::rowvec code_connections(arma::mat v) {
     int vL = v.size();
     int vS = choose_two(vL);
@@ -65,9 +91,15 @@ inline arma::rowvec code_connections(arma::mat v) {
     return out;
 }
 
-// Fold a directed (n*n) vector into an undirected upper-triangle vector by
-// summing symmetric elements (A→B + B→A).
-// Equivalent to vector_to_summed_uppertri() in tma/code.cpp.
+/**
+ * @brief Fold a directed n² vector into an undirected upper-triangle vector.
+ *
+ * Symmetric elements are summed: A→B + B→A for every pair.
+ *
+ * @param v Flat directed vector of length n², column-major (n = sqrt(v.size())).
+ * @returns Upper-triangle row vector of length @c choose_two(n).
+ * @note Equivalent to @c vector_to_summed_uppertri() in tma/code.cpp.
+ */
 inline arma::rowvec fold_directed_network(arma::vec v) {
     int n    = static_cast<int>(std::round(std::sqrt(static_cast<double>(v.size()))));
     int tris = choose_two(n);
@@ -81,10 +113,15 @@ inline arma::rowvec fold_directed_network(arma::vec v) {
     return arma::conv_to<arma::rowvec>::from(flat.elem(up_inds));
 }
 
-// Flatten an adjacency matrix to a vector.
-// full == true  → full n*n vector (directed)
-// full == false → upper-triangle only (undirected)
-// Equivalent to adjacency_matrix_to_vector() in tma/code.cpp.
+/**
+ * @brief Flatten an adjacency matrix to a vector.
+ *
+ * @param x Square adjacency matrix (n × n).
+ * @param full If @c true (default), returns the full n² vector (directed).
+ *             If @c false, returns the upper-triangle only (undirected).
+ * @returns Row vector of length n² or @c choose_two(n).
+ * @note Equivalent to @c adjacency_matrix_to_vector() in tma/code.cpp.
+ */
 inline arma::rowvec network_to_vector(arma::mat x, bool full = true) {
     if (full) return arma::vectorise(x).t();
     arma::mat combined  = arma::trimatu(x, 1) + arma::trimatl(x, -1);
@@ -92,12 +129,22 @@ inline arma::rowvec network_to_vector(arma::mat x, bool full = true) {
     return arma::vectorise(combined(up_inds)).t();
 }
 
+/// @}
+
 // ---------------------------------------------------------------------------
-// String utilities
+/// @name String utilities
+/// @{
 // ---------------------------------------------------------------------------
 
-// Return "A & B" pair names for every upper-triangle position.
-// Equivalent to svector_to_ut() in rENA/ena.cpp.
+/**
+ * @brief Generate "A & B" pair names for every upper-triangle position.
+ *
+ * For code names @c {"A", "B", "C"} returns @c {"A & B", "A & C", "B & C"}.
+ *
+ * @param v Ordered list of code names (length p).
+ * @returns Vector of @c choose_two(p) label strings.
+ * @note Equivalent to @c svector_to_ut() in rENA/ena.cpp.
+ */
 inline std::vector<std::string> connection_names(std::vector<std::string> v) {
     int vL = v.size();
     int vS = choose_two(vL);
@@ -111,6 +158,8 @@ inline std::vector<std::string> connection_names(std::vector<std::string> v) {
     }
     return out;
 }
+
+/// @}
 
 } // namespace qe
 
