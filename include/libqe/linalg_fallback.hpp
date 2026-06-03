@@ -62,14 +62,16 @@ inline void mgs(arma::mat& Q) {
 ///           eigenvectors.
 ///
 /// @note Algorithm follows the classical cyclic-by-rows Jacobi scheme.
-///       Off-diagonal entries smaller than 1e-14 × (|a_qq| + |a_rr|) are
-///       skipped for numerical stability.
+///       Off-diagonal entries no larger than 1e-14 × (|a_qq| + |a_rr|) are
+///       skipped for numerical stability.  The `<=` (not `<`) guard correctly
+///       handles the all-zero case (a_qq = a_rr = a_qr = 0) that would
+///       otherwise produce NaN via 0/0 in the theta computation.
 inline void jacobi_sweep(arma::mat& A, arma::mat& V) {
     const arma::uword p = A.n_rows;
     for (arma::uword q = 0; q < p - 1; ++q) {
         for (arma::uword r = q + 1; r < p; ++r) {
             double aqq = A(q, q), arr = A(r, r), aqr = A(q, r);
-            if (std::abs(aqr) < 1e-14 * (std::abs(aqq) + std::abs(arr)))
+            if (std::abs(aqr) <= 1e-14 * (std::abs(aqq) + std::abs(arr)))
                 continue;
             double theta = (arr - aqq) / (2.0 * aqr);
             double t = (theta >= 0.0)

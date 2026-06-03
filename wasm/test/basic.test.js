@@ -152,6 +152,22 @@ test('ena_svd: returns rotation matrix and eigenvalues', () => {
     expect(r.column_names.length).toBe(2);
 });
 
+test('ena_svd: does not throw for exact value 0.025 (regression: Jacobi NaN via 0/0)', () => {
+    // A 2×3 rank-1 matrix whose Jacobi iteration converges to an all-zero
+    // 2×2 sub-block (aqq = arr = aqr = 0 exactly).  The `<` skip condition
+    // evaluated `0 < 0` as false, fell through to theta = 0/0 = NaN, and
+    // terminated via std::terminate.  Fixed by using `<=`.
+    const bad = new Float64Array([0.296, 0.025, -0.274, -0.296, -0.025, 0.274]);
+    expect(() => qe.ena_svd(bad, 2, 3)).not.toThrow();
+    const r = qe.ena_svd(bad, 2, 3);
+    expect(r.eigenvalues.length).toBe(3);
+    // One non-zero eigenvalue; the other two are zero (rank-1 input)
+    const evSorted = [...r.eigenvalues].sort((a, b) => b - a);
+    expect(evSorted[0]).toBeGreaterThan(0.1);
+    expect(evSorted[1]).toBeCloseTo(0, 10);
+    expect(evSorted[2]).toBeCloseTo(0, 10);
+});
+
 test('deflate: removes variance along axis', () => {
     // data aligned with first standard basis vector; deflating that axis
     // should zero out the first column

@@ -118,6 +118,15 @@ class TestEnaSvd:
         sdev = s / np.sqrt(max(1, pts_c.shape[0] - 1))
         np.testing.assert_allclose(out.eigenvalues[: s.size], sdev ** 2, atol=1e-10)
 
+    def test_no_throw_for_exact_0025(self):
+        """Regression: Jacobi skip used `<` so `0 < 0` didn't skip; theta=0/0=NaN."""
+        pts = np.array([[0.296, 0.025, -0.274],
+                        [-0.296, -0.025,  0.274]])
+        out = rotation.ena_svd(pts)   # must not raise
+        ev = np.sort(out.eigenvalues)[::-1]
+        assert ev[0] > 0.1
+        np.testing.assert_allclose(ev[1:], 0.0, atol=1e-10)
+
     def test_column_names(self):
         rng = np.random.default_rng(3)
         out = rotation.ena_svd(rng.standard_normal((10, 5)))
