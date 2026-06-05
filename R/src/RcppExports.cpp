@@ -136,6 +136,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// group_stats
+List group_stats(arma::mat g1, arma::mat g2);
+RcppExport SEXP _libqe_group_stats(SEXP g1SEXP, SEXP g2SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type g1(g1SEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type g2(g2SEXP);
+    rcpp_result_gen = Rcpp::wrap(group_stats(g1, g2));
+    return rcpp_result_gen;
+END_RCPP
+}
 // ena_correlation
 arma::mat ena_correlation(arma::mat points, arma::mat centroids, double conf_level);
 RcppExport SEXP _libqe_ena_correlation(SEXP pointsSEXP, SEXP centroidsSEXP, SEXP conf_levelSEXP) {
@@ -401,6 +413,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_libqe_center_points", (DL_FUNC) &_libqe_center_points, 1},
     {"_libqe_mean_ci", (DL_FUNC) &_libqe_mean_ci, 2},
     {"_libqe_outlier_ci", (DL_FUNC) &_libqe_outlier_ci, 2},
+    {"_libqe_group_stats", (DL_FUNC) &_libqe_group_stats, 2},
     {"_libqe_ena_correlation", (DL_FUNC) &_libqe_ena_correlation, 3},
     {"_libqe_node_positions", (DL_FUNC) &_libqe_node_positions, 3},
     {"_libqe_directed_node_positions", (DL_FUNC) &_libqe_directed_node_positions, 3},

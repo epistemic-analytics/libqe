@@ -99,6 +99,42 @@ outlier_ci <- function(points, iqr_factor = 1.5) {
     .Call(`_libqe_outlier_ci`, points, iqr_factor)
 }
 
+#' Two-group comparison statistics
+#'
+#' Computes per-dimension parametric and non-parametric statistics for two
+#' groups of ENA unit points.  Equivalent to \code{group.stats()} in rENA-api,
+#' moved to the C++ layer so all language bindings share a single implementation.
+#'
+#' \strong{Parametric (Welch two-sample t-test):}
+#' \itemize{
+#'   \item \code{t}        — Welch t-statistics
+#'   \item \code{parameter}— Welch–Satterthwaite degrees of freedom
+#'   \item \code{pvalue}   — two-tailed p-values
+#'   \item \code{effect}   — Cohen's d (pooled-SD: \code{(μ1−μ2)/pooled_sd})
+#'   \item \code{mean}     — 2×n_dims matrix, row 1 = group1, row 2 = group2
+#'   \item \code{std.dev}  — 2×n_dims matrix of sample standard deviations
+#' }
+#'
+#' \strong{Non-parametric (Wilcoxon rank-sum):}
+#' \itemize{
+#'   \item \code{U}        — rank-sum U for group 1 (= R's \code{wilcox.test} W)
+#'   \item \code{pvalue}   — two-tailed p-values (normal approx, tie + continuity correction)
+#'   \item \code{effect}   — rank-biserial: \code{1 − 2·U / (n1·n2)}
+#'   \item \code{median}   — 2×n_dims matrix of medians
+#' }
+#'
+#' Entries are \code{NA} when a statistic is undefined (e.g. n < 2 for
+#' parametric tests).
+#'
+#' @param g1 Numeric matrix (n1 × n_dims) — unit points for group 1
+#' @param g2 Numeric matrix (n2 × n_dims) — unit points for group 2
+#' @return Named list with \code{N}, \code{parametric}, and \code{nonparametric}
+#'   sub-lists, matching the structure of rENA-api's \code{group.stats()}.
+#' @export
+group_stats <- function(g1, g2) {
+    .Call(`_libqe_group_stats`, g1, g2)
+}
+
 #' Pearson correlation with CI between ENA points and centroids
 #' @param points  Numeric matrix (units x dims)
 #' @param centroids Numeric matrix (units x dims)

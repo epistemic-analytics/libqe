@@ -130,6 +130,60 @@ static RotationResultJ pack_rotation(const qe::RotationResult& r) {
     return out;
 }
 
+// ── GroupStats ────────────────────────────────────────────────────────────────
+// modeling.hpp group_stats returns qe::GroupStats.  All per-dimension vectors
+// are flattened to std::vector<double>; matrices are flat column-major (Julia
+// native) with accompanying row/col counts so Julia can reshape() them.
+
+struct GroupStatsJ {
+    int32_t n1, n2;
+
+    // Parametric
+    std::vector<double> t;
+    std::vector<double> df;
+    std::vector<double> pvalue_t;
+    std::vector<double> cohens_d;
+    std::vector<double> means;     // flat col-major, 2 × n_dims
+    int32_t means_rows, means_cols;
+    std::vector<double> sds;       // flat col-major, 2 × n_dims
+    int32_t sds_rows, sds_cols;
+
+    // Non-parametric
+    std::vector<double> U;
+    std::vector<double> pvalue_u;
+    std::vector<double> effect_r;
+    std::vector<double> medians;   // flat col-major, 2 × n_dims
+    int32_t medians_rows, medians_cols;
+};
+
+static GroupStatsJ pack_group_stats(const qe::GroupStats& s) {
+    GroupStatsJ out;
+    out.n1 = static_cast<int32_t>(s.n1);
+    out.n2 = static_cast<int32_t>(s.n2);
+
+    auto pack_vec = [](const arma::vec& v) {
+        return std::vector<double>(v.memptr(), v.memptr() + v.n_elem);
+    };
+
+    out.t        = pack_vec(s.t);
+    out.df       = pack_vec(s.df);
+    out.pvalue_t = pack_vec(s.pvalue_t);
+    out.cohens_d = pack_vec(s.cohens_d);
+    out.means       = pack(s.means);
+    out.means_rows  = static_cast<int32_t>(s.means.n_rows);
+    out.means_cols  = static_cast<int32_t>(s.means.n_cols);
+    out.sds         = pack(s.sds);
+    out.sds_rows    = static_cast<int32_t>(s.sds.n_rows);
+    out.sds_cols    = static_cast<int32_t>(s.sds.n_cols);
+    out.U        = pack_vec(s.U);
+    out.pvalue_u = pack_vec(s.pvalue_u);
+    out.effect_r = pack_vec(s.effect_r);
+    out.medians       = pack(s.medians);
+    out.medians_rows  = static_cast<int32_t>(s.medians.n_rows);
+    out.medians_cols  = static_cast<int32_t>(s.medians.n_cols);
+    return out;
+}
+
 // ── TensorNetworks ────────────────────────────────────────────────────────────
 // accumulation.hpp apply_tensor_unit returns qe::TensorNetworks.
 
@@ -184,6 +238,27 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
         .method("row_networks",        [](const TensorNetworksJ& r){ return r.row_networks; })
         .method("row_networks_rows",   [](const TensorNetworksJ& r){ return r.row_networks_rows; })
         .method("row_networks_cols",   [](const TensorNetworksJ& r){ return r.row_networks_cols; });
+
+    // ── GroupStatsJ ───────────────────────────────────────────────────────────
+    mod.add_type<GroupStatsJ>("GroupStatsJ")
+        .method("n1",           [](const GroupStatsJ& r){ return r.n1; })
+        .method("n2",           [](const GroupStatsJ& r){ return r.n2; })
+        .method("t_stat",       [](const GroupStatsJ& r){ return r.t; })
+        .method("df",           [](const GroupStatsJ& r){ return r.df; })
+        .method("pvalue_t",     [](const GroupStatsJ& r){ return r.pvalue_t; })
+        .method("cohens_d",     [](const GroupStatsJ& r){ return r.cohens_d; })
+        .method("means",        [](const GroupStatsJ& r){ return r.means; })
+        .method("means_rows",   [](const GroupStatsJ& r){ return r.means_rows; })
+        .method("means_cols",   [](const GroupStatsJ& r){ return r.means_cols; })
+        .method("sds",          [](const GroupStatsJ& r){ return r.sds; })
+        .method("sds_rows",     [](const GroupStatsJ& r){ return r.sds_rows; })
+        .method("sds_cols",     [](const GroupStatsJ& r){ return r.sds_cols; })
+        .method("U",            [](const GroupStatsJ& r){ return r.U; })
+        .method("pvalue_u",     [](const GroupStatsJ& r){ return r.pvalue_u; })
+        .method("effect_r",     [](const GroupStatsJ& r){ return r.effect_r; })
+        .method("medians",      [](const GroupStatsJ& r){ return r.medians; })
+        .method("medians_rows", [](const GroupStatsJ& r){ return r.medians_rows; })
+        .method("medians_cols", [](const GroupStatsJ& r){ return r.medians_cols; });
 
     // ── Adjacency ─────────────────────────────────────────────────────────────
 
@@ -261,6 +336,17 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
         [](jlcxx::ArrayRef<double> m, int32_t rows, int32_t cols, double iqr_factor)
          -> std::vector<double> {
             return pack(qe::outlier_ci(view_mat(m, rows, cols), iqr_factor));
+        });
+
+    // group_stats(g1, g1_rows, g1_cols, g2, g2_rows, g2_cols) → GroupStatsJ
+    // Julia-side: all matrices are column-major Float64 arrays (Julia-native layout,
+    // zero-copy view). Returns a GroupStatsJ struct; call reshape() on the flat
+    // matrix vectors using the accompanying _rows/_cols accessors.
+    mod.method("group_stats",
+        [](jlcxx::ArrayRef<double> g1, int32_t g1r, int32_t g1c,
+           jlcxx::ArrayRef<double> g2, int32_t g2r, int32_t g2c) -> GroupStatsJ {
+            return pack_group_stats(qe::group_stats(view_mat(g1, g1r, g1c),
+                                                    view_mat(g2, g2r, g2c)));
         });
 
     // ena_correlation → n_units × 3 [r, lower, upper]

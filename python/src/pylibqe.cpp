@@ -254,6 +254,90 @@ NB_MODULE(_pylibqe, m) {
         "Returns (n_dims × 2) array: columns are [lower, upper].\n"
         "All entries are NaN when n_units == 0.");
 
+    // Python-side GroupStatsResult — mirrors qe::GroupStats
+    struct PyGroupStats {
+        int n1, n2;
+        // parametric
+        nb::object t;
+        nb::object df;
+        nb::object pvalue_t;
+        nb::object cohens_d;
+        nb::object means;
+        nb::object sds;
+        // non-parametric
+        nb::object U;
+        nb::object pvalue_u;
+        nb::object effect_r;
+        nb::object medians;
+    };
+    auto make_py_gs = [](const qe::GroupStats& s) {
+        PyGroupStats p;
+        p.n1       = s.n1;
+        p.n2       = s.n2;
+        p.t        = nb::cast(from_vec(s.t));
+        p.df       = nb::cast(from_vec(s.df));
+        p.pvalue_t = nb::cast(from_vec(s.pvalue_t));
+        p.cohens_d = nb::cast(from_vec(s.cohens_d));
+        p.means    = nb::cast(from_mat(s.means));
+        p.sds      = nb::cast(from_mat(s.sds));
+        p.U        = nb::cast(from_vec(s.U));
+        p.pvalue_u = nb::cast(from_vec(s.pvalue_u));
+        p.effect_r = nb::cast(from_vec(s.effect_r));
+        p.medians  = nb::cast(from_mat(s.medians));
+        return p;
+    };
+
+    nb::class_<PyGroupStats>(mod, "GroupStatsResult",
+        "Two-group comparison statistics returned by group_stats().\n\n"
+        "Attributes\n"
+        "----------\n"
+        "n1, n2       : int  — sample sizes\n"
+        "Parametric (Welch t-test):\n"
+        "  t          : ndarray (n_dims,)  — t-statistics\n"
+        "  df         : ndarray (n_dims,)  — Welch–Satterthwaite degrees of freedom\n"
+        "  pvalue_t   : ndarray (n_dims,)  — two-tailed p-values\n"
+        "  cohens_d   : ndarray (n_dims,)  — Cohen's d (pooled SD)\n"
+        "  means      : ndarray (2 × n_dims)  — row 0 = group1, row 1 = group2\n"
+        "  sds        : ndarray (2 × n_dims)  — sample standard deviations\n"
+        "Non-parametric (Wilcoxon rank-sum):\n"
+        "  U          : ndarray (n_dims,)  — U for group 1 (= R's W statistic)\n"
+        "  pvalue_u   : ndarray (n_dims,)  — two-tailed p-values (normal approx)\n"
+        "  effect_r   : ndarray (n_dims,)  — rank-biserial: 1 − 2·U / (n1·n2)\n"
+        "  medians    : ndarray (2 × n_dims)  — row 0 = group1, row 1 = group2")
+        .def_ro("n1",       &PyGroupStats::n1)
+        .def_ro("n2",       &PyGroupStats::n2)
+        .def_ro("t",        &PyGroupStats::t)
+        .def_ro("df",       &PyGroupStats::df)
+        .def_ro("pvalue_t", &PyGroupStats::pvalue_t)
+        .def_ro("cohens_d", &PyGroupStats::cohens_d)
+        .def_ro("means",    &PyGroupStats::means)
+        .def_ro("sds",      &PyGroupStats::sds)
+        .def_ro("U",        &PyGroupStats::U)
+        .def_ro("pvalue_u", &PyGroupStats::pvalue_u)
+        .def_ro("effect_r", &PyGroupStats::effect_r)
+        .def_ro("medians",  &PyGroupStats::medians)
+        .def("__repr__", [](const PyGroupStats& p) {
+            return std::string("<GroupStatsResult n1=") + std::to_string(p.n1)
+                 + " n2=" + std::to_string(p.n2) + ">";
+        });
+
+    mod.def("group_stats", [make_py_gs](NpMat g1, NpMat g2) {
+        return make_py_gs(qe::group_stats(to_mat(g1), to_mat(g2)));
+    }, "g1"_a, "g2"_a,
+        "Per-dimension two-group comparison statistics.\n\n"
+        "Computes Welch t-test (t, df, p-value, Cohen's d, means, SDs) and\n"
+        "Wilcoxon rank-sum test (U, p-value, rank-biserial effect, medians)\n"
+        "for each dimension independently.\n\n"
+        "Parameters\n----------\n"
+        "g1 : ndarray (n1 × n_dims)  — unit points for group 1\n"
+        "g2 : ndarray (n2 × n_dims)  — unit points for group 2\n\n"
+        "Returns GroupStatsResult.\n\n"
+        "Notes\n-----\n"
+        "Parametric entries are NaN when n < 2 for either group.\n"
+        "Wilcoxon p-values use the normal approximation (tie + continuity\n"
+        "correction), matching R's wilcox.test(..., exact=FALSE, correct=TRUE).\n"
+        "Equivalent to rENA-api's group.stats().");
+
     mod.def("node_positions", [&make_py_np](NpMat adj_mats, NpMat t, int num_dims) {
         return make_py_np(qe::node_positions(to_mat(adj_mats), to_mat(t), num_dims));
     }, "adj_mats"_a, "t"_a, "num_dims"_a,

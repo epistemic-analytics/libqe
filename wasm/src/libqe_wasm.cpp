@@ -480,6 +480,43 @@ static val generalized_means_rotation(
         qe::generalized_means_rotation(js_to_mat(V_data, V_rows, V_cols), p));
 }
 
+// group_stats(g1, g1_rows, g1_cols, g2, g2_rows, g2_cols)
+// → {
+//     n1: int, n2: int,
+//     t, df, pvalue_t, cohens_d : Float64Array (length n_dims),
+//     means, sds                : matObj (rows=2, cols=n_dims),
+//     U, pvalue_u, effect_r     : Float64Array (length n_dims),
+//     medians                   : matObj (rows=2, cols=n_dims)
+//   }
+//
+// Matches rENA-api's group.stats() (now computed in C++ for all bindings).
+static val group_stats(const val& g1_data, int g1_rows, int g1_cols,
+                       const val& g2_data, int g2_rows, int g2_cols) {
+    const qe::GroupStats s = qe::group_stats(
+        js_to_mat(g1_data, g1_rows, g1_cols),
+        js_to_mat(g2_data, g2_rows, g2_cols));
+
+    auto to_js_vec = [](const arma::vec& v) {
+        std::vector<double> d(v.memptr(), v.memptr() + v.n_elem);
+        return val::array(d.begin(), d.end());
+    };
+
+    val result = val::object();
+    result.set("n1",       s.n1);
+    result.set("n2",       s.n2);
+    result.set("t",        to_js_vec(s.t));
+    result.set("df",       to_js_vec(s.df));
+    result.set("pvalue_t", to_js_vec(s.pvalue_t));
+    result.set("cohens_d", to_js_vec(s.cohens_d));
+    result.set("means",    mat_to_js(s.means));
+    result.set("sds",      mat_to_js(s.sds));
+    result.set("U",        to_js_vec(s.U));
+    result.set("pvalue_u", to_js_vec(s.pvalue_u));
+    result.set("effect_r", to_js_vec(s.effect_r));
+    result.set("medians",  mat_to_js(s.medians));
+    return result;
+}
+
 // choose_two(n) → int
 static int choose_two(int n) {
     return qe::choose_two(n);
@@ -505,6 +542,7 @@ EMSCRIPTEN_BINDINGS(libqe) {
     function("mean_ci",                               &mean_ci);
     function("outlier_ci",                            &outlier_ci);
     function("ena_correlation",                       &ena_correlation);
+    function("group_stats",                           &group_stats);
     function("node_positions",                        &node_positions);
     function("directed_node_positions",               &directed_node_positions);
     function("directed_node_positions_combine_pairs", &directed_node_positions_combine_pairs);
