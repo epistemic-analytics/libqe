@@ -37,7 +37,11 @@ module LibQE
 using CxxWrap
 
 # ── Load shared library ───────────────────────────────────────────────────────
-# The .so/.dylib built by CMake is installed into LibQE/lib/.
+# The .so/.dylib built by CMake is installed into julia/lib/ (one level up
+# from this file's julia/src/ directory).  cranqe runs the build step before
+# invoking Pkg.test(); for local testing build it manually first:
+#   cd julia && cmake -B build -DCMAKE_BUILD_TYPE=Release . \
+#               && cmake --build build && cmake --install build
 const _lib_dir  = joinpath(@__DIR__, "..", "lib")
 const _lib_name = "libqe_julia"
 
@@ -47,7 +51,8 @@ function _lib_path()
         isfile(p) && return p
     end
     error("libqe_julia shared library not found in $(_lib_dir). " *
-          "Build it first: cd julia && cmake -B build . && cmake --build build --target install")
+          "Build it first: cd julia && cmake -B build -DCMAKE_BUILD_TYPE=Release . " *
+          "&& cmake --build build && cmake --install build")
 end
 
 @wrapmodule(_lib_path)
