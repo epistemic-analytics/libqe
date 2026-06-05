@@ -237,35 +237,54 @@ class TestGroupStats:
         assert r.n1 == 15
         assert r.n2 == 12
 
-    def test_df_is_n1_plus_n2_minus_2(self):
+    # --- per-dimension vector fields: shapes ---
+
+    def test_vector_fields_shape(self):
+        """t, df, pvalue_t, cohens_d, U, pvalue_u, effect_r are all (n_dims,)."""
+        n_dims = 3
+        g1, g2 = self._two_groups(n_dims=n_dims)
+        r = modeling.group_stats(g1, g2)
+        for name, val in [("t", r.t), ("df", r.df), ("pvalue_t", r.pvalue_t),
+                          ("cohens_d", r.cohens_d), ("U", r.U),
+                          ("pvalue_u", r.pvalue_u), ("effect_r", r.effect_r)]:
+            assert val.shape == (n_dims,), f"{name} shape mismatch: {val.shape}"
+
+    # --- Welch df: bounded, not exactly n1+n2-2 ---
+
+    def test_df_bounded(self):
+        """Welch–Satterthwaite df must be in [1, n1+n2-2]."""
         g1, g2 = self._two_groups(n1=10, n2=8)
         r = modeling.group_stats(g1, g2)
-        assert r.df == pytest.approx(10 + 8 - 2, abs=0.5)
+        assert np.all(r.df >= 1.0)
+        assert np.all(r.df <= 10 + 8 - 2 + 1e-9)
+
+    # --- p-value ranges (all dims) ---
 
     def test_pvalue_t_in_unit_interval(self):
         g1, g2 = self._two_groups()
         r = modeling.group_stats(g1, g2)
-        assert 0.0 <= r.pvalue_t <= 1.0
+        assert np.all(r.pvalue_t >= 0.0)
+        assert np.all(r.pvalue_t <= 1.0)
 
     def test_pvalue_u_in_unit_interval(self):
         g1, g2 = self._two_groups()
         r = modeling.group_stats(g1, g2)
-        assert 0.0 <= r.pvalue_u <= 1.0
+        assert np.all(r.pvalue_u >= 0.0)
+        assert np.all(r.pvalue_u <= 1.0)
 
-    def test_cohens_d_positive_when_g2_larger(self):
-        """With g2 shifted up, Cohen's d should be negative (g1 - g2 < 0)."""
+    def test_cohens_d_finite_and_nonzero_when_groups_differ(self):
         g1, g2 = self._two_groups(seed=5)
         r = modeling.group_stats(g1, g2)
-        # t-stat sign depends on convention; just check it's finite and nonzero
-        assert np.isfinite(r.cohens_d)
-        assert r.cohens_d != 0.0
+        assert np.all(np.isfinite(r.cohens_d))
+        assert np.any(r.cohens_d != 0.0)
 
     def test_effect_r_in_minus1_to_1(self):
         g1, g2 = self._two_groups()
         r = modeling.group_stats(g1, g2)
-        assert -1.0 <= r.effect_r <= 1.0
+        assert np.all(r.effect_r >= -1.0)
+        assert np.all(r.effect_r <=  1.0)
 
-    # --- array fields ---
+    # --- 2D matrix fields ---
 
     def test_means_shape(self):
         g1, g2 = self._two_groups(n_dims=3)
@@ -306,14 +325,14 @@ class TestGroupStats:
         g1 = rng.standard_normal((50, 1))
         g2 = rng.standard_normal((50, 1)) + 5.0  # very large shift
         r = modeling.group_stats(g1, g2)
-        assert r.pvalue_t < 0.001
+        assert np.all(r.pvalue_t < 0.001)
 
     def test_insignificant_t_test_for_identical_groups(self):
         rng = np.random.default_rng(77)
         g1 = rng.standard_normal((30, 1))
-        g2 = g1.copy()  # identical → t=0, p=1
+        g2 = g1.copy()  # identical → t=0
         r = modeling.group_stats(g1, g2)
-        assert r.t == pytest.approx(0.0, abs=1e-10)
+        np.testing.assert_allclose(r.t, 0.0, atol=1e-10)
 
     # --- repr ---
 
