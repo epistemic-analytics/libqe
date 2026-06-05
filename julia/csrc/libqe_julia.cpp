@@ -66,7 +66,7 @@ static arma::vec unpack_jl_vec(jl_value_t* val) {
     if (!jl_is_array(val))
         throw std::runtime_error("decay_fn must return a Vector{Float64}");
     auto* arr = reinterpret_cast<jl_array_t*>(val);
-    return arma::vec(reinterpret_cast<double*>(jl_array_data(arr)),
+    return arma::vec(reinterpret_cast<double*>(jl_array_data(arr, 0)),
                      static_cast<arma::uword>(jl_array_len(arr)),
                      /*copy=*/false);
 }
