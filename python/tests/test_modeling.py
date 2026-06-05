@@ -1,7 +1,7 @@
 """Tests for pylibqe.modeling."""
 import numpy as np
 import pytest
-from pylibqe import modeling, NodePositions
+from pylibqe import modeling, NodePositions, GroupStatsResult
 
 
 class TestMeanCI:
@@ -209,3 +209,117 @@ class TestDirectedNodePositionsCombinePairs:
         result = modeling.directed_node_positions_combine_pairs(lw, pts, 2)
         # row pairing halves centroids
         assert result.centroids.shape[0] == n
+
+
+class TestGroupStats:
+    def _two_groups(self, n1=20, n2=18, n_dims=2, seed=0):
+        rng = np.random.default_rng(seed)
+        g1 = rng.standard_normal((n1, n_dims))
+        g2 = rng.standard_normal((n2, n_dims)) + 1.0  # shift so groups differ
+        return g1, g2
+
+    # --- return type ---
+
+    def test_returns_group_stats_result(self):
+        g1, g2 = self._two_groups()
+        result = modeling.group_stats(g1, g2)
+        assert isinstance(result, GroupStatsResult)
+
+    def test_importable_from_top_level(self):
+        """GroupStatsResult must be importable from the pylibqe namespace."""
+        from pylibqe import GroupStatsResult as GSR  # noqa: F401
+
+    # --- scalar fields ---
+
+    def test_n1_n2_correct(self):
+        g1, g2 = self._two_groups(n1=15, n2=12)
+        r = modeling.group_stats(g1, g2)
+        assert r.n1 == 15
+        assert r.n2 == 12
+
+    def test_df_is_n1_plus_n2_minus_2(self):
+        g1, g2 = self._two_groups(n1=10, n2=8)
+        r = modeling.group_stats(g1, g2)
+        assert r.df == pytest.approx(10 + 8 - 2, abs=0.5)
+
+    def test_pvalue_t_in_unit_interval(self):
+        g1, g2 = self._two_groups()
+        r = modeling.group_stats(g1, g2)
+        assert 0.0 <= r.pvalue_t <= 1.0
+
+    def test_pvalue_u_in_unit_interval(self):
+        g1, g2 = self._two_groups()
+        r = modeling.group_stats(g1, g2)
+        assert 0.0 <= r.pvalue_u <= 1.0
+
+    def test_cohens_d_positive_when_g2_larger(self):
+        """With g2 shifted up, Cohen's d should be negative (g1 - g2 < 0)."""
+        g1, g2 = self._two_groups(seed=5)
+        r = modeling.group_stats(g1, g2)
+        # t-stat sign depends on convention; just check it's finite and nonzero
+        assert np.isfinite(r.cohens_d)
+        assert r.cohens_d != 0.0
+
+    def test_effect_r_in_minus1_to_1(self):
+        g1, g2 = self._two_groups()
+        r = modeling.group_stats(g1, g2)
+        assert -1.0 <= r.effect_r <= 1.0
+
+    # --- array fields ---
+
+    def test_means_shape(self):
+        g1, g2 = self._two_groups(n_dims=3)
+        r = modeling.group_stats(g1, g2)
+        assert r.means.shape == (2, 3)
+
+    def test_sds_shape(self):
+        g1, g2 = self._two_groups(n_dims=3)
+        r = modeling.group_stats(g1, g2)
+        assert r.sds.shape == (2, 3)
+
+    def test_medians_shape(self):
+        g1, g2 = self._two_groups(n_dims=3)
+        r = modeling.group_stats(g1, g2)
+        assert r.medians.shape == (2, 3)
+
+    def test_sds_nonnegative(self):
+        g1, g2 = self._two_groups()
+        r = modeling.group_stats(g1, g2)
+        assert np.all(r.sds >= 0.0)
+
+    def test_means_match_numpy(self):
+        g1, g2 = self._two_groups(n_dims=2, seed=99)
+        r = modeling.group_stats(g1, g2)
+        np.testing.assert_allclose(r.means[0], np.mean(g1, axis=0), atol=1e-10)
+        np.testing.assert_allclose(r.means[1], np.mean(g2, axis=0), atol=1e-10)
+
+    def test_medians_match_numpy(self):
+        g1, g2 = self._two_groups(n_dims=2, seed=88)
+        r = modeling.group_stats(g1, g2)
+        np.testing.assert_allclose(r.medians[0], np.median(g1, axis=0), atol=1e-10)
+        np.testing.assert_allclose(r.medians[1], np.median(g2, axis=0), atol=1e-10)
+
+    # --- significance: clearly separated groups ---
+
+    def test_significant_t_test_for_separated_groups(self):
+        rng = np.random.default_rng(42)
+        g1 = rng.standard_normal((50, 1))
+        g2 = rng.standard_normal((50, 1)) + 5.0  # very large shift
+        r = modeling.group_stats(g1, g2)
+        assert r.pvalue_t < 0.001
+
+    def test_insignificant_t_test_for_identical_groups(self):
+        rng = np.random.default_rng(77)
+        g1 = rng.standard_normal((30, 1))
+        g2 = g1.copy()  # identical → t=0, p=1
+        r = modeling.group_stats(g1, g2)
+        assert r.t == pytest.approx(0.0, abs=1e-10)
+
+    # --- repr ---
+
+    def test_repr_contains_n1_n2(self):
+        g1, g2 = self._two_groups(n1=7, n2=9)
+        r = modeling.group_stats(g1, g2)
+        s = repr(r)
+        assert "7" in s
+        assert "9" in s

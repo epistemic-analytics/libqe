@@ -10,8 +10,9 @@ pylibqe.normalization
     Row-wise L2 sphere normalization.
 
 pylibqe.modeling
-    Column centering, ENA correlation, least-squares node positions.
-    Also exports :class:`NodePositions`.
+    Column centering, ENA correlation, least-squares node positions,
+    and two-group comparison statistics.
+    Also exports :class:`NodePositions` and :class:`GroupStatsResult`.
 
 pylibqe.accumulation
     Stanza-window accumulation, rolling window sum,
@@ -31,7 +32,7 @@ from ._pylibqe import (
     accumulation,
     rotation,
 )
-from ._pylibqe.modeling import NodePositions
+from ._pylibqe.modeling import NodePositions, GroupStatsResult
 from ._pylibqe import UnitNetworks, TensorNetworks, RotationResult
 
 __all__ = [
@@ -41,6 +42,7 @@ __all__ = [
     "accumulation",
     "rotation",
     "NodePositions",
+    "GroupStatsResult",
     "UnitNetworks",
     "TensorNetworks",
     "RotationResult",
