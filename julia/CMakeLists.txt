@@ -44,7 +44,7 @@ else()
 endif()
 
 # ── shared library ────────────────────────────────────────────────────────────
-add_library(libqe_julia SHARED src/libqe_julia.cpp)
+add_library(libqe_julia SHARED csrc/libqe_julia.cpp)
 
 target_include_directories(libqe_julia PRIVATE
     ${LIBQE_INCLUDE_DIR}
@@ -72,5 +72,5 @@ set_target_properties(libqe_julia PROPERTIES
 )
 
 install(TARGETS libqe_julia
-    LIBRARY DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/LibQE/lib"
+    LIBRARY DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/lib"
 )

@@ -24,3 +24,8 @@ wasm/build/
 wasm/node_modules/
 wasm/.conan2/
 wasm/CMakeUserPresets.json
+
+# Julia — compiled shared library (built and placed here by cranqe)
+julia/lib/
+julia/build/
+julia/Manifest.toml
