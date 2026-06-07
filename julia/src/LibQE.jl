@@ -32,9 +32,32 @@ using LibQE
 pairs = connection_names(["A", "B", "C"])
 ```
 """
+# CxxWrap loads a native shared library at module init time; precompilation
+# of the method table is not safe across different library builds.
+__precompile__(false)
+
 module LibQE
 
 using CxxWrap
+
+# ── Public API ────────────────────────────────────────────────────────────────
+export
+    # Adjacency
+    choose_two, connection_indices, code_connections,
+    fold_directed_network, network_to_vector, connection_names,
+    # Normalization
+    normalize_networks, scale_networks,
+    # Modeling
+    center_points, mean_ci, outlier_ci, ena_correlation,
+    node_positions, directed_node_positions,
+    directed_node_positions_combine_pairs, group_stats,
+    # Accumulation
+    connection_matrix, accumulate_stanza, row_connections,
+    rolling_window_sum, flat_index, accumulate_unit,
+    accumulate_unit_with_rows, accumulate_tensor_unit,
+    # Rotation
+    ena_svd, deflate, orthogonal_svd, complete_rotation,
+    means_rotation, generalized_means_rotation
 
 # ── Load shared library ───────────────────────────────────────────────────────
 # The .so/.dylib built by CMake is installed into julia/lib/ (one level up
@@ -61,6 +84,22 @@ function __init__()
     @initcxx
 end
 
+# ── StdVector converters ──────────────────────────────────────────────────────
+# CxxWrap 0.15 exposes C++ std::vector<T> params as StdVector{T}, not Vector{T}.
+# Julia does not auto-convert between the two, so we do it explicitly.
+
+function _sv_i32(v::AbstractVector{<:Integer})
+    sv = CxxWrap.StdLib.StdVector{Int32}()
+    for x in v; push!(sv, Int32(x)); end
+    sv
+end
+
+function _sv_str(v::AbstractVector{<:AbstractString})
+    sv = CxxWrap.StdLib.StdVector{CxxWrap.StdLib.StdString}()
+    for x in v; push!(sv, CxxWrap.StdLib.StdString(x)); end
+    sv
+end
+
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
 # Unpack a NodePositionsResult into a NamedTuple.
@@ -75,10 +114,11 @@ end
 
 # Unpack a RotationResultJ into a NamedTuple.
 function _unpack_rotation(r)
+    raw_names = column_names(r)   # StdVector{StdString} from C++
     (
         rotation     = reshape(rot_matrix(r), rot_rows(r), rot_cols(r)),
         eigenvalues  = eigenvalues(r),
-        column_names = column_names(r),
+        column_names = String[String(raw_names[i]) for i in 1:length(raw_names)],
     )
 end
 
@@ -93,15 +133,6 @@ function _unpack_tensor_networks(r)
 end
 
 # ── Adjacency ─────────────────────────────────────────────────────────────────
-
-"""
-    choose_two(n) -> Int
-
-Number of upper-triangle pairs for `n` codes: `n*(n-1)÷2`.
-"""
-function choose_two(n::Integer)
-    choose_two(Int32(n))
-end
 
 """
     connection_indices(len; row=-1) -> Matrix{Int32}
@@ -125,21 +156,21 @@ function code_connections(v::Vector{Float64})
     code_connections(v, Int32(length(v)))
 end
 
-"""
-    fold_directed_network(v) -> Vector{Float64}
+# fold_directed_network(v::Vector{Float64}) -> Vector{Float64}
+# CxxWrap maps this directly (C++ binding takes only the vector; length is
+# derived internally). No Julia wrapper needed — call it directly.
+#   fold_directed_network(v) → upper-triangle Vector{Float64}
 
-Fold an n²-length directed network vector into upper-triangle form.
 """
-function fold_directed_network(v::Vector{Float64})
-    fold_directed_network(v, Int32(length(v)))
+    connection_names(names) -> Vector{String}
+
+`"A & B"` pair labels for every upper-tri position.
+"""
+function connection_names(names::AbstractVector{<:AbstractString})
+    # CxxWrap exposes connection_names(StdVector{StdString}); convert both ways.
+    raw = connection_names(_sv_str(names))   # C++ binding; returns StdVector{StdString}
+    String[String(raw[i]) for i in 1:length(raw)]
 end
-
-# connection_names(names::Vector{String}) -> Vector{String}
-# CxxWrap maps std::vector<std::string> directly to Vector{String}, so the
-# C++ binding is already callable as connection_names(["A","B","C"]).
-# A same-signature Julia wrapper would recurse into itself, so we leave
-# the CxxWrap-generated method in place and only document it here.
-#   connection_names(["Concept A", "Concept B"]) → ["Concept A & Concept B"]
 
 # ── Normalization ─────────────────────────────────────────────────────────────
 
@@ -150,7 +181,7 @@ Row-wise L2 normalization. Zero rows are left unchanged.
 """
 function normalize_networks(m::Matrix{Float64})
     rows, cols = size(m)
-    reshape(normalize_networks(m, Int32(rows), Int32(cols)), rows, cols)
+    reshape(normalize_networks(vec(m), Int32(rows), Int32(cols)), rows, cols)
 end
 
 """
@@ -160,7 +191,7 @@ Max-norm scaling: divide all rows by the largest row L2 norm.
 """
 function scale_networks(m::Matrix{Float64})
     rows, cols = size(m)
-    reshape(scale_networks(m, Int32(rows), Int32(cols)), rows, cols)
+    reshape(scale_networks(vec(m), Int32(rows), Int32(cols)), rows, cols)
 end
 
 # ── Modeling ──────────────────────────────────────────────────────────────────
@@ -172,7 +203,7 @@ Subtract column means (center each dimension).
 """
 function center_points(m::Matrix{Float64})
     rows, cols = size(m)
-    reshape(center_points(m, Int32(rows), Int32(cols)), rows, cols)
+    reshape(center_points(vec(m), Int32(rows), Int32(cols)), rows, cols)
 end
 
 """
@@ -184,7 +215,7 @@ Matches rENA's `t.test(points[,d])\$conf.int` exactly.
 """
 function mean_ci(points::Matrix{Float64}; conf_level::Float64 = 0.95)
     rows, cols = size(points)
-    reshape(mean_ci(points, Int32(rows), Int32(cols), conf_level), cols, 3)
+    reshape(mean_ci(vec(points), Int32(rows), Int32(cols), conf_level), cols, 3)
 end
 
 """
@@ -196,7 +227,7 @@ around 0. Matches rENA's IQR-based formula exactly.
 """
 function outlier_ci(points::Matrix{Float64}; iqr_factor::Float64 = 1.5)
     rows, cols = size(points)
-    reshape(outlier_ci(points, Int32(rows), Int32(cols), iqr_factor), cols, 2)
+    reshape(outlier_ci(vec(points), Int32(rows), Int32(cols), iqr_factor), cols, 2)
 end
 
 """
@@ -210,8 +241,8 @@ function ena_correlation(points::Matrix{Float64}, centroids::Matrix{Float64};
     pr, pc = size(points)
     cr, cc = size(centroids)
     n_units = pr
-    reshape(ena_correlation(points, Int32(pr), Int32(pc),
-                                centroids, Int32(cr), Int32(cc),
+    reshape(ena_correlation(vec(points), Int32(pr), Int32(pc),
+                                vec(centroids), Int32(cr), Int32(cc),
                                 conf_level), n_units, 3)
 end
 
@@ -225,8 +256,8 @@ function node_positions(adj_mats::Matrix{Float64}, t::Matrix{Float64},
                              num_dims::Integer)
     ar, ac = size(adj_mats)
     tr, tc = size(t)
-    r = node_positions(adj_mats, Int32(ar), Int32(ac),
-                               t,        Int32(tr), Int32(tc), Int32(num_dims))
+    r = node_positions(vec(adj_mats), Int32(ar), Int32(ac),
+                       vec(t),        Int32(tr), Int32(tc), Int32(num_dims))
     _unpack_positions(r)
 end
 
@@ -240,9 +271,9 @@ function directed_node_positions(line_weights::Matrix{Float64},
                                   points::Matrix{Float64}, num_dims::Integer)
     lr, lc = size(line_weights)
     pr, pc = size(points)
-    r = directed_node_positions(line_weights, Int32(lr), Int32(lc),
-                                    points,       Int32(pr), Int32(pc),
-                                    Int32(num_dims))
+    r = directed_node_positions(vec(line_weights), Int32(lr), Int32(lc),
+                                vec(points),       Int32(pr), Int32(pc),
+                                Int32(num_dims))
     _unpack_positions(r)
 end
 
@@ -259,8 +290,8 @@ function directed_node_positions_combine_pairs(line_weights::Matrix{Float64},
     lr, lc = size(line_weights)
     pr, pc = size(points)
     r = directed_node_positions_combine_pairs(
-            line_weights, Int32(lr), Int32(lc),
-            points,       Int32(pr), Int32(pc),
+            vec(line_weights), Int32(lr), Int32(lc),
+            vec(points),       Int32(pr), Int32(pc),
             Int32(num_dims))
     _unpack_positions(r)
 end
@@ -299,7 +330,7 @@ function accumulate_stanza(codes::Matrix{Float64};
                         ordered::Bool           = false)
     rows, cols = size(codes)
     n_out = ordered ? cols * cols : cols * (cols - 1) ÷ 2
-    result = accumulate_stanza(codes, Int32(rows), Int32(cols),
+    result = accumulate_stanza(vec(codes), Int32(rows), Int32(cols),
                                Int32(window_back), Int32(window_forward),
                                binary, ordered)
     reshape(result, rows, n_out)
@@ -313,7 +344,7 @@ Per-row upper-triangle co-occurrence matrix without windowing.
 function row_connections(codes::Matrix{Float64}; binary::Bool = true)
     rows, cols = size(codes)
     n_tri = cols * (cols - 1) ÷ 2
-    reshape(row_connections(codes, Int32(rows), Int32(cols), binary),
+    reshape(row_connections(vec(codes), Int32(rows), Int32(cols), binary),
             rows, n_tri)
 end
 
@@ -324,7 +355,7 @@ Rolling backward sum of raw code values (no upper-tri transform).
 """
 function rolling_window_sum(codes::Matrix{Float64}; window_size::Integer = 1)
     rows, cols = size(codes)
-    reshape(rolling_window_sum(codes, Int32(rows), Int32(cols), Int32(window_size)),
+    reshape(rolling_window_sum(vec(codes), Int32(rows), Int32(cols), Int32(window_size)),
             rows, cols)
 end
 
@@ -334,8 +365,15 @@ end
 Column-major linear index into a multi-dimensional array. `indices` and `dims`
 are **0-based** integer vectors.
 """
-function flat_index(indices::Vector{<:Integer}, dims::Vector{<:Integer})
-    flat_index(Int32.(indices), Int32.(dims))
+function flat_index(indices::AbstractVector{<:Integer}, dims::AbstractVector{<:Integer})
+    # CxxWrap 0.15 exposes flat_index as (StdVector{Int32}, StdVector{Int32}).
+    # Vector{Int32} does not auto-convert, so we build StdVectors explicitly to
+    # break the dispatch loop that would occur from calling flat_index(Int32.(v),...).
+    sv_idx = CxxWrap.StdLib.StdVector{Int32}()
+    sv_dim = CxxWrap.StdLib.StdVector{Int32}()
+    for x in indices; push!(sv_idx, Int32(x)); end
+    for x in dims;    push!(sv_dim, Int32(x)); end
+    flat_index(sv_idx, sv_dim)
 end
 
 """
@@ -345,11 +383,11 @@ Ground/response accumulation for one unit (tma model).
 `unit_rows` is a **0-based** `Vector{Int32}`.
 `decay_fn(distances::Vector{Float64}) -> Vector{Float64}` maps distances to weights.
 """
-function accumulate_unit(codes::Matrix{Float64}, unit_rows::Vector{Int32},
+function accumulate_unit(codes::Matrix{Float64}, unit_rows::AbstractVector{<:Integer},
                           decay_fn::Function; ordered::Bool = false)
     rows, cols = size(codes)
-    accumulate_unit(codes, Int32(rows), Int32(cols),
-                        unit_rows, decay_fn, ordered)
+    accumulate_unit(vec(codes), Int32(rows), Int32(cols),
+                    _sv_i32(unit_rows), decay_fn, ordered)
 end
 
 """
@@ -358,11 +396,11 @@ end
 
 Like `accumulate_unit` but also returns the per-response-row connection matrix.
 """
-function accumulate_unit_with_rows(codes::Matrix{Float64}, unit_rows::Vector{Int32},
+function accumulate_unit_with_rows(codes::Matrix{Float64}, unit_rows::AbstractVector{<:Integer},
                                     decay_fn::Function; ordered::Bool = false)
     rows, cols = size(codes)
-    r = accumulate_unit_with_rows(codes, Int32(rows), Int32(cols),
-                                      unit_rows, decay_fn, ordered)
+    r = accumulate_unit_with_rows(vec(codes), Int32(rows), Int32(cols),
+                                  _sv_i32(unit_rows), decay_fn, ordered)
     n_unit = length(unit_rows)
     (
         networks     = nodes(r),                              # flat Vector{Float64}
@@ -392,22 +430,23 @@ Returns `(connection_counts, row_connection_counts)`.
 """
 function accumulate_tensor_unit(codes::Matrix{Float64},
                                  tensor::Vector{Float64},
-                                 dims::Vector{Int32},
-                                 dims_sender::Vector{Int32},
-                                 dims_receiver::Vector{Int32},
-                                 dims_mode::Vector{Int32},
-                                 context_lookup::Matrix{Int32},
-                                 unit_rows::Vector{Int32},
+                                 dims::AbstractVector{<:Integer},
+                                 dims_sender::AbstractVector{<:Integer},
+                                 dims_receiver::AbstractVector{<:Integer},
+                                 dims_mode::AbstractVector{<:Integer},
+                                 context_lookup::Matrix{<:Integer},
+                                 unit_rows::AbstractVector{<:Integer},
                                  times::Vector{Float64};
                                  ordered::Bool = true)
     rows, cols = size(codes)
     cl_rows, cl_cols = size(context_lookup)
     r = apply_tensor_unit(
             tensor,
-            dims, dims_sender, dims_receiver, dims_mode,
-            context_lookup, Int32(cl_rows), Int32(cl_cols),
-            unit_rows,
-            codes, Int32(rows), Int32(cols),
+            _sv_i32(dims), _sv_i32(dims_sender),
+            _sv_i32(dims_receiver), _sv_i32(dims_mode),
+            vec(Int32.(context_lookup)), Int32(cl_rows), Int32(cl_cols),
+            _sv_i32(unit_rows),
+            vec(codes), Int32(rows), Int32(cols),
             times,
             ordered)
     _unpack_tensor_networks(r)
@@ -423,7 +462,7 @@ Returns `(rotation, eigenvalues, column_names)`.
 """
 function ena_svd(points::Matrix{Float64})
     rows, cols = size(points)
-    _unpack_rotation(ena_svd(points, Int32(rows), Int32(cols)))
+    _unpack_rotation(ena_svd(vec(points), Int32(rows), Int32(cols)))
 end
 
 """
@@ -433,7 +472,7 @@ Project out the given unit `axis` from `data` (remove its variance).
 """
 function deflate(data::Matrix{Float64}, axis::Vector{Float64})
     rows, cols = size(data)
-    reshape(deflate(data, Int32(rows), Int32(cols), axis), rows, cols)
+    reshape(deflate(vec(data), Int32(rows), Int32(cols), axis), rows, cols)
 end
 
 """
@@ -447,9 +486,9 @@ function orthogonal_svd(data::Matrix{Float64}, weights::Matrix{Float64},
                          labels::Vector{String})
     dr, dc = size(data)
     wr, wc = size(weights)
-    _unpack_rotation(orthogonal_svd(data,    Int32(dr), Int32(dc),
-                                    weights, Int32(wr), Int32(wc),
-                                    labels))
+    _unpack_rotation(orthogonal_svd(vec(data),    Int32(dr), Int32(dc),
+                                    vec(weights), Int32(wr), Int32(wc),
+                                    _sv_str(labels)))
 end
 
 """
@@ -464,9 +503,9 @@ function complete_rotation(data::Matrix{Float64}, named_axes::Matrix{Float64},
                             labels::Vector{String})
     dr, dc = size(data)
     ar, ac = size(named_axes)
-    _unpack_rotation(complete_rotation(data,        Int32(dr), Int32(dc),
-                                       named_axes,  Int32(ar), Int32(ac),
-                                       labels))
+    _unpack_rotation(complete_rotation(vec(data),       Int32(dr), Int32(dc),
+                                       vec(named_axes), Int32(ar), Int32(ac),
+                                       _sv_str(labels)))
 end
 
 """
@@ -486,8 +525,9 @@ function means_rotation(data::Matrix{Float64},
     b_flat  = vcat([p[2] for p in group_pairs]...)
     a_sizes = Int32[length(p[1]) for p in group_pairs]
     b_sizes = Int32[length(p[2]) for p in group_pairs]
-    _unpack_rotation(means_rotation(data, Int32(rows), Int32(cols),
-                                    a_flat, a_sizes, b_flat, b_sizes))
+    _unpack_rotation(means_rotation(vec(data), Int32(rows), Int32(cols),
+                                    _sv_i32(a_flat), _sv_i32(a_sizes),
+                                    _sv_i32(b_flat), _sv_i32(b_sizes)))
 end
 
 """
@@ -530,18 +570,35 @@ function generalized_means_rotation(
     xr, xc = size(x_model)
     yr, yc = size(y_model)
     _unpack_rotation(generalized_means_rotation(
-        V,        Int32(vr), Int32(vc),
-        x_model,  Int32(xr), Int32(xc),
+        vec(V),        Int32(vr), Int32(vc),
+        vec(x_model),  Int32(xr), Int32(xc),
         x_target,
-        x1_cols,
+        _sv_i32(x1_cols),
         x_categorical, x_n_groups,
-        x_subset,
+        _sv_i32(x_subset),
         has_y,
-        y_model,  Int32(yr), Int32(yc),
+        vec(y_model),  Int32(yr), Int32(yc),
         y_target,
-        y1_cols,
+        _sv_i32(y1_cols),
         y_categorical, y_n_groups,
         Int32(n_lambda), Int32(k_folds), lasso_eps))
+end
+
+"""
+    group_stats(g1, g2) -> GroupStatsJ
+
+Per-dimension Welch t-test and Wilcoxon rank-sum between two groups.
+`g1` and `g2` are `Matrix{Float64}` with `n_units × n_dims` layout.
+Access fields on the returned struct:
+  `t_stat`, `df`, `pvalue_t`, `cohens_d`,
+  `U`, `pvalue_u`, `effect_r`,
+  `n1`, `n2`, `means`, `sds`, `medians`
+"""
+function group_stats(g1::Matrix{Float64}, g2::Matrix{Float64})
+    g1r, g1c = size(g1)
+    g2r, g2c = size(g2)
+    group_stats(vec(g1), Int32(g1r), Int32(g1c),
+                vec(g2), Int32(g2r), Int32(g2c))
 end
 
 end # module LibQE

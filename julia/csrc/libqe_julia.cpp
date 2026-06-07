@@ -16,7 +16,6 @@
 // directly for the others.
 
 #include <jlcxx/jlcxx.hpp>
-#include <jlcxx/functions.hpp>
 #include <jlcxx/array.hpp>
 #include <jlcxx/stl.hpp>
 
@@ -66,7 +65,7 @@ static arma::vec unpack_jl_vec(jl_value_t* val) {
     if (!jl_is_array(val))
         throw std::runtime_error("decay_fn must return a Vector{Float64}");
     auto* arr = reinterpret_cast<jl_array_t*>(val);
-    return arma::vec(reinterpret_cast<double*>(jl_array_data(arr, 0)),
+    return arma::vec(jl_array_data(arr, double),
                      static_cast<arma::uword>(jl_array_len(arr)),
                      /*copy=*/false);
 }
@@ -426,23 +425,35 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
     // the decay_fn argument.  The Julia function receives a Vector{Float64} of
     // distances and must return a Vector{Float64} of weights.
     //
-    // Pattern: jlcxx::JuliaFunction wraps the Julia callable; calling it returns
-    // jl_value_t* which is extracted via Julia's C API (jl_array_data /
-    // jl_array_len) to construct an arma::vec view without copying.
+    // CxxWrap 0.15 removed the automatic type converter for jlcxx::JuliaFunction,
+    // so we accept jl_value_t* directly and invoke the callback via Julia's C API.
+    // call_jl_fn_vec() allocates a temporary Julia Vector{Float64}, fills it from
+    // an arma::vec, calls the function, and returns the raw jl_value_t* result.
 
     mod.method("accumulate_unit",
         [](jlcxx::ArrayRef<double> codes, int32_t rows, int32_t cols,
            const std::vector<int32_t>& unit_rows_i32,
-           jlcxx::JuliaFunction decay_fn,
+           jl_value_t* decay_fn,
            bool ordered) -> std::vector<double> {
 
             std::vector<int> unit_rows(unit_rows_i32.begin(), unit_rows_i32.end());
 
-            auto cpp_decay = [&decay_fn](arma::vec distances) -> arma::vec {
-                std::vector<double> dv(distances.memptr(),
-                                       distances.memptr() + distances.n_elem);
-                jl_value_t* result = decay_fn(dv);
-                return unpack_jl_vec(result);
+            auto cpp_decay = [decay_fn](arma::vec distances) -> arma::vec {
+                // Wrap the arma::vec's buffer as a Julia Vector{Float64} — zero copy.
+                // Julia does not own the buffer (own_buffer=0); distances outlives the call.
+                jl_value_t* arr_type = jl_apply_array_type(
+                    (jl_value_t*)jl_float64_type, 1);
+                jl_array_t* arr = jl_ptr_to_array_1d(
+                    arr_type,
+                    const_cast<double*>(distances.memptr()),
+                    static_cast<size_t>(distances.n_elem), 0);
+                jl_value_t* result = nullptr;
+                // Root both arr and result so GC cannot collect result after jl_call1.
+                JL_GC_PUSH2((jl_value_t**)&arr, &result);
+                result = jl_call1(decay_fn, (jl_value_t*)arr);
+                arma::vec out = unpack_jl_vec(result);
+                JL_GC_POP();
+                return out;
             };
 
             return pack(qe::accumulate_unit(view_mat(codes, rows, cols),
@@ -452,21 +463,31 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
     mod.method("accumulate_unit_with_rows",
         [](jlcxx::ArrayRef<double> codes, int32_t rows, int32_t cols,
            const std::vector<int32_t>& unit_rows_i32,
-           jlcxx::JuliaFunction decay_fn,
+           jl_value_t* decay_fn,
            bool ordered) -> NodePositionsResult {
 
             std::vector<int> unit_rows(unit_rows_i32.begin(), unit_rows_i32.end());
             int n_unit = static_cast<int>(unit_rows.size());
             int n_codes = cols;
 
-            auto cpp_decay = [&decay_fn](int unit_row, arma::uvec ground_indices) -> arma::vec {
+            auto cpp_decay = [decay_fn](int unit_row, arma::uvec ground_indices) -> arma::vec {
                 arma::vec distances(ground_indices.n_elem);
                 for (arma::uword k = 0; k < ground_indices.n_elem; ++k)
-                    distances[k] = static_cast<double>(unit_row - ground_indices[k]);
-                std::vector<double> dv(distances.memptr(),
-                                       distances.memptr() + distances.n_elem);
-                jl_value_t* result = decay_fn(dv);
-                return unpack_jl_vec(result);
+                    distances[k] = static_cast<double>(
+                        unit_row - static_cast<int>(ground_indices[k]));
+                jl_value_t* arr_type = jl_apply_array_type(
+                    (jl_value_t*)jl_float64_type, 1);
+                jl_array_t* arr = jl_ptr_to_array_1d(
+                    arr_type,
+                    const_cast<double*>(distances.memptr()),
+                    static_cast<size_t>(distances.n_elem), 0);
+                jl_value_t* result = nullptr;
+                // Root both arr and result so GC cannot collect result after jl_call1.
+                JL_GC_PUSH2((jl_value_t**)&arr, &result);
+                result = jl_call1(decay_fn, (jl_value_t*)arr);
+                arma::vec out = unpack_jl_vec(result);
+                JL_GC_POP();
+                return out;
             };
 
             qe::UnitNetworks r = qe::accumulate_unit_with_rows(

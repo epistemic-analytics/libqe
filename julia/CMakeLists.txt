@@ -5,13 +5,16 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # ── Julia + CxxWrap ───────────────────────────────────────────────────────────
-# Locate CxxWrap via the Julia package rather than a system install so that the
-# C++ library and the Julia wrapper always use the same CxxWrap version.
-find_package(Julia REQUIRED)
+# Bootstrap order: find_package(Julia) needs FindJulia.cmake which lives inside
+# the JlCxx artifact.  So we must locate the CxxWrap prefix *before* calling
+# find_package — use find_program to get julia, then ask it for the prefix.
+
+find_program(Julia_EXECUTABLE julia REQUIRED)
 
 execute_process(
-    COMMAND "${Julia_EXECUTABLE}" --startup-file=no -e
+    COMMAND "${Julia_EXECUTABLE}" --project=@. --startup-file=no -e
             "using CxxWrap; print(CxxWrap.prefix_path())"
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     OUTPUT_VARIABLE JLCXX_PREFIX
     OUTPUT_STRIP_TRAILING_WHITESPACE
     RESULT_VARIABLE JLCXX_RESULT
@@ -22,7 +25,12 @@ if(NOT JLCXX_RESULT EQUAL 0)
         "Install it in Julia with: using Pkg; Pkg.add(\"CxxWrap\")")
 endif()
 
+# Prepend both paths so find_package(Julia) can find FindJulia.cmake
+# and find_package(JlCxx) can find JlCxxConfig.cmake.
+list(PREPEND CMAKE_MODULE_PATH "${JLCXX_PREFIX}/lib/cmake/JlCxx")
 list(PREPEND CMAKE_PREFIX_PATH "${JLCXX_PREFIX}")
+
+find_package(Julia REQUIRED)
 find_package(JlCxx REQUIRED)
 
 # ── Armadillo ─────────────────────────────────────────────────────────────────
