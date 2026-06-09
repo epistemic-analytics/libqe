@@ -13,6 +13,12 @@ dependencies = ["numpy"]
 [project.optional-dependencies]
 dev = ["pytest", "numpy"]
 
+[project.urls]
+Homepage = "https://gitlab.com/epistemic-analytics/qe-packages/libqe"
+Documentation = "https://qe-libs.org/py/"
+Repository = "https://gitlab.com/epistemic-analytics/qe-packages/libqe"
+"Bug Tracker" = "https://gitlab.com/epistemic-analytics/qe-packages/libqe/-/issues"
+
 [tool.scikit-build]
 cmake.source-dir = "."
 wheel.packages = ["pylibqe"]
