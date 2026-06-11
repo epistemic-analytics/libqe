@@ -103,12 +103,14 @@ end
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
 # Unpack a NodePositionsResult into a NamedTuple.
+# StdVectorAllocated{Float64} from CxxWrap 0.15 does not implement AbstractArray,
+# so collect() is required before reshape.
 function _unpack_positions(r)
     (
-        nodes     = reshape(nodes(r),     nodes_rows(r),     nodes_cols(r)),
-        centroids = reshape(centroids(r), centroids_rows(r), centroids_cols(r)),
-        weights   = reshape(weights(r),   weights_rows(r),   weights_cols(r)),
-        points    = reshape(points(r),    points_rows(r),    points_cols(r)),
+        nodes     = reshape(collect(Float64, nodes(r)),     Int(nodes_rows(r)),     Int(nodes_cols(r))),
+        centroids = reshape(collect(Float64, centroids(r)), Int(centroids_rows(r)), Int(centroids_cols(r))),
+        weights   = reshape(collect(Float64, weights(r)),   Int(weights_rows(r)),   Int(weights_cols(r))),
+        points    = reshape(collect(Float64, points(r)),    Int(points_rows(r)),    Int(points_cols(r))),
     )
 end
 
@@ -116,8 +118,8 @@ end
 function _unpack_rotation(r)
     raw_names = column_names(r)   # StdVector{StdString} from C++
     (
-        rotation     = reshape(rot_matrix(r), rot_rows(r), rot_cols(r)),
-        eigenvalues  = eigenvalues(r),
+        rotation     = reshape(collect(Float64, rot_matrix(r)), Int(rot_rows(r)), Int(rot_cols(r))),
+        eigenvalues  = collect(Float64, eigenvalues(r)),
         column_names = String[String(raw_names[i]) for i in 1:length(raw_names)],
     )
 end
@@ -125,10 +127,10 @@ end
 # Unpack a TensorNetworksJ into a NamedTuple.
 function _unpack_tensor_networks(r)
     (
-        connection_counts    = connection_counts(r),
-        row_connection_counts = reshape(row_networks(r),
-                                        row_networks_rows(r),
-                                        row_networks_cols(r)),
+        connection_counts     = collect(Float64, connection_counts(r)),
+        row_connection_counts = reshape(collect(Float64, row_networks(r)),
+                                        Int(row_networks_rows(r)),
+                                        Int(row_networks_cols(r))),
     )
 end
 
@@ -411,8 +413,8 @@ function accumulate_unit_with_rows(codes::Matrix{Float64}, unit_rows::AbstractVe
                                   _sv_i32(unit_rows), decay_fn, ordered)
     n_unit = length(unit_rows)
     (
-        networks     = nodes(r),                              # flat Vector{Float64}
-        row_networks = reshape(weights(r), n_unit, cols^2),   # n_unit × p²
+        networks     = collect(Float64, nodes(r)),
+        row_networks = reshape(collect(Float64, weights(r)), n_unit, cols^2),
     )
 end
 
