@@ -112,10 +112,13 @@ end
     @test result[2, 1] ≈ 1.0
 end
 
-@testset "scale_networks NaN row skipped gracefully" begin
+@testset "scale_networks NaN row: norm skipped, finite rows still scaled" begin
     m      = [NaN NaN; 3.0 4.0]
     result = scale_networks(m)
-    @test !any(isnan, result)
+    # NaN values remain in the NaN row (in-place divide); finite rows are scaled
+    @test all(isnan, result[1, :])
+    @test result[2, 1] ≈ 3.0 / 5.0
+    @test result[2, 2] ≈ 4.0 / 5.0
 end
 
 @testset "node_positions rejects NaN in adj_mats" begin
