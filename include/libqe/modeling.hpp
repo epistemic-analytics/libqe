@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <stdexcept>
 #include <vector>
 #include <libqe/linalg_fallback.hpp>
 
@@ -417,6 +418,8 @@ inline arma::mat outlier_ci(const arma::mat& points, double iqr_factor = 1.5) {
  */
 inline NodePositions node_positions(arma::mat adj_mats, arma::mat t,
                                         int num_dims) {
+    if (!adj_mats.is_finite() || !t.is_finite())
+        throw std::invalid_argument("node_positions: input matrices must not contain NaN or Inf");
     int tri_size  = adj_mats.n_cols;
     int num_nodes = static_cast<int>(
         std::pow(std::ceil(std::sqrt(static_cast<double>(2 * tri_size))), 2.0)
@@ -500,6 +503,8 @@ inline NodePositions node_positions(arma::mat adj_mats, arma::mat t,
 inline NodePositions directed_node_positions(arma::mat line_weights,
                                               arma::mat points, int num_dims,
                                               bool combine_pairs = false) {
+    if (!line_weights.is_finite() || !points.is_finite())
+        throw std::invalid_argument("directed_node_positions: input matrices must not contain NaN or Inf");
     int num_nodes = static_cast<int>(
         std::ceil(std::sqrt(static_cast<double>(line_weights.n_cols)))
     );

@@ -23,7 +23,7 @@ inline arma::mat normalize_networks(arma::mat m) {
     arma::mat out(m.n_rows, m.n_cols, arma::fill::zeros);
     for (arma::uword r = 0; r < m.n_rows; r++) {
         double len = arma::norm(m.row(r), 2);
-        if (len > 0.0) out.row(r) = m.row(r) / len;
+        if (std::isfinite(len) && len > 0.0) out.row(r) = m.row(r) / len;
     }
     return out;
 }
@@ -42,7 +42,8 @@ inline arma::mat normalize_networks(arma::mat m) {
 inline arma::mat scale_networks(arma::mat m) {
     double largest = 0.0;
     for (arma::uword r = 0; r < m.n_rows; r++) {
-        largest = std::max(largest, arma::norm(m.row(r), 2));
+        double len = arma::norm(m.row(r), 2);
+        if (std::isfinite(len)) largest = std::max(largest, len);
     }
     if (largest > 0.0) m /= largest;
     return m;

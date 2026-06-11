@@ -77,6 +77,8 @@ struct GroupPair {
  *       (e.g. svd_flip) may be added later as an opt-in flag.
  */
 inline RotationResult ena_svd(const arma::mat& points) {
+    if (!points.is_finite())
+        throw std::invalid_argument("ena_svd: input matrix must not contain NaN or Inf");
     arma::mat U, V;
     arma::vec s;
     qe::linalg::svd(U, s, V, points);
