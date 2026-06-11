@@ -110,6 +110,15 @@ static nb::ndarray<nb::numpy, int64_t, nb::ndim<1>> from_uvec(const arma::uvec& 
     return nb::ndarray<nb::numpy, int64_t, nb::ndim<1>>(data, 1, shape, owner);
 }
 
+// ── Input validation helpers ──────────────────────────────────────────────────
+
+static void check_finite(const arma::mat& m, const char* param) {
+    if (!m.is_finite())
+        throw std::invalid_argument(
+            std::string(param) + " contains NaN or Inf — "
+            "filter or impute rows with non-finite values before calling");
+}
+
 // ── Module definition ─────────────────────────────────────────────────────────
 
 NB_MODULE(_pylibqe, m) {
@@ -339,20 +348,30 @@ NB_MODULE(_pylibqe, m) {
         "Equivalent to rENA-api's group.stats().");
 
     mod.def("node_positions", [&make_py_np](NpMat adj_mats, NpMat t, int num_dims) {
-        return make_py_np(qe::node_positions(to_mat(adj_mats), to_mat(t), num_dims));
+        arma::mat am = to_mat(adj_mats);
+        arma::mat tv = to_mat(t);
+        check_finite(am, "adj_mats");
+        check_finite(tv, "t");
+        return make_py_np(qe::node_positions(am, tv, num_dims));
     }, "adj_mats"_a, "t"_a, "num_dims"_a,
         "Multiobjective least-squares node positions for undirected ENA.");
 
     mod.def("directed_node_positions", [&make_py_np](NpMat line_weights, NpMat points, int num_dims) {
-        return make_py_np(qe::directed_node_positions(
-            to_mat(line_weights), to_mat(points), num_dims));
+        arma::mat lw = to_mat(line_weights);
+        arma::mat pt = to_mat(points);
+        check_finite(lw, "line_weights");
+        check_finite(pt, "points");
+        return make_py_np(qe::directed_node_positions(lw, pt, num_dims));
     }, "line_weights"_a, "points"_a, "num_dims"_a,
         "Least-squares node positions for directed (ordered) ENA.");
 
     mod.def("directed_node_positions_combine_pairs",
         [&make_py_np](NpMat line_weights, NpMat points, int num_dims) {
-            return make_py_np(qe::directed_node_positions(
-                to_mat(line_weights), to_mat(points), num_dims, true));
+            arma::mat lw = to_mat(line_weights);
+            arma::mat pt = to_mat(points);
+            check_finite(lw, "line_weights");
+            check_finite(pt, "points");
+            return make_py_np(qe::directed_node_positions(lw, pt, num_dims, true));
         }, "line_weights"_a, "points"_a, "num_dims"_a,
         "Directed node positions with paired ground+response rows combined before solving.");
 
@@ -566,7 +585,9 @@ NB_MODULE(_pylibqe, m) {
         });
 
     rot.def("ena_svd", [make_py_rot](NpMat points) {
-        return make_py_rot(qe::ena_svd(to_mat(points)));
+        arma::mat pt = to_mat(points);
+        check_finite(pt, "points");
+        return make_py_rot(qe::ena_svd(pt));
     }, "points"_a,
         "SVD rotation matching prcomp(retx=F, scale=F, center=F, tol=0).\n\n"
         "Caller is responsible for centering upstream. Eigenvalues are stored\n"

@@ -102,3 +102,63 @@ end
     result    = accumulate_unit(codes, unit_rows, decay; ordered=false)
     @test length(result) == 3     # choose_two(3)
 end
+
+# ── NaN / Inf input guards ────────────────────────────────────────────────────
+
+@testset "normalize_networks NaN row becomes zeros" begin
+    m      = [NaN NaN; 1.0 0.0]
+    result = normalize_networks(m)
+    @test !any(isnan, result)
+    @test result[2, 1] ≈ 1.0
+end
+
+@testset "scale_networks NaN row skipped gracefully" begin
+    m      = [NaN NaN; 3.0 4.0]
+    result = scale_networks(m)
+    @test !any(isnan, result)
+end
+
+@testset "node_positions rejects NaN in adj_mats" begin
+    adj = [0.1 0.2 NaN; 0.4 0.5 0.6; 0.7 0.8 0.9; 0.1 0.2 0.3; 0.4 0.5 0.6]
+    t   = rand(5, 2)
+    @test_throws ArgumentError node_positions(adj, t, 2)
+end
+
+@testset "node_positions rejects Inf in points" begin
+    adj = rand(5, 6)
+    t   = [1.0 2.0; Inf 0.0; 0.0 1.0; 1.0 0.0; 0.5 0.5]
+    @test_throws ArgumentError node_positions(adj, t, 2)
+end
+
+@testset "node_positions succeeds on clean inputs" begin
+    Random.seed!(7)
+    adj = rand(5, 6)
+    t   = rand(5, 2)
+    r   = node_positions(adj, t, 2)
+    @test size(r.nodes, 2) == 2
+    @test all(isfinite, r.nodes)
+end
+
+@testset "directed_node_positions rejects NaN" begin
+    lw  = [0.1 0.2 NaN 0.4; 0.5 0.6 0.7 0.8; 0.9 0.1 0.2 0.3; 0.4 0.5 0.6 0.7; 0.8 0.9 0.1 0.2]
+    pts = rand(5, 2)
+    @test_throws ArgumentError directed_node_positions(lw, pts, 2)
+end
+
+@testset "ena_svd rejects NaN input" begin
+    pts = [1.0 2.0; NaN 0.0; 0.0 1.0; 1.0 0.0; 0.5 0.5]
+    @test_throws ArgumentError ena_svd(pts)
+end
+
+@testset "ena_svd rejects Inf input" begin
+    pts = [1.0 2.0; Inf 0.0; 0.0 1.0; 1.0 0.0; 0.5 0.5]
+    @test_throws ArgumentError ena_svd(pts)
+end
+
+@testset "ena_svd succeeds on clean inputs" begin
+    Random.seed!(8)
+    pts = rand(5, 2)
+    r   = ena_svd(pts)
+    @test size(r.rotation) == (2, 2)
+    @test all(isfinite, r.rotation)
+end

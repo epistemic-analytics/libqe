@@ -254,6 +254,9 @@ Returns `(nodes, centroids, weights, points)` — each a `Matrix{Float64}`.
 """
 function node_positions(adj_mats::Matrix{Float64}, t::Matrix{Float64},
                              num_dims::Integer)
+    (all(isfinite, adj_mats) && all(isfinite, t)) ||
+        throw(ArgumentError("node_positions: input matrices must not contain NaN or Inf — " *
+                            "filter or impute rows with non-finite values before calling"))
     ar, ac = size(adj_mats)
     tr, tc = size(t)
     r = node_positions(vec(adj_mats), Int32(ar), Int32(ac),
@@ -269,6 +272,9 @@ Returns `(nodes, centroids, weights, points)`.
 """
 function directed_node_positions(line_weights::Matrix{Float64},
                                   points::Matrix{Float64}, num_dims::Integer)
+    (all(isfinite, line_weights) && all(isfinite, points)) ||
+        throw(ArgumentError("directed_node_positions: input matrices must not contain NaN or Inf — " *
+                            "filter or impute rows with non-finite values before calling"))
     lr, lc = size(line_weights)
     pr, pc = size(points)
     r = directed_node_positions(vec(line_weights), Int32(lr), Int32(lc),
@@ -287,8 +293,10 @@ Returns `(nodes, centroids, weights, points)`.
 function directed_node_positions_combine_pairs(line_weights::Matrix{Float64},
                                                 points::Matrix{Float64},
                                                 num_dims::Integer)
+    (all(isfinite, line_weights) && all(isfinite, points)) ||
+        throw(ArgumentError("directed_node_positions_combine_pairs: input matrices must not contain NaN or Inf — " *
+                            "filter or impute rows with non-finite values before calling"))
     lr, lc = size(line_weights)
-    pr, pc = size(points)
     r = directed_node_positions_combine_pairs(
             vec(line_weights), Int32(lr), Int32(lc),
             vec(points),       Int32(pr), Int32(pc),
@@ -461,6 +469,9 @@ SVD rotation of ENA point space.
 Returns `(rotation, eigenvalues, column_names)`.
 """
 function ena_svd(points::Matrix{Float64})
+    all(isfinite, points) ||
+        throw(ArgumentError("ena_svd: input matrix must not contain NaN or Inf — " *
+                            "filter or impute rows with non-finite values before calling"))
     rows, cols = size(points)
     _unpack_rotation(ena_svd(vec(points), Int32(rows), Int32(cols)))
 end

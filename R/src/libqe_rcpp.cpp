@@ -198,6 +198,9 @@ arma::mat ena_correlation(arma::mat points, arma::mat centroids,
 //' @export
 // [[Rcpp::export]]
 List node_positions(arma::mat adj_mats, arma::mat t, int num_dims) {
+    if (!adj_mats.is_finite() || !t.is_finite())
+        stop("node_positions: input matrices must not contain NaN or Inf - "
+             "filter or impute rows with non-finite values before calling");
     qe::NodePositions r = qe::node_positions(adj_mats, t, num_dims);
     return List::create(
         _("nodes")     = r.nodes,
@@ -216,6 +219,9 @@ List node_positions(arma::mat adj_mats, arma::mat t, int num_dims) {
 // [[Rcpp::export]]
 List directed_node_positions(arma::mat line_weights, arma::mat points,
                                  int num_dims) {
+    if (!line_weights.is_finite() || !points.is_finite())
+        stop("directed_node_positions: input matrices must not contain NaN or Inf - "
+             "filter or impute rows with non-finite values before calling");
     qe::NodePositions r = qe::directed_node_positions(line_weights, points, num_dims);
     return List::create(
         _("nodes")     = r.nodes,
@@ -235,6 +241,9 @@ List directed_node_positions(arma::mat line_weights, arma::mat points,
 List directed_node_positions_combine_pairs(arma::mat line_weights,
                                                arma::mat points,
                                                int num_dims) {
+    if (!line_weights.is_finite() || !points.is_finite())
+        stop("directed_node_positions_combine_pairs: input matrices must not contain NaN or Inf - "
+             "filter or impute rows with non-finite values before calling");
     qe::NodePositions r = qe::directed_node_positions(
         line_weights, points, num_dims, true);
     return List::create(
@@ -453,6 +462,9 @@ static List pack_rotation_result(const qe::RotationResult& r) {
 //' @export
 // [[Rcpp::export]]
 List ena_svd(arma::mat points) {
+    if (!points.is_finite())
+        stop("ena_svd: input matrix must not contain NaN or Inf - "
+             "filter or impute rows with non-finite values before calling");
     return pack_rotation_result(qe::ena_svd(points));
 }
 
