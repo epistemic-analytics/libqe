@@ -313,6 +313,26 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// apply_tensor_members
+List apply_tensor_members(arma::vec tensor, std::vector<int> dims, std::vector<int> dims_sender, std::vector<int> dims_receiver, std::vector<int> dims_mode, arma::imat context_lookup, std::vector<int> unit_rows, arma::mat codes, arma::vec times, bool ordered);
+RcppExport SEXP _libqe_apply_tensor_members(SEXP tensorSEXP, SEXP dimsSEXP, SEXP dims_senderSEXP, SEXP dims_receiverSEXP, SEXP dims_modeSEXP, SEXP context_lookupSEXP, SEXP unit_rowsSEXP, SEXP codesSEXP, SEXP timesSEXP, SEXP orderedSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type tensor(tensorSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type dims(dimsSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type dims_sender(dims_senderSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type dims_receiver(dims_receiverSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type dims_mode(dims_modeSEXP);
+    Rcpp::traits::input_parameter< arma::imat >::type context_lookup(context_lookupSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type unit_rows(unit_rowsSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type codes(codesSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type times(timesSEXP);
+    Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
+    rcpp_result_gen = Rcpp::wrap(apply_tensor_members(tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered));
+    return rcpp_result_gen;
+END_RCPP
+}
 // ena_svd
 List ena_svd(arma::mat points);
 RcppExport SEXP _libqe_ena_svd(SEXP pointsSEXP) {
@@ -426,6 +446,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_libqe_accumulate_unit", (DL_FUNC) &_libqe_accumulate_unit, 4},
     {"_libqe_accumulate_unit_with_rows", (DL_FUNC) &_libqe_accumulate_unit_with_rows, 4},
     {"_libqe_apply_tensor", (DL_FUNC) &_libqe_apply_tensor, 10},
+    {"_libqe_apply_tensor_members", (DL_FUNC) &_libqe_apply_tensor_members, 10},
     {"_libqe_ena_svd", (DL_FUNC) &_libqe_ena_svd, 1},
     {"_libqe_deflate", (DL_FUNC) &_libqe_deflate, 2},
     {"_libqe_orthogonal_svd", (DL_FUNC) &_libqe_orthogonal_svd, 3},

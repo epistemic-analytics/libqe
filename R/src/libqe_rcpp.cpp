@@ -430,6 +430,50 @@ List apply_tensor(arma::vec tensor,
     );
 }
 
+//' Apply the TMA window/weight tensor, additionally returning per-response-row
+//' window membership.
+//'
+//' Identical to \code{apply_tensor()} but also returns, for each response
+//' (reference) row, the in-window ground rows and their resolved window sizes.
+//' Powers the webtool Data View per-modality window-span hover. Kept as a
+//' separate export so \code{apply_tensor()}'s ABI (and tma's direct .Call to it)
+//' is unchanged.
+//'
+//' @return List with \code{connection_counts}, \code{row_connection_counts},
+//'   \code{row_window_members} (list of 1-based ground-row index vectors, in
+//'   \code{unit_rows} order) and \code{row_window_wins} (parallel resolved
+//'   window sizes).
+//' @export
+// [[Rcpp::export]]
+List apply_tensor_members(arma::vec tensor,
+                     std::vector<int> dims,
+                     std::vector<int> dims_sender,
+                     std::vector<int> dims_receiver,
+                     std::vector<int> dims_mode,
+                     arma::imat context_lookup,
+                     std::vector<int> unit_rows,
+                     arma::mat codes,
+                     arma::vec times,
+                     bool ordered = true) {
+    qe::TensorNetworks r = qe::apply_tensor_unit(
+        tensor, dims, dims_sender, dims_receiver, dims_mode,
+        context_lookup, unit_rows, codes, times, ordered, /*return_members=*/true);
+    List members(r.row_window_members.size());
+    List wins(r.row_window_wins.size());
+    for (size_t i = 0; i < r.row_window_members.size(); ++i) {
+        IntegerVector iv(r.row_window_members[i].begin(), r.row_window_members[i].end());
+        for (R_xlen_t k = 0; k < iv.size(); ++k) iv[k] += 1;   // 0-based -> 1-based
+        members[i] = iv;
+        wins[i] = NumericVector(r.row_window_wins[i].begin(), r.row_window_wins[i].end());
+    }
+    return List::create(
+        _("connection_counts")     = r.connection_counts,
+        _("row_connection_counts") = r.row_connection_counts,
+        _("row_window_members")    = members,
+        _("row_window_wins")       = wins
+    );
+}
+
 // =============================================================================
 // Rotation
 // =============================================================================

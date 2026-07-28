@@ -300,6 +300,24 @@ apply_tensor <- function(tensor, dims, dims_sender, dims_receiver, dims_mode, co
     .Call(`_libqe_apply_tensor`, tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered)
 }
 
+#' Apply the TMA window/weight tensor, additionally returning per-response-row
+#' window membership.
+#'
+#' Identical to \code{apply_tensor()} but also returns, for each response
+#' (reference) row, the in-window ground rows and their resolved window sizes.
+#' Powers the webtool Data View per-modality window-span hover. Kept as a
+#' separate export so \code{apply_tensor()}'s ABI (and tma's direct .Call to it)
+#' is unchanged.
+#'
+#' @return List with \code{connection_counts}, \code{row_connection_counts},
+#'   \code{row_window_members} (list of 1-based ground-row index vectors, in
+#'   \code{unit_rows} order) and \code{row_window_wins} (parallel resolved
+#'   window sizes).
+#' @export
+apply_tensor_members <- function(tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered = TRUE) {
+    .Call(`_libqe_apply_tensor_members`, tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered)
+}
+
 #' SVD rotation (matches prcomp(retx=F, scale=F, center=F, tol=0))
 #'
 #' Caller is responsible for centering upstream. Eigenvalues are stored as

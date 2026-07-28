@@ -343,6 +343,14 @@ inline int flat_index(const std::vector<int>& indices,
 struct TensorNetworks {
     arma::rowvec connection_counts;      ///< Unit-level flat vector (p²).
     arma::mat    row_connection_counts;  ///< Per-response-row connection matrix (n_unit_rows × p²).
+    /// Per-response-row in-window ground rows (0-based context indices), visited
+    /// order (ri-1 .. 0). Populated only when apply_tensor_unit() is called with
+    /// return_members = true; empty otherwise. Feeds the webtool Data View
+    /// window-span hover (tma design dataview-flexible-window.md).
+    std::vector<std::vector<int>>    row_window_members;
+    /// Per-response-row resolved window size for each member above (parallel to
+    /// row_window_members). Populated only when return_members = true.
+    std::vector<std::vector<double>> row_window_wins;
 };
 
 /** @brief Pure-C++ port of the tma @c apply_tensor() inner logic.
@@ -386,7 +394,8 @@ inline TensorNetworks apply_tensor_unit(
     const std::vector<int>& unit_rows,
     const arma::mat&        codes,
     const arma::vec&        times,
-    bool ordered = true
+    bool ordered = true,
+    bool return_members = false
 ) {
     const int  WINDOW_DIM  = 1;
     const int  WEIGHT_DIM  = 0;
@@ -398,6 +407,10 @@ inline TensorNetworks apply_tensor_unit(
 
     arma::mat g_w_mat(code_cnt, code_cnt, arma::fill::zeros);
     arma::mat row_conn(n_unit_rows, code_cnt * code_cnt, arma::fill::zeros);
+
+    std::vector<std::vector<int>>    members_all;
+    std::vector<std::vector<double>> wins_all;
+    if (return_members) { members_all.reserve(n_unit_rows); wins_all.reserve(n_unit_rows); }
 
     int response_win    = 0;
     int response_weight = 0;
@@ -419,6 +432,7 @@ inline TensorNetworks apply_tensor_unit(
 
         std::vector<int>    gri_v;
         std::vector<double> grw_v;
+        std::vector<double> grwin_v;
         arma::rowvec g_ws(code_cnt, arma::fill::zeros);
 
         if (ri > 0) {
@@ -434,6 +448,7 @@ inline TensorNetworks apply_tensor_unit(
 
                 if (times[gr] + row_win > response_time) {
                     gri_v.push_back(gr);
+                    if (return_members) grwin_v.push_back(row_win);
                     row_v[ctx_cols] = WEIGHT_DIM;
                     double row_wgt = static_cast<double>(response_weight);
                     if (!IS_DEFAULT)
@@ -461,11 +476,20 @@ inline TensorNetworks apply_tensor_unit(
             g_ws, row_vec, static_cast<double>(response_weight), ordered);
         g_w_mat += resp;
         row_conn.row(i) = arma::vectorise(resp).t();
+
+        if (return_members) {
+            members_all.push_back(std::move(gri_v));
+            wins_all.push_back(std::move(grwin_v));
+        }
     }
 
     TensorNetworks result;
     result.connection_counts     = arma::vectorise(g_w_mat).t();
     result.row_connection_counts = row_conn;
+    if (return_members) {
+        result.row_window_members = std::move(members_all);
+        result.row_window_wins    = std::move(wins_all);
+    }
     return result;
 }
 
