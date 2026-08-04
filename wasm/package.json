@@ -1,6 +1,6 @@
 {
   "name": "@qe-libs/libqe-wasm",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "WebAssembly bindings for libqe — shared C++ core for Quantitative Ethnography",
   "main": "js/index.js",
   "type": "module",
@@ -11,16 +11,20 @@
   ],
   "scripts": {
     "build": "sh scripts/build.sh",
-    "test":  "node --experimental-vm-modules node_modules/.bin/jest"
+    "test": "node --experimental-vm-modules node_modules/.bin/jest"
   },
   "publishConfig": {
     "registry": "https://gitlab.com/api/v4/projects/22522458/packages/npm/"
   },
-  "keywords": ["wasm", "quantitative-ethnography", "ena"],
+  "keywords": [
+    "wasm",
+    "quantitative-ethnography",
+    "ena"
+  ],
   "license": "GPL-3.0-only",
   "repository": {
     "type": "git",
-    "url":  "https://gitlab.com/epistemic-analytics/qe-packages/libqe",
+    "url": "https://gitlab.com/epistemic-analytics/qe-packages/libqe",
     "directory": "wasm"
   },
   "jest": {
