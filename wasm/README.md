@@ -9,7 +9,7 @@ Exposes the full libqe API as a zero-dependency ES module usable in browsers and
 
 ```bash
 # one-time: tell npm where to find the @qe-libs scope
-echo "@qe-libs:registry=https://gitlab.com/api/v4/projects/epistemic-analytics%2Fqe-packages%2Flibqe/packages/npm/" >> ~/.npmrc
+echo "@qe-libs:registry=https://gitlab.com/api/v4/projects/22522458/packages/npm/" >> ~/.npmrc
 
 npm install @qe-libs/libqe-wasm
 ```

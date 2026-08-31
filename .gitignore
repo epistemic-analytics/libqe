@@ -29,3 +29,8 @@ wasm/CMakeUserPresets.json
 julia/lib/
 julia/build/
 julia/Manifest.toml
+
+# OS / Editor files
+.DS_Store
+**/.DS_Store
+
