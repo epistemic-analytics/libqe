@@ -95,6 +95,25 @@ Access a cell: `data[row * cols + col]`
 | `accumulate_unit_with_rows(codes, rows, cols, unit_rows, decay_fn, ordered)` | Like `accumulate_unit` but also returns per-response-row networks → `{ networks, row_networks }` |
 | `accumulate_tensor_unit(tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, cl_rows, cl_cols, unit_rows, codes, rows, cols, times, ordered)` | tma tensor accumulation for one unit → `{ connection_counts: Float64Array, row_connection_counts: matObj }`. All index arrays are **0-based Int32Array**; `tensor` is flat column-major `Float64Array`; `context_lookup` is row-major `Int32Array (n_context_rows × n_factors)` |
 
+### Door
+
+| Function | Description |
+|----------|-------------|
+| `door_lookback_block(data, rows, cols, lookbackSize, aggregateMean, weightingLinear, segmentIds)` | Lookback pooling over one unit block; JS wrapper supplies default `segmentIds = []`. |
+| `door_ema_block(data, rows, cols, alpha, segmentIds)` | EMA smoothing over one unit block; JS wrapper supplies default `segmentIds = []`. |
+
+### Trajectory
+
+| Function | Description |
+|----------|-------------|
+| `fit_trajectory_poly(data, rows, cols, t, maxDegree, fixedDegree, criterion, basis)` | Fit a 2D polynomial trajectory; JS wrapper defaults to `criterion = "loocv"` and `basis = "orthogonal"`. |
+| `eval_trajectory_curve(coeffsX, coeffsY, tEval)` | Evaluate fitted trajectory coordinates. |
+| `eval_trajectory_derivatives(coeffsX, coeffsY, tEval)` | Evaluate velocity, acceleration, speed, heading rate, and curvature. |
+| `integrated_trajectory_distance(...)` | Integrated Euclidean distance between two curves. |
+| `lagged_trajectory_distance(...)` | Normalized lagged follower/leader curve distance. |
+| `signed_turn_lag(...)` / `sweep_signed_turn_lags(...)` | Discrete signed turn-lag distance metrics. |
+| `dist_dist_correlation(X, xr, xc, Y, yr, yc)` | Correlation between pairwise distance structures. |
+
 ### Rotation
 
 | Function | Description |

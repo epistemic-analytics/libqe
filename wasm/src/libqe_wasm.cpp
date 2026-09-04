@@ -522,6 +522,205 @@ static int choose_two(int n) {
     return qe::choose_two(n);
 }
 
+// ── Door ──────────────────────────────────────────────────────────────────────
+
+static val door_lookback_block(
+    const val& data, int rows, int cols,
+    int lookback_size, bool aggregate_mean, bool weighting_linear,
+    const val& segment_ids_val
+) {
+    std::vector<int> segs = vecFromJSArray<int>(segment_ids_val);
+    return mat_to_js(qe::lookback_block(
+        js_to_mat(data, rows, cols),
+        lookback_size, aggregate_mean, weighting_linear, segs));
+}
+
+static val door_ema_block(
+    const val& data, int rows, int cols,
+    double alpha, const val& segment_ids_val
+) {
+    std::vector<int> segs = vecFromJSArray<int>(segment_ids_val);
+    return mat_to_js(qe::ema_block(
+        js_to_mat(data, rows, cols),
+        alpha, segs));
+}
+
+// ── Trajectory ────────────────────────────────────────────────────────────────
+
+static val fit_trajectory_poly(
+    const val& data, int rows, int cols,
+    const val& t_val, int max_degree, int fixed_degree, const std::string& criterion,
+    const std::string& basis
+) {
+    arma::mat pts = js_to_mat(data, rows, cols);
+    std::vector<double> tv = vecFromJSArray<double>(t_val);
+    arma::vec t_vec;
+    if (!tv.empty()) {
+        t_vec = arma::vec(tv.data(), tv.size());
+    }
+
+    qe::PolyCurveFit fit = qe::fit_poly_loocv2d(pts, t_vec, max_degree, fixed_degree, criterion, basis);
+
+    auto to_js_vec = [](const arma::vec& v) {
+        std::vector<double> d(v.memptr(), v.memptr() + v.n_elem);
+        return val::array(d.begin(), d.end());
+    };
+
+    val result = val::object();
+    result.set("degree",        fit.degree);
+    result.set("coeffs_x",      to_js_vec(fit.coeffs_x));
+    result.set("coeffs_y",      to_js_vec(fit.coeffs_y));
+    result.set("basis",         fit.basis);
+    result.set("basis_alpha",   to_js_vec(fit.basis_alpha));
+    result.set("basis_norm2",   to_js_vec(fit.basis_norm2));
+    result.set("cv_error",      fit.cv_error);
+    result.set("aic",           fit.aic);
+    result.set("t",             to_js_vec(fit.t));
+    result.set("fitted_points", mat_to_js(fit.fitted));
+    return result;
+}
+
+static val eval_trajectory_curve(
+    const val& cx_val, const val& cy_val, const val& t_eval_val
+) {
+    std::vector<double> cx = vecFromJSArray<double>(cx_val);
+    std::vector<double> cy = vecFromJSArray<double>(cy_val);
+    std::vector<double> te = vecFromJSArray<double>(t_eval_val);
+
+    arma::vec v_cx(cx.data(), cx.size());
+    arma::vec v_cy(cy.data(), cy.size());
+    arma::vec v_te(te.data(), te.size());
+
+    return mat_to_js(qe::eval_poly_curve(v_cx, v_cy, v_te));
+}
+
+static val eval_trajectory_derivatives(
+    const val& cx_val, const val& cy_val, const val& t_eval_val
+) {
+    std::vector<double> cx = vecFromJSArray<double>(cx_val);
+    std::vector<double> cy = vecFromJSArray<double>(cy_val);
+    std::vector<double> te = vecFromJSArray<double>(t_eval_val);
+
+    arma::vec v_cx(cx.data(), cx.size());
+    arma::vec v_cy(cy.data(), cy.size());
+    arma::vec v_te(te.data(), te.size());
+
+    qe::TrajectoryDerivatives d = qe::eval_trajectory_derivatives(v_cx, v_cy, v_te);
+
+    auto to_js_vec = [](const arma::vec& v) {
+        std::vector<double> dt(v.memptr(), v.memptr() + v.n_elem);
+        return val::array(dt.begin(), dt.end());
+    };
+
+    val result = val::object();
+    result.set("t",            to_js_vec(d.t));
+    result.set("vx",           to_js_vec(d.vx));
+    result.set("vy",           to_js_vec(d.vy));
+    result.set("speed",        to_js_vec(d.speed));
+    result.set("ax",           to_js_vec(d.ax));
+    result.set("ay",           to_js_vec(d.ay));
+    result.set("heading_rate", to_js_vec(d.heading_rate));
+    result.set("curvature",    to_js_vec(d.curvature));
+    return result;
+}
+
+static double integrated_trajectory_distance(
+    const val& cax_val, const val& cay_val,
+    const val& cbx_val, const val& cby_val,
+    double t_start, double t_end
+) {
+    std::vector<double> ax = vecFromJSArray<double>(cax_val);
+    std::vector<double> ay = vecFromJSArray<double>(cay_val);
+    std::vector<double> bx = vecFromJSArray<double>(cbx_val);
+    std::vector<double> by = vecFromJSArray<double>(cby_val);
+
+    return qe::integrated_curve_distance(
+        arma::vec(ax.data(), ax.size()),
+        arma::vec(ay.data(), ay.size()),
+        arma::vec(bx.data(), bx.size()),
+        arma::vec(by.data(), by.size()),
+        t_start, t_end);
+}
+
+static double lagged_trajectory_distance(
+    const val& cfx_val, const val& cfy_val,
+    const val& clx_val, const val& cly_val,
+    double lag
+) {
+    std::vector<double> fx = vecFromJSArray<double>(cfx_val);
+    std::vector<double> fy = vecFromJSArray<double>(cfy_val);
+    std::vector<double> lx = vecFromJSArray<double>(clx_val);
+    std::vector<double> ly = vecFromJSArray<double>(cly_val);
+
+    return qe::lagged_curve_distance(
+        arma::vec(fx.data(), fx.size()),
+        arma::vec(fy.data(), fy.size()),
+        arma::vec(lx.data(), lx.size()),
+        arma::vec(ly.data(), ly.size()),
+        lag);
+}
+
+static val signed_turn_lag(
+    const val& pa_val, int ra, int ca,
+    const val& pb_val, int rb, int cb,
+    const val& ta_val, const val& tb_val,
+    int delta
+) {
+    std::vector<double> ta = vecFromJSArray<double>(ta_val);
+    std::vector<double> tb = vecFromJSArray<double>(tb_val);
+
+    auto [mean_d, count] = qe::signed_turn_lag_distance(
+        js_to_mat(pa_val, ra, ca),
+        js_to_mat(pb_val, rb, cb),
+        arma::vec(ta.data(), ta.size()),
+        arma::vec(tb.data(), tb.size()),
+        delta);
+
+    val result = val::object();
+    result.set("mean_distance", mean_d);
+    result.set("valid_count",   count);
+    return result;
+}
+
+static val sweep_signed_turn_lags(
+    const val& pa_val, int ra, int ca,
+    const val& pb_val, int rb, int cb,
+    const val& ta_val, const val& tb_val,
+    int max_lag
+) {
+    std::vector<double> ta = vecFromJSArray<double>(ta_val);
+    std::vector<double> tb = vecFromJSArray<double>(tb_val);
+
+    qe::SignedTurnLagResult res = qe::best_signed_turn_lag(
+        js_to_mat(pa_val, ra, ca),
+        js_to_mat(pb_val, rb, cb),
+        arma::vec(ta.data(), ta.size()),
+        arma::vec(tb.data(), tb.size()),
+        max_lag);
+
+    val result = val::object();
+    result.set("best_lag",          res.best_lag);
+    result.set("min_mean_distance", res.min_mean_distance);
+
+    std::vector<int> lags_v(res.lags.memptr(), res.lags.memptr() + res.lags.n_elem);
+    std::vector<double> dists_v(res.mean_distances.memptr(), res.mean_distances.memptr() + res.mean_distances.n_elem);
+    std::vector<int> counts_v(res.valid_counts.memptr(), res.valid_counts.memptr() + res.valid_counts.n_elem);
+
+    result.set("lags",           val::array(lags_v.begin(), lags_v.end()));
+    result.set("mean_distances", val::array(dists_v.begin(), dists_v.end()));
+    result.set("valid_counts",   val::array(counts_v.begin(), counts_v.end()));
+    return result;
+}
+
+static double dist_dist_correlation(
+    const val& x_val, int rx, int cx,
+    const val& y_val, int ry, int cy
+) {
+    return qe::dist_dist_correlation(
+        js_to_mat(x_val, rx, cx),
+        js_to_mat(y_val, ry, cy));
+}
+
 // ── Embind registrations ──────────────────────────────────────────────────────
 
 EMSCRIPTEN_BINDINGS(libqe) {
@@ -564,4 +763,18 @@ EMSCRIPTEN_BINDINGS(libqe) {
     function("complete_rotation",                     &complete_rotation);
     function("means_rotation",                        &means_rotation);
     function("generalized_means_rotation",            &generalized_means_rotation);
+
+    // Door
+    function("door_lookback_block",                   &door_lookback_block);
+    function("door_ema_block",                        &door_ema_block);
+
+    // Trajectory
+    function("fit_trajectory_poly",                   &fit_trajectory_poly);
+    function("eval_trajectory_curve",                 &eval_trajectory_curve);
+    function("eval_trajectory_derivatives",           &eval_trajectory_derivatives);
+    function("integrated_trajectory_distance",        &integrated_trajectory_distance);
+    function("lagged_trajectory_distance",            &lagged_trajectory_distance);
+    function("signed_turn_lag",                       &signed_turn_lag);
+    function("sweep_signed_turn_lags",                &sweep_signed_turn_lags);
+    function("dist_dist_correlation",                 &dist_dist_correlation);
 }

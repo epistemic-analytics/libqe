@@ -21,6 +21,12 @@ pylibqe.rotation
     SVD rotation, deflation, orthogonal SVD, means rotation, and
     generalized means rotation.
 
+pylibqe.door
+    Door lookback pooling and EMA smoothing.
+
+pylibqe.trajectory
+    Parametric trajectory fitting, derivatives, distances, and lag analysis.
+
 All matrix inputs/outputs use numpy float64 arrays.
 """
 
@@ -29,6 +35,8 @@ from . import normalization as normalization
 from . import modeling as modeling
 from . import accumulation as accumulation
 from . import rotation as rotation
+from . import door as door
+from . import trajectory as trajectory
 from .modeling import NodePositions as NodePositions
 from .modeling import GroupStatsResult as GroupStatsResult
 from .accumulation import UnitNetworks as UnitNetworks
@@ -41,6 +49,8 @@ __all__ = [
     "modeling",
     "accumulation",
     "rotation",
+    "door",
+    "trajectory",
     "NodePositions",
     "GroupStatsResult",
     "UnitNetworks",

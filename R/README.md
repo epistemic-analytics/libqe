@@ -81,6 +81,20 @@ All exported R functions are prefixed ``.
 | `flat_index(indices, dims)` | Column-major linear index into a multi-dimensional array. `indices` and `dims` are **0-based** integer vectors. |
 | `apply_tensor(tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered)` | Tensor-based multi-modal accumulation (tma model). Returns a list with `connection_counts` and `row_connection_counts`. |
 
+### Door, trajectory, and stability
+
+| Function | Description |
+|----------|-------------|
+| `door_lookback_block(block, lookback_size, aggregate_mean, weighting_linear, segment_ids)` | Lookback pooling over one unit block, matching ETM missing-value behavior. |
+| `door_ema_block(block, alpha, segment_ids)` | EMA smoothing over one unit block, carrying prior smoothed values for missing observations. |
+| `fit_trajectory_poly(points, t, max_degree, fixed_degree, criterion, basis)` | Fit a 2D polynomial trajectory; defaults to R-compatible orthogonal polynomials. |
+| `eval_trajectory_curve(coeffs_x, coeffs_y, t_eval)` | Evaluate fitted polynomial trajectory coordinates. |
+| `eval_trajectory_derivatives(coeffs_x, coeffs_y, t_eval)` | Evaluate velocity, acceleration, speed, heading rate, and curvature. |
+| `integrated_trajectory_distance(...)` | Integrated Euclidean distance between two fitted trajectory curves. |
+| `lagged_trajectory_distance(...)` | Normalized lagged distance for follower/leader curve comparisons. |
+| `signed_turn_lag(...)` / `sweep_signed_turn_lags(...)` | Discrete turn-lag follower/leader distance metrics. |
+| `dist_dist_correlation(X, Y)` | Pearson correlation between pairwise distance structures. |
+
 ### Shape note — `mean_ci` vs rENA
 
 rENA returns a `2 × n_dims` matrix (rows = lower/upper, columns = dimensions):

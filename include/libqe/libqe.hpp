@@ -26,5 +26,10 @@
 #include "rotation.hpp"
 #include "lasso.hpp"
 #include "generalized_rotation.hpp"
+#include "door.hpp"
+#include "trajectory.hpp"
+#include "trajectory_distance.hpp"
+#include "trajectory_following.hpp"
+#include "stability.hpp"
 
 #endif // LIBQE_HPP

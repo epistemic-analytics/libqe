@@ -24,6 +24,67 @@
  * Helper to read a cell: data[row * cols + col]
  */
 
-// Re-export the Emscripten factory function produced by the WASM build.
-// In a bundler (webpack / vite) this import resolves to dist/libqe.js.
-export { default } from '../dist/libqe.js';
+// Wrap the Emscripten factory so JS callers get stable defaults even though
+// embind does not preserve C++ default arguments.
+import createLibQE from '../dist/libqe.js';
+
+export default async function loadLibQE(...args) {
+  const qe = await createLibQE(...args);
+
+  if (typeof qe.door_lookback_block === 'function') {
+    const rawDoorLookbackBlock = qe.door_lookback_block.bind(qe);
+    qe.door_lookback_block = (
+      data,
+      rows,
+      cols,
+      lookbackSize = 20,
+      aggregateMean = false,
+      weightingLinear = false,
+      segmentIds = [],
+    ) => rawDoorLookbackBlock(
+      data,
+      rows,
+      cols,
+      lookbackSize,
+      aggregateMean,
+      weightingLinear,
+      segmentIds,
+    );
+  }
+
+  if (typeof qe.door_ema_block === 'function') {
+    const rawDoorEmaBlock = qe.door_ema_block.bind(qe);
+    qe.door_ema_block = (
+      data,
+      rows,
+      cols,
+      alpha = 0.1,
+      segmentIds = [],
+    ) => rawDoorEmaBlock(data, rows, cols, alpha, segmentIds);
+  }
+
+  if (typeof qe.fit_trajectory_poly === 'function') {
+    const rawFitTrajectoryPoly = qe.fit_trajectory_poly.bind(qe);
+    qe.fit_trajectory_poly = (
+      data,
+      rows,
+      cols,
+      t = [],
+      maxDegree = 3,
+      fixedDegree = 0,
+      criterion = 'loocv',
+      basis = 'orthogonal',
+    ) => rawFitTrajectoryPoly(
+      data,
+      rows,
+      cols,
+      t,
+      maxDegree,
+      fixedDegree,
+      criterion,
+      basis,
+    );
+  }
+
+  return qe;
+}

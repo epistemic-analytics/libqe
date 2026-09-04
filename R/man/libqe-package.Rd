@@ -7,24 +7,31 @@
 \title{libqe: Shared C++ Core for Quantitative Ethnography Packages}
 \description{
 Header-only C++ library providing shared computational primitives for
-rENA, tma, and other Quantitative Ethnography packages. Exposes four
-modules via Rcpp-wrapped \code{lq_*} functions:
+rENA, tma, and other Quantitative Ethnography packages. Exposes shared
+computational modules via Rcpp-wrapped functions:
 }
 \details{
 \describe{
   \item{Adjacency}{Upper-triangle index pairs and vector/matrix conversions.
-    See \code{\link{lq_tri_indices}}, \code{\link{lq_vector_to_upper_tri}},
-    \code{\link{lq_svector_to_upper_tri}}.}
+    See \code{\link{connection_indices}}, \code{\link{network_to_vector}},
+    \code{\link{code_connections}}, and \code{\link{fold_directed_network}}.}
   \item{Normalization}{Row-wise L2 sphere norm and max-norm scaling.
-    See \code{\link{lq_sphere_norm}}, \code{\link{lq_skip_sphere_norm}}.}
+    See \code{\link{normalize_networks}} and \code{\link{scale_networks}}.}
   \item{Modeling}{Column centering, ENA correlation, and least-squares node
     positions (undirected and directed).
-    See \code{\link{lq_center_data}}, \code{\link{lq_ena_correlation}},
-    \code{\link{lq_lws_lsq_positions}}, \code{\link{lq_directed_node_positions}}.}
+    See \code{\link{center_points}}, \code{\link{ena_correlation}},
+    \code{\link{node_positions}}, and \code{\link{directed_node_positions}}.}
   \item{Accumulation}{Stanza-window (rENA) and ground/response/tensor (tma)
     accumulation primitives.
-    See \code{\link{lq_stanza_window}}, \code{\link{lq_accumulate_unit}},
-    \code{\link{lq_apply_tensor}}.}
+    See \code{\link{accumulate_stanza}}, \code{\link{accumulate_unit}},
+    and \code{\link{apply_tensor}}.}
+  \item{Door}{Temporal pooling transforms for lookback and EMA-smoothed
+    event streams. See \code{\link{door_lookback}} and
+    \code{\link{door_ema}}.}
+  \item{Trajectory}{Polynomial trajectory fitting, evaluation, derivative,
+    and distance utilities. See \code{\link{fit_trajectory_poly}},
+    \code{\link{eval_trajectory_curve}}, and
+    \code{\link{integrated_trajectory_distance}}.}
 }
 
 \strong{Using libqe headers in your own R package:}

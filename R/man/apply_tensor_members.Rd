@@ -31,3 +31,24 @@ Powers the webtool Data View per-modality window-span hover. Kept as a
 separate export so \code{apply_tensor()}'s ABI (and tma's direct .Call to it)
 is unchanged.
 }
+\arguments{
+\item{tensor}{Numeric vector (column-major flat tensor)}
+
+\item{dims}{Integer vector of tensor dimensions}
+
+\item{dims_sender}{0-based sender axis indices}
+
+\item{dims_receiver}{0-based receiver axis indices}
+
+\item{dims_mode}{0-based mode axis indices}
+
+\item{context_lookup}{Integer matrix (n_context_rows x n_factors), 0-based}
+
+\item{unit_rows}{0-based response-row indices for this unit}
+
+\item{codes}{Numeric matrix (n_context_rows x n_codes)}
+
+\item{times}{Numeric vector of timestamps per context row}
+
+\item{ordered}{TRUE = directed; FALSE = undirected}
+}

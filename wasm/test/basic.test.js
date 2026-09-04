@@ -140,6 +140,46 @@ test('accumulate_unit_with_rows: networks + row_networks returned', () => {
     expect(out.row_networks.cols).toBe(4);   // 2² = 4 for n_codes=2
 });
 
+// ── Door ─────────────────────────────────────────────────────────────────────
+
+test('door_lookback_block: omitted segment_ids defaults to no segments', () => {
+    const data = new Float64Array([1, 0, 2, 1, 3, 0]);
+    const out = qe.door_lookback_block(data, 3, 2, 2, false, false);
+    expect(Array.from(out.data)).toEqual([1, 0, 3, 1, 5, 1]);
+});
+
+test('door blocks match ETM NA handling', () => {
+    const lookbackData = new Float64Array([1, 1, NaN, 3, 5, NaN]);
+    const lookback = qe.door_lookback_block(lookbackData, 3, 2, 3, true, false);
+    expect(Array.from(lookback.data)).toEqual([1, 1, 1, 2, 3, 2]);
+
+    const emaData = new Float64Array([10, 0, NaN, 10, 0, NaN]);
+    const ema = qe.door_ema_block(emaData, 3, 2, 0.5);
+    expect(Array.from(ema.data)).toEqual([10, 0, 10, 5, 5, 5]);
+});
+
+// ── Trajectory ───────────────────────────────────────────────────────────────
+
+test('fit_trajectory_poly: JS wrapper supplies orthogonal basis default', () => {
+    const data = new Float64Array([
+        0, 0,
+        1, 2,
+        2, 4,
+        3, 6,
+    ]);
+    const fit = qe.fit_trajectory_poly(data, 4, 2, [], 3, 1, 'loocv');
+    expect(fit.degree).toBe(1);
+    expect(fit.basis).toBe('orthogonal');
+
+    const evaluated = qe.eval_trajectory_curve(fit.coeffs_x, fit.coeffs_y, [0, 1]);
+    expect(evaluated.rows).toBe(2);
+    expect(evaluated.cols).toBe(2);
+    expect(evaluated.data[0]).toBeCloseTo(0, 10);
+    expect(evaluated.data[1]).toBeCloseTo(0, 10);
+    expect(evaluated.data[2]).toBeCloseTo(3, 10);
+    expect(evaluated.data[3]).toBeCloseTo(6, 10);
+});
+
 // ── Rotation ──────────────────────────────────────────────────────────────────
 
 test('ena_svd: returns rotation matrix and eigenvalues', () => {

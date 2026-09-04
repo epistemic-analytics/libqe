@@ -420,6 +420,191 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// door_lookback_block
+arma::mat door_lookback_block(arma::mat block, int lookback_size, bool aggregate_mean, bool weighting_linear, IntegerVector segment_ids);
+RcppExport SEXP _libqe_door_lookback_block(SEXP blockSEXP, SEXP lookback_sizeSEXP, SEXP aggregate_meanSEXP, SEXP weighting_linearSEXP, SEXP segment_idsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type block(blockSEXP);
+    Rcpp::traits::input_parameter< int >::type lookback_size(lookback_sizeSEXP);
+    Rcpp::traits::input_parameter< bool >::type aggregate_mean(aggregate_meanSEXP);
+    Rcpp::traits::input_parameter< bool >::type weighting_linear(weighting_linearSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type segment_ids(segment_idsSEXP);
+    rcpp_result_gen = Rcpp::wrap(door_lookback_block(block, lookback_size, aggregate_mean, weighting_linear, segment_ids));
+    return rcpp_result_gen;
+END_RCPP
+}
+// door_ema_block
+arma::mat door_ema_block(arma::mat block, double alpha, IntegerVector segment_ids);
+RcppExport SEXP _libqe_door_ema_block(SEXP blockSEXP, SEXP alphaSEXP, SEXP segment_idsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type block(blockSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type segment_ids(segment_idsSEXP);
+    rcpp_result_gen = Rcpp::wrap(door_ema_block(block, alpha, segment_ids));
+    return rcpp_result_gen;
+END_RCPP
+}
+// door_lookback
+arma::mat door_lookback(arma::mat conn_counts, List unit_row_indices, IntegerVector lookback_sizes, bool aggregate_mean, bool weighting_linear, IntegerVector segment_ids);
+RcppExport SEXP _libqe_door_lookback(SEXP conn_countsSEXP, SEXP unit_row_indicesSEXP, SEXP lookback_sizesSEXP, SEXP aggregate_meanSEXP, SEXP weighting_linearSEXP, SEXP segment_idsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type conn_counts(conn_countsSEXP);
+    Rcpp::traits::input_parameter< List >::type unit_row_indices(unit_row_indicesSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type lookback_sizes(lookback_sizesSEXP);
+    Rcpp::traits::input_parameter< bool >::type aggregate_mean(aggregate_meanSEXP);
+    Rcpp::traits::input_parameter< bool >::type weighting_linear(weighting_linearSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type segment_ids(segment_idsSEXP);
+    rcpp_result_gen = Rcpp::wrap(door_lookback(conn_counts, unit_row_indices, lookback_sizes, aggregate_mean, weighting_linear, segment_ids));
+    return rcpp_result_gen;
+END_RCPP
+}
+// door_ema
+arma::mat door_ema(arma::mat conn_counts, List unit_row_indices, double alpha, IntegerVector segment_ids);
+RcppExport SEXP _libqe_door_ema(SEXP conn_countsSEXP, SEXP unit_row_indicesSEXP, SEXP alphaSEXP, SEXP segment_idsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type conn_counts(conn_countsSEXP);
+    Rcpp::traits::input_parameter< List >::type unit_row_indices(unit_row_indicesSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type segment_ids(segment_idsSEXP);
+    rcpp_result_gen = Rcpp::wrap(door_ema(conn_counts, unit_row_indices, alpha, segment_ids));
+    return rcpp_result_gen;
+END_RCPP
+}
+// fit_trajectory_poly
+List fit_trajectory_poly(arma::mat points, NumericVector t, int max_degree, int fixed_degree, std::string criterion, std::string basis);
+RcppExport SEXP _libqe_fit_trajectory_poly(SEXP pointsSEXP, SEXP tSEXP, SEXP max_degreeSEXP, SEXP fixed_degreeSEXP, SEXP criterionSEXP, SEXP basisSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type points(pointsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type t(tSEXP);
+    Rcpp::traits::input_parameter< int >::type max_degree(max_degreeSEXP);
+    Rcpp::traits::input_parameter< int >::type fixed_degree(fixed_degreeSEXP);
+    Rcpp::traits::input_parameter< std::string >::type criterion(criterionSEXP);
+    Rcpp::traits::input_parameter< std::string >::type basis(basisSEXP);
+    rcpp_result_gen = Rcpp::wrap(fit_trajectory_poly(points, t, max_degree, fixed_degree, criterion, basis));
+    return rcpp_result_gen;
+END_RCPP
+}
+// eval_trajectory_curve
+arma::mat eval_trajectory_curve(arma::vec coeffs_x, arma::vec coeffs_y, arma::vec t_eval);
+RcppExport SEXP _libqe_eval_trajectory_curve(SEXP coeffs_xSEXP, SEXP coeffs_ySEXP, SEXP t_evalSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type coeffs_x(coeffs_xSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type coeffs_y(coeffs_ySEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type t_eval(t_evalSEXP);
+    rcpp_result_gen = Rcpp::wrap(eval_trajectory_curve(coeffs_x, coeffs_y, t_eval));
+    return rcpp_result_gen;
+END_RCPP
+}
+// eval_trajectory_derivatives
+List eval_trajectory_derivatives(arma::vec coeffs_x, arma::vec coeffs_y, arma::vec t_eval);
+RcppExport SEXP _libqe_eval_trajectory_derivatives(SEXP coeffs_xSEXP, SEXP coeffs_ySEXP, SEXP t_evalSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type coeffs_x(coeffs_xSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type coeffs_y(coeffs_ySEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type t_eval(t_evalSEXP);
+    rcpp_result_gen = Rcpp::wrap(eval_trajectory_derivatives(coeffs_x, coeffs_y, t_eval));
+    return rcpp_result_gen;
+END_RCPP
+}
+// integrated_trajectory_distance
+double integrated_trajectory_distance(arma::vec coeffs_ax, arma::vec coeffs_ay, arma::vec coeffs_bx, arma::vec coeffs_by, double t_start, double t_end);
+RcppExport SEXP _libqe_integrated_trajectory_distance(SEXP coeffs_axSEXP, SEXP coeffs_aySEXP, SEXP coeffs_bxSEXP, SEXP coeffs_bySEXP, SEXP t_startSEXP, SEXP t_endSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type coeffs_ax(coeffs_axSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type coeffs_ay(coeffs_aySEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type coeffs_bx(coeffs_bxSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type coeffs_by(coeffs_bySEXP);
+    Rcpp::traits::input_parameter< double >::type t_start(t_startSEXP);
+    Rcpp::traits::input_parameter< double >::type t_end(t_endSEXP);
+    rcpp_result_gen = Rcpp::wrap(integrated_trajectory_distance(coeffs_ax, coeffs_ay, coeffs_bx, coeffs_by, t_start, t_end));
+    return rcpp_result_gen;
+END_RCPP
+}
+// lagged_trajectory_distance
+double lagged_trajectory_distance(arma::vec coeffs_fol_x, arma::vec coeffs_fol_y, arma::vec coeffs_ldr_x, arma::vec coeffs_ldr_y, double lag);
+RcppExport SEXP _libqe_lagged_trajectory_distance(SEXP coeffs_fol_xSEXP, SEXP coeffs_fol_ySEXP, SEXP coeffs_ldr_xSEXP, SEXP coeffs_ldr_ySEXP, SEXP lagSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type coeffs_fol_x(coeffs_fol_xSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type coeffs_fol_y(coeffs_fol_ySEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type coeffs_ldr_x(coeffs_ldr_xSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type coeffs_ldr_y(coeffs_ldr_ySEXP);
+    Rcpp::traits::input_parameter< double >::type lag(lagSEXP);
+    rcpp_result_gen = Rcpp::wrap(lagged_trajectory_distance(coeffs_fol_x, coeffs_fol_y, coeffs_ldr_x, coeffs_ldr_y, lag));
+    return rcpp_result_gen;
+END_RCPP
+}
+// pairwise_trajectory_distance
+arma::mat pairwise_trajectory_distance(List all_coeffs_x, List all_coeffs_y);
+RcppExport SEXP _libqe_pairwise_trajectory_distance(SEXP all_coeffs_xSEXP, SEXP all_coeffs_ySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type all_coeffs_x(all_coeffs_xSEXP);
+    Rcpp::traits::input_parameter< List >::type all_coeffs_y(all_coeffs_ySEXP);
+    rcpp_result_gen = Rcpp::wrap(pairwise_trajectory_distance(all_coeffs_x, all_coeffs_y));
+    return rcpp_result_gen;
+END_RCPP
+}
+// signed_turn_lag
+List signed_turn_lag(arma::mat pts_a, arma::mat pts_b, arma::vec times_a, arma::vec times_b, int delta);
+RcppExport SEXP _libqe_signed_turn_lag(SEXP pts_aSEXP, SEXP pts_bSEXP, SEXP times_aSEXP, SEXP times_bSEXP, SEXP deltaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type pts_a(pts_aSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type pts_b(pts_bSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type times_a(times_aSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type times_b(times_bSEXP);
+    Rcpp::traits::input_parameter< int >::type delta(deltaSEXP);
+    rcpp_result_gen = Rcpp::wrap(signed_turn_lag(pts_a, pts_b, times_a, times_b, delta));
+    return rcpp_result_gen;
+END_RCPP
+}
+// sweep_signed_turn_lags
+List sweep_signed_turn_lags(arma::mat pts_a, arma::mat pts_b, arma::vec times_a, arma::vec times_b, int max_lag);
+RcppExport SEXP _libqe_sweep_signed_turn_lags(SEXP pts_aSEXP, SEXP pts_bSEXP, SEXP times_aSEXP, SEXP times_bSEXP, SEXP max_lagSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type pts_a(pts_aSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type pts_b(pts_bSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type times_a(times_aSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type times_b(times_bSEXP);
+    Rcpp::traits::input_parameter< int >::type max_lag(max_lagSEXP);
+    rcpp_result_gen = Rcpp::wrap(sweep_signed_turn_lags(pts_a, pts_b, times_a, times_b, max_lag));
+    return rcpp_result_gen;
+END_RCPP
+}
+// dist_dist_correlation
+double dist_dist_correlation(arma::mat X, arma::mat Y);
+RcppExport SEXP _libqe_dist_dist_correlation(SEXP XSEXP, SEXP YSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type Y(YSEXP);
+    rcpp_result_gen = Rcpp::wrap(dist_dist_correlation(X, Y));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_libqe_choose_two", (DL_FUNC) &_libqe_choose_two, 1},
@@ -453,6 +638,19 @@ static const R_CallMethodDef CallEntries[] = {
     {"_libqe_complete_rotation", (DL_FUNC) &_libqe_complete_rotation, 3},
     {"_libqe_means_rotation", (DL_FUNC) &_libqe_means_rotation, 2},
     {"_libqe_generalized_means_rotation", (DL_FUNC) &_libqe_generalized_means_rotation, 16},
+    {"_libqe_door_lookback_block", (DL_FUNC) &_libqe_door_lookback_block, 5},
+    {"_libqe_door_ema_block", (DL_FUNC) &_libqe_door_ema_block, 3},
+    {"_libqe_door_lookback", (DL_FUNC) &_libqe_door_lookback, 6},
+    {"_libqe_door_ema", (DL_FUNC) &_libqe_door_ema, 4},
+    {"_libqe_fit_trajectory_poly", (DL_FUNC) &_libqe_fit_trajectory_poly, 6},
+    {"_libqe_eval_trajectory_curve", (DL_FUNC) &_libqe_eval_trajectory_curve, 3},
+    {"_libqe_eval_trajectory_derivatives", (DL_FUNC) &_libqe_eval_trajectory_derivatives, 3},
+    {"_libqe_integrated_trajectory_distance", (DL_FUNC) &_libqe_integrated_trajectory_distance, 6},
+    {"_libqe_lagged_trajectory_distance", (DL_FUNC) &_libqe_lagged_trajectory_distance, 5},
+    {"_libqe_pairwise_trajectory_distance", (DL_FUNC) &_libqe_pairwise_trajectory_distance, 2},
+    {"_libqe_signed_turn_lag", (DL_FUNC) &_libqe_signed_turn_lag, 5},
+    {"_libqe_sweep_signed_turn_lags", (DL_FUNC) &_libqe_sweep_signed_turn_lags, 5},
+    {"_libqe_dist_dist_correlation", (DL_FUNC) &_libqe_dist_dist_correlation, 2},
     {NULL, NULL, 0}
 };
 

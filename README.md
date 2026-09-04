@@ -16,8 +16,11 @@ downstream C++ consumers.
 | **normalization** | `normalization.hpp` | Row-wise L2 sphere norm, max-norm (skip-sphere) scaling |
 | **modeling** | `modeling.hpp` | Column-mean centering, group confidence interval (t-based, matches rENA), outlier interval (IQR-based, matches rENA), Pearson correlation with CI, least-squares node positions (undirected, directed, ground/response) |
 | **accumulation** | `accumulation.hpp` | Core adjacency math, stanza-window accumulation (rENA), ground/response accumulation with decay (tma), tensor-based multi-modal accumulation (tma), rolling window sum, per-row co-occurrence |
+| **door** | `door.hpp` | Lookback and EMA temporal pooling kernels for trajectory/model workflows |
+| **trajectory** | `trajectory.hpp`, `trajectory_distance.hpp`, `trajectory_following.hpp` | R-compatible polynomial trajectory fitting, curve evaluation, derivatives, integrated distances, and lag/following metrics |
+| **stability** | `stability.hpp` | Distance-distance correlation for stability comparisons |
 
-All four modules are pulled in by `#include <libqe/libqe.hpp>`.
+All modules are pulled in by `#include <libqe/libqe.hpp>`.
 
 ## Repository layout
 
@@ -28,7 +31,12 @@ libqe/
 │   ├── adjacency.hpp
 │   ├── normalization.hpp
 │   ├── modeling.hpp
-│   └── accumulation.hpp
+│   ├── accumulation.hpp
+│   ├── door.hpp
+│   ├── trajectory.hpp
+│   ├── trajectory_distance.hpp
+│   ├── trajectory_following.hpp
+│   └── stability.hpp
 ├── R/                  ← R package (Rcpp wrappers + LinkingTo mechanism)
 │   ├── DESCRIPTION
 │   ├── configure       ← copies headers into inst/include/ at install time

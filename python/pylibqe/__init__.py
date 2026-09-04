@@ -22,6 +22,12 @@ pylibqe.rotation
     SVD rotation, deflation, orthogonal SVD, means rotation, and the
     generalized-rotation tail. Also exports :class:`RotationResult`.
 
+pylibqe.door
+    Door lookback pooling and EMA smoothing.
+
+pylibqe.trajectory
+    Parametric trajectory fitting, derivatives, distances, and lag analysis.
+
 All matrix inputs/outputs use numpy float64 arrays.
 """
 
@@ -31,6 +37,8 @@ from ._pylibqe import (
     modeling,
     accumulation,
     rotation,
+    door,
+    trajectory,
 )
 from ._pylibqe.modeling import NodePositions, GroupStatsResult
 from ._pylibqe import UnitNetworks, TensorNetworks, RotationResult
@@ -41,6 +49,8 @@ __all__ = [
     "modeling",
     "accumulation",
     "rotation",
+    "door",
+    "trajectory",
     "NodePositions",
     "GroupStatsResult",
     "UnitNetworks",

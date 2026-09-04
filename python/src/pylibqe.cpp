@@ -15,6 +15,8 @@
 #include <nanobind/ndarray.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <optional>
 
 #include <armadillo>
 #include <libqe/libqe.hpp>
@@ -755,4 +757,95 @@ NB_MODULE(_pylibqe, m) {
         "Returns RotationResult with column_names = ['GMR1', 'GMR2'|'SVD2',\n"
         "'SVD3', ..., 'SVDp'].\n\n"
         "Reference: Zhiqiang Cai, commit 46776a1981a90b3a3b2861ed1010e9dbb7acf901.");
+
+    // ── door ─────────────────────────────────────────────────────────────────
+    auto door_mod = m.def_submodule("door", "Door temporal pooling and EMA smoothing");
+
+    door_mod.def("lookback_block", [](NpMat block, int lookback_size, bool aggregate_mean, bool weighting_linear, const std::vector<int>& segment_ids) {
+        arma::mat b = to_mat(block);
+        return from_mat(qe::lookback_block(b, lookback_size, aggregate_mean, weighting_linear, segment_ids));
+    }, "block"_a, "lookback_size"_a = 20, "aggregate_mean"_a = false, "weighting_linear"_a = false, "segment_ids"_a = std::vector<int>{},
+    "Apply sliding lookback window pool over a block of connection counts.");
+
+    door_mod.def("ema_block", [](NpMat block, double alpha, const std::vector<int>& segment_ids) {
+        arma::mat b = to_mat(block);
+        return from_mat(qe::ema_block(b, alpha, segment_ids));
+    }, "block"_a, "alpha"_a = 0.1, "segment_ids"_a = std::vector<int>{},
+    "Apply Exponential Moving Average (EMA) smoothing over a block of connection counts.");
+
+    // ── trajectory ───────────────────────────────────────────────────────────
+    auto traj_mod = m.def_submodule("trajectory", "Parametric curve fitting, derivatives, distance, and following");
+
+    traj_mod.def("fit_poly", [](NpMat points, std::optional<NpVec> t, int max_degree, int fixed_degree, const std::string& criterion, const std::string& basis) {
+        arma::mat pts = to_mat(points);
+        arma::vec t_vec;
+        if (t.has_value()) {
+            t_vec = to_vec(t.value());
+        }
+        qe::PolyCurveFit fit = qe::fit_poly_loocv2d(pts, t_vec, max_degree, fixed_degree, criterion, basis);
+        nb::dict out;
+        out["degree"] = fit.degree;
+        out["coeffs_x"] = from_vec(fit.coeffs_x);
+        out["coeffs_y"] = from_vec(fit.coeffs_y);
+        out["basis"] = fit.basis;
+        out["basis_alpha"] = from_vec(fit.basis_alpha);
+        out["basis_norm2"] = from_vec(fit.basis_norm2);
+        out["cv_error"] = fit.cv_error;
+        out["aic"] = fit.aic;
+        out["t"] = from_vec(fit.t);
+        out["fitted_points"] = from_mat(fit.fitted);
+        return out;
+    }, "points"_a, "t"_a = nb::none(), "max_degree"_a = 3, "fixed_degree"_a = 0, "criterion"_a = "loocv", "basis"_a = "orthogonal",
+    "Fit 2D parametric polynomial curve with R-compatible orthogonal or raw basis.");
+
+    traj_mod.def("eval_curve", [](NpVec coeffs_x, NpVec coeffs_y, NpVec t_eval) {
+        return from_mat(qe::eval_poly_curve(to_vec(coeffs_x), to_vec(coeffs_y), to_vec(t_eval)));
+    }, "coeffs_x"_a, "coeffs_y"_a, "t_eval"_a);
+
+    traj_mod.def("eval_derivatives", [](NpVec coeffs_x, NpVec coeffs_y, NpVec t_eval) {
+        qe::TrajectoryDerivatives d = qe::eval_trajectory_derivatives(to_vec(coeffs_x), to_vec(coeffs_y), to_vec(t_eval));
+        nb::dict out;
+        out["t"] = from_vec(d.t);
+        out["vx"] = from_vec(d.vx);
+        out["vy"] = from_vec(d.vy);
+        out["speed"] = from_vec(d.speed);
+        out["ax"] = from_vec(d.ax);
+        out["ay"] = from_vec(d.ay);
+        out["heading_rate"] = from_vec(d.heading_rate);
+        out["curvature"] = from_vec(d.curvature);
+        return out;
+    }, "coeffs_x"_a, "coeffs_y"_a, "t_eval"_a);
+
+    traj_mod.def("integrated_distance", [](NpVec coeffs_ax, NpVec coeffs_ay, NpVec coeffs_bx, NpVec coeffs_by, double t_start, double t_end) {
+        return qe::integrated_curve_distance(to_vec(coeffs_ax), to_vec(coeffs_ay), to_vec(coeffs_bx), to_vec(coeffs_by), t_start, t_end);
+    }, "coeffs_ax"_a, "coeffs_ay"_a, "coeffs_bx"_a, "coeffs_by"_a, "t_start"_a = 0.0, "t_end"_a = 1.0);
+
+    traj_mod.def("lagged_distance", [](NpVec coeffs_fol_x, NpVec coeffs_fol_y, NpVec coeffs_ldr_x, NpVec coeffs_ldr_y, double lag) {
+        return qe::lagged_curve_distance(to_vec(coeffs_fol_x), to_vec(coeffs_fol_y), to_vec(coeffs_ldr_x), to_vec(coeffs_ldr_y), lag);
+    }, "coeffs_fol_x"_a, "coeffs_fol_y"_a, "coeffs_ldr_x"_a, "coeffs_ldr_y"_a, "lag"_a = 0.0);
+
+    traj_mod.def("signed_turn_lag", [](NpMat pts_a, NpMat pts_b, NpVec times_a, NpVec times_b, int delta) {
+        auto [mean_d, count] = qe::signed_turn_lag_distance(to_mat(pts_a), to_mat(pts_b), to_vec(times_a), to_vec(times_b), delta);
+        nb::dict out;
+        out["mean_distance"] = mean_d;
+        out["valid_count"] = count;
+        return out;
+    }, "pts_a"_a, "pts_b"_a, "times_a"_a, "times_b"_a, "delta"_a);
+
+    traj_mod.def("sweep_signed_turn_lags", [](NpMat pts_a, NpMat pts_b, NpVec times_a, NpVec times_b, int max_lag) {
+        qe::SignedTurnLagResult res = qe::best_signed_turn_lag(to_mat(pts_a), to_mat(pts_b), to_vec(times_a), to_vec(times_b), max_lag);
+        nb::dict out;
+        out["best_lag"] = res.best_lag;
+        out["min_mean_distance"] = res.min_mean_distance;
+        arma::vec lags_d = arma::conv_to<arma::vec>::from(res.lags);
+        arma::vec counts_d = arma::conv_to<arma::vec>::from(res.valid_counts);
+        out["lags"] = from_vec(lags_d);
+        out["mean_distances"] = from_vec(res.mean_distances);
+        out["valid_counts"] = from_vec(counts_d);
+        return out;
+    }, "pts_a"_a, "pts_b"_a, "times_a"_a, "times_b"_a, "max_lag"_a = 15);
+
+    traj_mod.def("dist_dist_correlation", [](NpMat X, NpMat Y) {
+        return qe::dist_dist_correlation(to_mat(X), to_mat(Y));
+    }, "X"_a, "Y"_a);
 }

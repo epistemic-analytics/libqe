@@ -87,6 +87,25 @@ Return values are always freshly allocated numpy arrays owned by Python.
 
 `RotationResult` fields: `.rotation`, `.eigenvalues`, `.column_names`.
 
+### `pylibqe.door`
+
+| Function | Returns | Notes |
+|----------|---------|-------|
+| `lookback_block(block, lookback_size=20, aggregate_mean=False, weighting_linear=False, segment_ids=[])` | `2-D ndarray` | Lookback pooling over one unit block; matches ETM missing-value behavior. |
+| `ema_block(block, alpha=0.1, segment_ids=[])` | `2-D ndarray` | EMA smoothing over one unit block; missing current values carry the prior smoothed value. |
+
+### `pylibqe.trajectory`
+
+| Function | Returns | Notes |
+|----------|---------|-------|
+| `fit_poly(points, t=None, max_degree=3, fixed_degree=0, criterion="loocv", basis="orthogonal")` | `dict` | Fit a 2D polynomial trajectory; default basis matches R `stats::poly` predictions. |
+| `eval_curve(coeffs_x, coeffs_y, t_eval)` | `2-D ndarray` | Evaluate fitted trajectory coordinates. |
+| `eval_derivatives(coeffs_x, coeffs_y, t_eval)` | `dict` | Velocity, acceleration, speed, heading rate, and curvature. |
+| `integrated_distance(...)` | `float` | Integrated Euclidean distance between curves. |
+| `lagged_distance(...)` | `float` | Normalized follower/leader lagged curve distance. |
+| `signed_turn_lag(...)` / `sweep_signed_turn_lags(...)` | `dict` | Discrete signed turn-lag distance metrics. |
+| `dist_dist_correlation(X, Y)` | `float` | Correlation between pairwise distance structures. |
+
 ## Build dependencies
 
 - Python ≥ 3.9

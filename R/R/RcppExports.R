@@ -309,6 +309,16 @@ apply_tensor <- function(tensor, dims, dims_sender, dims_receiver, dims_mode, co
 #' separate export so \code{apply_tensor()}'s ABI (and tma's direct .Call to it)
 #' is unchanged.
 #'
+#' @param tensor         Numeric vector (column-major flat tensor)
+#' @param dims           Integer vector of tensor dimensions
+#' @param dims_sender    0-based sender axis indices
+#' @param dims_receiver  0-based receiver axis indices
+#' @param dims_mode      0-based mode axis indices
+#' @param context_lookup Integer matrix (n_context_rows x n_factors), 0-based
+#' @param unit_rows      0-based response-row indices for this unit
+#' @param codes          Numeric matrix (n_context_rows x n_codes)
+#' @param times          Numeric vector of timestamps per context row
+#' @param ordered        TRUE = directed; FALSE = undirected
 #' @return List with \code{connection_counts}, \code{row_connection_counts},
 #'   \code{row_window_members} (list of 1-based ground-row index vectors, in
 #'   \code{unit_rows} order) and \code{row_window_wins} (parallel resolved
@@ -432,5 +442,138 @@ means_rotation <- function(points, group_pairs) {
 #' @export
 generalized_means_rotation <- function(V, x_model_matrix, x_target, x1_cols, x_categorical, x_n_groups, x_subset, has_y, y_model_matrix, y_target, y1_cols, y_categorical, y_n_groups, n_lambda = 50L, k_folds = 5L, lasso_eps = 0.01) {
     .Call(`_libqe_generalized_means_rotation`, V, x_model_matrix, x_target, x1_cols, x_categorical, x_n_groups, x_subset, has_y, y_model_matrix, y_target, y1_cols, y_categorical, y_n_groups, n_lambda, k_folds, lasso_eps)
+}
+
+#' Door lookback window pooling for a single block
+#' @param block Numeric matrix of connection counts
+#' @param lookback_size Window lookback size
+#' @param aggregate_mean Logical: TRUE = mean, FALSE = sum
+#' @param weighting_linear Logical: TRUE = linear weights, FALSE = equal
+#' @param segment_ids Integer vector of segment IDs (0-indexed or 1-indexed)
+#' @export
+door_lookback_block <- function(block, lookback_size = 20L, aggregate_mean = FALSE, weighting_linear = FALSE, segment_ids = integer()) {
+    .Call(`_libqe_door_lookback_block`, block, lookback_size, aggregate_mean, weighting_linear, segment_ids)
+}
+
+#' Door EMA smoothing for a single block
+#' @param block Numeric matrix of connection counts
+#' @param alpha Smoothing factor in (0, 1]
+#' @param segment_ids Integer vector of segment IDs
+#' @export
+door_ema_block <- function(block, alpha = 0.1, segment_ids = integer()) {
+    .Call(`_libqe_door_ema_block`, block, alpha, segment_ids)
+}
+
+#' Door lookback window pooling across units
+#' @param conn_counts Numeric matrix of connection counts
+#' @param unit_row_indices List of integer vectors of row indices (0-indexed or 1-indexed R converted)
+#' @param lookback_sizes Integer vector of lookback sizes per unit
+#' @param aggregate_mean Logical: TRUE = mean, FALSE = sum
+#' @param weighting_linear Logical: TRUE = linear weights, FALSE = equal
+#' @param segment_ids Optional integer vector of segment IDs
+#' @export
+door_lookback <- function(conn_counts, unit_row_indices, lookback_sizes, aggregate_mean = FALSE, weighting_linear = FALSE, segment_ids = integer()) {
+    .Call(`_libqe_door_lookback`, conn_counts, unit_row_indices, lookback_sizes, aggregate_mean, weighting_linear, segment_ids)
+}
+
+#' Door EMA smoothing across units
+#' @param conn_counts Numeric matrix of connection counts
+#' @param unit_row_indices List of integer vectors of row indices
+#' @param alpha Smoothing factor
+#' @param segment_ids Optional integer vector of segment IDs
+#' @export
+door_ema <- function(conn_counts, unit_row_indices, alpha = 0.1, segment_ids = integer()) {
+    .Call(`_libqe_door_ema`, conn_counts, unit_row_indices, alpha, segment_ids)
+}
+
+#' Fit 2D parametric polynomial curve with LOOCV-2D or AIC degree selection
+#' @param points Numeric matrix (n x 2) of trajectory coordinates
+#' @param t Numeric vector of time values (length n)
+#' @param max_degree Maximum polynomial degree (default 3)
+#' @param fixed_degree Exact degree to use when >= 1
+#' @param criterion Criterion for degree selection: "loocv" or "aic"
+#' @param basis Polynomial basis used for fitting: "orthogonal" or "raw"
+#' @export
+fit_trajectory_poly <- function(points, t = numeric(), max_degree = 3L, fixed_degree = 0L, criterion = "loocv", basis = "orthogonal") {
+    .Call(`_libqe_fit_trajectory_poly`, points, t, max_degree, fixed_degree, criterion, basis)
+}
+
+#' Evaluate 2D parametric polynomial curve at specified time points
+#' @param coeffs_x Polynomial coefficients for X
+#' @param coeffs_y Polynomial coefficients for Y
+#' @param t_eval Numeric vector of time evaluation points
+#' @export
+eval_trajectory_curve <- function(coeffs_x, coeffs_y, t_eval) {
+    .Call(`_libqe_eval_trajectory_curve`, coeffs_x, coeffs_y, t_eval)
+}
+
+#' Evaluate trajectory differential geometry (velocities, speed, curvature, turns)
+#' @param coeffs_x Polynomial coefficients for X
+#' @param coeffs_y Polynomial coefficients for Y
+#' @param t_eval Numeric vector of time evaluation points
+#' @export
+eval_trajectory_derivatives <- function(coeffs_x, coeffs_y, t_eval) {
+    .Call(`_libqe_eval_trajectory_derivatives`, coeffs_x, coeffs_y, t_eval)
+}
+
+#' Integrated Euclidean distance between two trajectory polynomial curves
+#' @param coeffs_ax Polynomial coeffs for Curve A X
+#' @param coeffs_ay Polynomial coeffs for Curve A Y
+#' @param coeffs_bx Polynomial coeffs for Curve B X
+#' @param coeffs_by Polynomial coeffs for Curve B Y
+#' @param t_start Integration start (default 0.0)
+#' @param t_end Integration end (default 1.0)
+#' @export
+integrated_trajectory_distance <- function(coeffs_ax, coeffs_ay, coeffs_bx, coeffs_by, t_start = 0.0, t_end = 1.0) {
+    .Call(`_libqe_integrated_trajectory_distance`, coeffs_ax, coeffs_ay, coeffs_bx, coeffs_by, t_start, t_end)
+}
+
+#' Lagged curve distance between follower and leader
+#' @param coeffs_fol_x Polynomial coeffs for Follower X
+#' @param coeffs_fol_y Polynomial coeffs for Follower Y
+#' @param coeffs_ldr_x Polynomial coeffs for Leader X
+#' @param coeffs_ldr_y Polynomial coeffs for Leader Y
+#' @param lag Time lag in [0, 1)
+#' @export
+lagged_trajectory_distance <- function(coeffs_fol_x, coeffs_fol_y, coeffs_ldr_x, coeffs_ldr_y, lag = 0.0) {
+    .Call(`_libqe_lagged_trajectory_distance`, coeffs_fol_x, coeffs_fol_y, coeffs_ldr_x, coeffs_ldr_y, lag)
+}
+
+#' Pairwise integrated trajectory distance matrix
+#' @param all_coeffs_x List of X coefficient vectors
+#' @param all_coeffs_y List of Y coefficient vectors
+#' @export
+pairwise_trajectory_distance <- function(all_coeffs_x, all_coeffs_y) {
+    .Call(`_libqe_pairwise_trajectory_distance`, all_coeffs_x, all_coeffs_y)
+}
+
+#' Signed turn-lag distance between two agents at specific lag delta
+#' @param pts_a Points matrix for agent A (n_a x 2)
+#' @param pts_b Points matrix for agent B (n_b x 2)
+#' @param times_a Turn times for agent A
+#' @param times_b Turn times for agent B
+#' @param delta Signed lag in turns
+#' @export
+signed_turn_lag <- function(pts_a, pts_b, times_a, times_b, delta) {
+    .Call(`_libqe_signed_turn_lag`, pts_a, pts_b, times_a, times_b, delta)
+}
+
+#' Sweep signed turn lags to find optimal leader-follower lag
+#' @param pts_a Points matrix for agent A (n_a x 2)
+#' @param pts_b Points matrix for agent B (n_b x 2)
+#' @param times_a Turn times for agent A
+#' @param times_b Turn times for agent B
+#' @param max_lag Maximum turn lag to evaluate (default 15)
+#' @export
+sweep_signed_turn_lags <- function(pts_a, pts_b, times_a, times_b, max_lag = 15L) {
+    .Call(`_libqe_sweep_signed_turn_lags`, pts_a, pts_b, times_a, times_b, max_lag)
+}
+
+#' Distance-distance matrix correlation for stability analysis
+#' @param X Numeric matrix
+#' @param Y Numeric matrix
+#' @export
+dist_dist_correlation <- function(X, Y) {
+    .Call(`_libqe_dist_dist_correlation`, X, Y)
 }
 

@@ -439,6 +439,16 @@ List apply_tensor(arma::vec tensor,
 //' separate export so \code{apply_tensor()}'s ABI (and tma's direct .Call to it)
 //' is unchanged.
 //'
+//' @param tensor         Numeric vector (column-major flat tensor)
+//' @param dims           Integer vector of tensor dimensions
+//' @param dims_sender    0-based sender axis indices
+//' @param dims_receiver  0-based receiver axis indices
+//' @param dims_mode      0-based mode axis indices
+//' @param context_lookup Integer matrix (n_context_rows x n_factors), 0-based
+//' @param unit_rows      0-based response-row indices for this unit
+//' @param codes          Numeric matrix (n_context_rows x n_codes)
+//' @param times          Numeric vector of timestamps per context row
+//' @param ordered        TRUE = directed; FALSE = undirected
 //' @return List with \code{connection_counts}, \code{row_connection_counts},
 //'   \code{row_window_members} (list of 1-based ground-row index vectors, in
 //'   \code{unit_rows} order) and \code{row_window_wins} (parallel resolved
@@ -699,4 +709,297 @@ List generalized_means_rotation(
     p.lasso_eps      = lasso_eps;
 
     return pack_rotation_result(qe::generalized_means_rotation(V, p));
+}
+
+// =============================================================================
+// Door Temporal Pooling & Smoothing
+// =============================================================================
+
+//' Door lookback window pooling for a single block
+//' @param block Numeric matrix of connection counts
+//' @param lookback_size Window lookback size
+//' @param aggregate_mean Logical: TRUE = mean, FALSE = sum
+//' @param weighting_linear Logical: TRUE = linear weights, FALSE = equal
+//' @param segment_ids Integer vector of segment IDs (0-indexed or 1-indexed)
+//' @export
+// [[Rcpp::export]]
+arma::mat door_lookback_block(
+    arma::mat block,
+    int lookback_size = 20,
+    bool aggregate_mean = false,
+    bool weighting_linear = false,
+    IntegerVector segment_ids = IntegerVector()
+) {
+    std::vector<int> segs(segment_ids.begin(), segment_ids.end());
+    return qe::lookback_block(block, lookback_size, aggregate_mean, weighting_linear, segs);
+}
+
+//' Door EMA smoothing for a single block
+//' @param block Numeric matrix of connection counts
+//' @param alpha Smoothing factor in (0, 1]
+//' @param segment_ids Integer vector of segment IDs
+//' @export
+// [[Rcpp::export]]
+arma::mat door_ema_block(
+    arma::mat block,
+    double alpha = 0.1,
+    IntegerVector segment_ids = IntegerVector()
+) {
+    std::vector<int> segs(segment_ids.begin(), segment_ids.end());
+    return qe::ema_block(block, alpha, segs);
+}
+
+//' Door lookback window pooling across units
+//' @param conn_counts Numeric matrix of connection counts
+//' @param unit_row_indices List of integer vectors of row indices (0-indexed or 1-indexed R converted)
+//' @param lookback_sizes Integer vector of lookback sizes per unit
+//' @param aggregate_mean Logical: TRUE = mean, FALSE = sum
+//' @param weighting_linear Logical: TRUE = linear weights, FALSE = equal
+//' @param segment_ids Optional integer vector of segment IDs
+//' @export
+// [[Rcpp::export]]
+arma::mat door_lookback(
+    arma::mat conn_counts,
+    List unit_row_indices,
+    IntegerVector lookback_sizes,
+    bool aggregate_mean = false,
+    bool weighting_linear = false,
+    IntegerVector segment_ids = IntegerVector()
+) {
+    std::vector<std::vector<int>> unit_rows;
+    unit_rows.reserve(unit_row_indices.size());
+    for (int i = 0; i < unit_row_indices.size(); ++i) {
+        IntegerVector iv = unit_row_indices[i];
+        unit_rows.push_back(std::vector<int>(iv.begin(), iv.end()));
+    }
+    std::vector<int> lbs(lookback_sizes.begin(), lookback_sizes.end());
+    std::vector<int> segs(segment_ids.begin(), segment_ids.end());
+
+    return qe::apply_door_lookback(conn_counts, unit_rows, lbs, aggregate_mean, weighting_linear, segs);
+}
+
+//' Door EMA smoothing across units
+//' @param conn_counts Numeric matrix of connection counts
+//' @param unit_row_indices List of integer vectors of row indices
+//' @param alpha Smoothing factor
+//' @param segment_ids Optional integer vector of segment IDs
+//' @export
+// [[Rcpp::export]]
+arma::mat door_ema(
+    arma::mat conn_counts,
+    List unit_row_indices,
+    double alpha = 0.1,
+    IntegerVector segment_ids = IntegerVector()
+) {
+    std::vector<std::vector<int>> unit_rows;
+    unit_rows.reserve(unit_row_indices.size());
+    for (int i = 0; i < unit_row_indices.size(); ++i) {
+        IntegerVector iv = unit_row_indices[i];
+        unit_rows.push_back(std::vector<int>(iv.begin(), iv.end()));
+    }
+    std::vector<int> segs(segment_ids.begin(), segment_ids.end());
+
+    return qe::apply_door_ema(conn_counts, unit_rows, alpha, segs);
+}
+
+// =============================================================================
+// Trajectory Curve Fitting & Differential Geometry
+// =============================================================================
+
+//' Fit 2D parametric polynomial curve with LOOCV-2D or AIC degree selection
+//' @param points Numeric matrix (n x 2) of trajectory coordinates
+//' @param t Numeric vector of time values (length n)
+//' @param max_degree Maximum polynomial degree (default 3)
+//' @param fixed_degree Exact degree to use when >= 1
+//' @param criterion Criterion for degree selection: "loocv" or "aic"
+//' @param basis Polynomial basis used for fitting: "orthogonal" or "raw"
+//' @export
+// [[Rcpp::export]]
+List fit_trajectory_poly(
+    arma::mat points,
+    NumericVector t = NumericVector(),
+    int max_degree = 3,
+    int fixed_degree = 0,
+    std::string criterion = "loocv",
+    std::string basis = "orthogonal"
+) {
+    arma::vec t_vec;
+    if (t.size() > 0) {
+        t_vec = arma::vec(t.begin(), t.size());
+    }
+    qe::PolyCurveFit fit = qe::fit_poly_loocv2d(points, t_vec, max_degree, fixed_degree, criterion, basis);
+
+    return List::create(
+        Named("degree")        = fit.degree,
+        Named("coeffs_x")      = fit.coeffs_x,
+        Named("coeffs_y")      = fit.coeffs_y,
+        Named("basis")         = fit.basis,
+        Named("basis_alpha")   = fit.basis_alpha,
+        Named("basis_norm2")   = fit.basis_norm2,
+        Named("cv_error")      = fit.cv_error,
+        Named("aic")           = fit.aic,
+        Named("t")             = fit.t,
+        Named("fitted_points") = fit.fitted
+    );
+}
+
+//' Evaluate 2D parametric polynomial curve at specified time points
+//' @param coeffs_x Polynomial coefficients for X
+//' @param coeffs_y Polynomial coefficients for Y
+//' @param t_eval Numeric vector of time evaluation points
+//' @export
+// [[Rcpp::export]]
+arma::mat eval_trajectory_curve(
+    arma::vec coeffs_x,
+    arma::vec coeffs_y,
+    arma::vec t_eval
+) {
+    return qe::eval_poly_curve(coeffs_x, coeffs_y, t_eval);
+}
+
+//' Evaluate trajectory differential geometry (velocities, speed, curvature, turns)
+//' @param coeffs_x Polynomial coefficients for X
+//' @param coeffs_y Polynomial coefficients for Y
+//' @param t_eval Numeric vector of time evaluation points
+//' @export
+// [[Rcpp::export]]
+List eval_trajectory_derivatives(
+    arma::vec coeffs_x,
+    arma::vec coeffs_y,
+    arma::vec t_eval
+) {
+    qe::TrajectoryDerivatives d = qe::eval_trajectory_derivatives(coeffs_x, coeffs_y, t_eval);
+    return List::create(
+        Named("t")            = d.t,
+        Named("vx")           = d.vx,
+        Named("vy")           = d.vy,
+        Named("speed")        = d.speed,
+        Named("ax")           = d.ax,
+        Named("ay")           = d.ay,
+        Named("heading_rate") = d.heading_rate,
+        Named("curvature")    = d.curvature
+    );
+}
+
+// =============================================================================
+// Trajectory Distance & Following Dynamics
+// =============================================================================
+
+//' Integrated Euclidean distance between two trajectory polynomial curves
+//' @param coeffs_ax Polynomial coeffs for Curve A X
+//' @param coeffs_ay Polynomial coeffs for Curve A Y
+//' @param coeffs_bx Polynomial coeffs for Curve B X
+//' @param coeffs_by Polynomial coeffs for Curve B Y
+//' @param t_start Integration start (default 0.0)
+//' @param t_end Integration end (default 1.0)
+//' @export
+// [[Rcpp::export]]
+double integrated_trajectory_distance(
+    arma::vec coeffs_ax,
+    arma::vec coeffs_ay,
+    arma::vec coeffs_bx,
+    arma::vec coeffs_by,
+    double t_start = 0.0,
+    double t_end = 1.0
+) {
+    return qe::integrated_curve_distance(coeffs_ax, coeffs_ay, coeffs_bx, coeffs_by, t_start, t_end);
+}
+
+//' Lagged curve distance between follower and leader
+//' @param coeffs_fol_x Polynomial coeffs for Follower X
+//' @param coeffs_fol_y Polynomial coeffs for Follower Y
+//' @param coeffs_ldr_x Polynomial coeffs for Leader X
+//' @param coeffs_ldr_y Polynomial coeffs for Leader Y
+//' @param lag Time lag in [0, 1)
+//' @export
+// [[Rcpp::export]]
+double lagged_trajectory_distance(
+    arma::vec coeffs_fol_x,
+    arma::vec coeffs_fol_y,
+    arma::vec coeffs_ldr_x,
+    arma::vec coeffs_ldr_y,
+    double lag = 0.0
+) {
+    return qe::lagged_curve_distance(coeffs_fol_x, coeffs_fol_y, coeffs_ldr_x, coeffs_ldr_y, lag);
+}
+
+//' Pairwise integrated trajectory distance matrix
+//' @param all_coeffs_x List of X coefficient vectors
+//' @param all_coeffs_y List of Y coefficient vectors
+//' @export
+// [[Rcpp::export]]
+arma::mat pairwise_trajectory_distance(
+    List all_coeffs_x,
+    List all_coeffs_y
+) {
+    std::vector<arma::vec> cx;
+    std::vector<arma::vec> cy;
+    cx.reserve(all_coeffs_x.size());
+    cy.reserve(all_coeffs_y.size());
+    for (int i = 0; i < all_coeffs_x.size(); ++i) {
+        NumericVector nx = all_coeffs_x[i];
+        NumericVector ny = all_coeffs_y[i];
+        cx.push_back(arma::vec(nx.begin(), nx.size()));
+        cy.push_back(arma::vec(ny.begin(), ny.size()));
+    }
+    return qe::pairwise_trajectory_distance_matrix(cx, cy);
+}
+
+//' Signed turn-lag distance between two agents at specific lag delta
+//' @param pts_a Points matrix for agent A (n_a x 2)
+//' @param pts_b Points matrix for agent B (n_b x 2)
+//' @param times_a Turn times for agent A
+//' @param times_b Turn times for agent B
+//' @param delta Signed lag in turns
+//' @export
+// [[Rcpp::export]]
+List signed_turn_lag(
+    arma::mat pts_a,
+    arma::mat pts_b,
+    arma::vec times_a,
+    arma::vec times_b,
+    int delta
+) {
+    auto [mean_d, count] = qe::signed_turn_lag_distance(pts_a, pts_b, times_a, times_b, delta);
+    return List::create(
+        Named("mean_distance") = mean_d,
+        Named("valid_count")   = count
+    );
+}
+
+//' Sweep signed turn lags to find optimal leader-follower lag
+//' @param pts_a Points matrix for agent A (n_a x 2)
+//' @param pts_b Points matrix for agent B (n_b x 2)
+//' @param times_a Turn times for agent A
+//' @param times_b Turn times for agent B
+//' @param max_lag Maximum turn lag to evaluate (default 15)
+//' @export
+// [[Rcpp::export]]
+List sweep_signed_turn_lags(
+    arma::mat pts_a,
+    arma::mat pts_b,
+    arma::vec times_a,
+    arma::vec times_b,
+    int max_lag = 15
+) {
+    qe::SignedTurnLagResult res = qe::best_signed_turn_lag(pts_a, pts_b, times_a, times_b, max_lag);
+    return List::create(
+        Named("best_lag")           = res.best_lag,
+        Named("min_mean_distance")  = res.min_mean_distance,
+        Named("lags")               = res.lags,
+        Named("mean_distances")     = res.mean_distances,
+        Named("valid_counts")       = res.valid_counts
+    );
+}
+
+//' Distance-distance matrix correlation for stability analysis
+//' @param X Numeric matrix
+//' @param Y Numeric matrix
+//' @export
+// [[Rcpp::export]]
+double dist_dist_correlation(
+    arma::mat X,
+    arma::mat Y
+) {
+    return qe::dist_dist_correlation(X, Y);
 }
