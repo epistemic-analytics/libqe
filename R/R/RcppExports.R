@@ -577,3 +577,23 @@ dist_dist_correlation <- function(X, Y) {
     .Call(`_libqe_dist_dist_correlation`, X, Y)
 }
 
+#' Cross-covariance decay (CCD) window-size estimation
+#'
+#' Estimates the ENA moving-window size from the half-life decay lag of the
+#' noise-corrected Frobenius norm of pooled conversation cross-covariance
+#' matrices.
+#'
+#' @param conversations A list of numeric code matrices, one per conversation
+#'   (rows in sequence; all matrices share the same number of columns).
+#' @param max_window Maximum lag to evaluate (default 20).
+#' @param min_overlap Minimum overlapping rows (N - lag) required for a
+#'   conversation to contribute at a given lag (default 10).
+#'
+#' @return A list with \code{window_size}, \code{peak_lag}, and the per-lag
+#'   curves \code{lag}, \code{frob}, \code{frob_sq_unbiased},
+#'   \code{frob_unbiased_signed}, and \code{total_weight}.
+#' @export
+ccd_window <- function(conversations, max_window = 20L, min_overlap = 10L) {
+    .Call(`_libqe_ccd_window`, conversations, max_window, min_overlap)
+}
+

@@ -605,6 +605,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// ccd_window
+Rcpp::List ccd_window(Rcpp::List conversations, int max_window, int min_overlap);
+RcppExport SEXP _libqe_ccd_window(SEXP conversationsSEXP, SEXP max_windowSEXP, SEXP min_overlapSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type conversations(conversationsSEXP);
+    Rcpp::traits::input_parameter< int >::type max_window(max_windowSEXP);
+    Rcpp::traits::input_parameter< int >::type min_overlap(min_overlapSEXP);
+    rcpp_result_gen = Rcpp::wrap(ccd_window(conversations, max_window, min_overlap));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_libqe_choose_two", (DL_FUNC) &_libqe_choose_two, 1},
@@ -651,6 +664,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_libqe_signed_turn_lag", (DL_FUNC) &_libqe_signed_turn_lag, 5},
     {"_libqe_sweep_signed_turn_lags", (DL_FUNC) &_libqe_sweep_signed_turn_lags, 5},
     {"_libqe_dist_dist_correlation", (DL_FUNC) &_libqe_dist_dist_correlation, 2},
+    {"_libqe_ccd_window", (DL_FUNC) &_libqe_ccd_window, 3},
     {NULL, NULL, 0}
 };
 

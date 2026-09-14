@@ -1003,3 +1003,44 @@ double dist_dist_correlation(
 ) {
     return qe::dist_dist_correlation(X, Y);
 }
+
+//' Cross-covariance decay (CCD) window-size estimation
+//'
+//' Estimates the ENA moving-window size from the half-life decay lag of the
+//' noise-corrected Frobenius norm of pooled conversation cross-covariance
+//' matrices.
+//'
+//' @param conversations A list of numeric code matrices, one per conversation
+//'   (rows in sequence; all matrices share the same number of columns).
+//' @param max_window Maximum lag to evaluate (default 20).
+//' @param min_overlap Minimum overlapping rows (N - lag) required for a
+//'   conversation to contribute at a given lag (default 10).
+//'
+//' @return A list with \code{window_size}, \code{peak_lag}, and the per-lag
+//'   curves \code{lag}, \code{frob}, \code{frob_sq_unbiased},
+//'   \code{frob_unbiased_signed}, and \code{total_weight}.
+//' @export
+// [[Rcpp::export]]
+Rcpp::List ccd_window(
+    Rcpp::List conversations,
+    int max_window = 20,
+    int min_overlap = 10
+) {
+    std::vector<arma::mat> convos;
+    convos.reserve(conversations.size());
+    for (R_xlen_t i = 0; i < conversations.size(); ++i) {
+        convos.push_back(Rcpp::as<arma::mat>(conversations[i]));
+    }
+
+    qe::CCDResult res = qe::ccd_window(convos, max_window, min_overlap);
+
+    return Rcpp::List::create(
+        Named("window_size")          = res.window_size,
+        Named("peak_lag")             = res.peak_lag,
+        Named("lag")                  = res.lag,
+        Named("frob")                 = res.frob,
+        Named("frob_sq_unbiased")     = res.frob_sq_unbiased,
+        Named("frob_unbiased_signed") = res.frob_unbiased_signed,
+        Named("total_weight")         = res.total_weight
+    );
+}
