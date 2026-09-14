@@ -31,5 +31,6 @@
 #include "trajectory_distance.hpp"
 #include "trajectory_following.hpp"
 #include "stability.hpp"
+#include "ccd.hpp"
 
 #endif // LIBQE_HPP

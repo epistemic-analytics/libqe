@@ -308,3 +308,42 @@ test('generalized_means_rotation: numeric target returns GMR1/SVD2', () => {
     expect(r.column_names[0]).toBe('GMR1');
     expect(r.column_names[1]).toBe('SVD2');
 });
+
+test('ccd_window: estimates a window and returns per-lag curves', () => {
+    // Two conversations × 30 rows, 3 codes. Code B tends to follow code A at
+    // lag 1 (with decay), so the corrected covariance peaks early and decays.
+    let seed = 3;
+    const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    const flat = []; let nRows = 0;
+    const groupSizes = [], rowIndices = [];
+    for (let c = 0; c < 2; c++) {
+        let prevA = 0;
+        for (let i = 0; i < 30; i++) {
+            const A = rnd() < 0.4 ? 1 : 0;
+            const B = (prevA === 1 && rnd() < 0.8) ? 1 : (rnd() < 0.15 ? 1 : 0);
+            const Cc = rnd() < 0.3 ? 1 : 0;
+            flat.push(A, B, Cc);
+            rowIndices.push(nRows++);
+            prevA = A;
+        }
+        groupSizes.push(30);
+    }
+    const r = qe.ccd_window(flat, nRows, 3, groupSizes, rowIndices, 12, 5);
+
+    expect(r.window_size).toBeGreaterThanOrEqual(1);
+    expect(r.window_size).toBeLessThanOrEqual(12);
+    expect(r.peak_lag).toBeGreaterThanOrEqual(1);
+    // Curves are indexed by lag 0..max_window.
+    expect(r.lag.length).toBe(13);
+    expect(r.frob.length).toBe(13);
+    expect(r.frob_unbiased_signed.length).toBe(13);
+    expect(r.total_weight.length).toBe(13);
+    expect(r.lag[0]).toBe(0);
+    expect(r.lag[12]).toBe(12);
+});
+
+test('ccd_window: conversations shorter than min_overlap default to window 1', () => {
+    const r = qe.ccd_window([1, 0, 1, 0, 1, 0], 2, 3, [2], [0, 1], 12, 5);
+    expect(r.window_size).toBe(1);
+    expect(r.peak_lag).toBe(0);
+});

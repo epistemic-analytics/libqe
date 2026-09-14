@@ -721,6 +721,51 @@ static double dist_dist_correlation(
         js_to_mat(y_val, ry, cy));
 }
 
+// CCD window-size estimation.
+// codes_data: full code matrix (n_rows × n_codes, row-major, flat).
+// group_sizes: number of rows in each conversation subset.
+// row_indices: 0-based row indices into the code matrix, concatenated in
+//              conversation order (length == sum(group_sizes)); this lets the
+//              caller pass non-contiguous conversations (cf. parseData's
+//              convoGroups) without pre-copying subsets.
+// Returns { window_size, peak_lag, lag, frob, frob_sq_unbiased,
+//           frob_unbiased_signed, total_weight }.
+static val ccd_window(
+    const val& codes_data, int n_rows, int n_codes,
+    const val& group_sizes_val, const val& row_indices_val,
+    int max_window, int min_overlap
+) {
+    arma::mat codes = js_to_mat(codes_data, n_rows, n_codes);
+    std::vector<int> group_sizes = vecFromJSArray<int>(group_sizes_val);
+    std::vector<int> row_indices = vecFromJSArray<int>(row_indices_val);
+
+    std::vector<arma::mat> conversations;
+    conversations.reserve(group_sizes.size());
+    std::size_t cursor = 0;
+    for (int sz : group_sizes) {
+        arma::uvec rows(sz);
+        for (int i = 0; i < sz; ++i) rows[i] = static_cast<arma::uword>(row_indices[cursor++]);
+        conversations.push_back(codes.rows(rows));
+    }
+
+    qe::CCDResult res = qe::ccd_window(conversations, max_window, min_overlap);
+
+    auto vec_to_js = [](const arma::vec& v) {
+        std::vector<double> tmp(v.memptr(), v.memptr() + v.n_elem);
+        return val::array(tmp.begin(), tmp.end());
+    };
+
+    val result = val::object();
+    result.set("window_size",          res.window_size);
+    result.set("peak_lag",             res.peak_lag);
+    result.set("lag",                  vec_to_js(res.lag));
+    result.set("frob",                 vec_to_js(res.frob));
+    result.set("frob_sq_unbiased",     vec_to_js(res.frob_sq_unbiased));
+    result.set("frob_unbiased_signed", vec_to_js(res.frob_unbiased_signed));
+    result.set("total_weight",         vec_to_js(res.total_weight));
+    return result;
+}
+
 // ── Embind registrations ──────────────────────────────────────────────────────
 
 EMSCRIPTEN_BINDINGS(libqe) {
@@ -777,4 +822,7 @@ EMSCRIPTEN_BINDINGS(libqe) {
     function("signed_turn_lag",                       &signed_turn_lag);
     function("sweep_signed_turn_lags",                &sweep_signed_turn_lags);
     function("dist_dist_correlation",                 &dist_dist_correlation);
+
+    // CCD window-size estimation
+    function("ccd_window",                            &ccd_window);
 }
