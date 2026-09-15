@@ -28,6 +28,9 @@ pylibqe.door
 pylibqe.trajectory
     Parametric trajectory fitting, derivatives, distances, and lag analysis.
 
+pylibqe.ccd
+    Cross-covariance decay (CCD) window-size estimation.
+
 All matrix inputs/outputs use numpy float64 arrays.
 """
 
@@ -39,6 +42,7 @@ from ._pylibqe import (
     rotation,
     door,
     trajectory,
+    ccd,
 )
 from ._pylibqe.modeling import NodePositions, GroupStatsResult
 from ._pylibqe import UnitNetworks, TensorNetworks, RotationResult
@@ -51,6 +55,7 @@ __all__ = [
     "rotation",
     "door",
     "trajectory",
+    "ccd",
     "NodePositions",
     "GroupStatsResult",
     "UnitNetworks",

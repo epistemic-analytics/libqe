@@ -848,4 +848,27 @@ NB_MODULE(_pylibqe, m) {
     traj_mod.def("dist_dist_correlation", [](NpMat X, NpMat Y) {
         return qe::dist_dist_correlation(to_mat(X), to_mat(Y));
     }, "X"_a, "Y"_a);
+
+    // ── CCD (cross-covariance decay window-size estimation) ──────────────────
+    auto ccd_mod = m.def_submodule("ccd",
+        "Cross-covariance decay window-size estimation");
+
+    ccd_mod.def("ccd_window", [](nb::list conversations, int max_window, int min_overlap) {
+        std::vector<arma::mat> convos;
+        convos.reserve(conversations.size());
+        for (auto item : conversations) {
+            NpMat arr = nb::cast<NpMat>(item);
+            convos.push_back(to_mat(arr));
+        }
+        qe::CCDResult res = qe::ccd_window(convos, max_window, min_overlap);
+        nb::dict out;
+        out["window_size"]          = res.window_size;
+        out["peak_lag"]             = res.peak_lag;
+        out["lag"]                  = from_vec(res.lag);
+        out["frob"]                 = from_vec(res.frob);
+        out["frob_sq_unbiased"]     = from_vec(res.frob_sq_unbiased);
+        out["frob_unbiased_signed"] = from_vec(res.frob_unbiased_signed);
+        out["total_weight"]         = from_vec(res.total_weight);
+        return out;
+    }, "conversations"_a, "max_window"_a = 20, "min_overlap"_a = 10);
 }
