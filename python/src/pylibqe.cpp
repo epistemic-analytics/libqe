@@ -539,6 +539,21 @@ NB_MODULE(_pylibqe, m) {
         "Default mode: when dims=[2] and tensor has 2 elements [weight, window], uses\n"
         "a simplified single-weight/window path (equivalent to tma's default tensor).");
 
+    acc.def("aggregate_row_connections",
+        [](NpMat row_conn, int n_codes, bool ordered, bool binary) {
+            return from_rowvec(qe::aggregate_row_connections(
+                to_mat(row_conn), n_codes, ordered, binary));
+        },
+        "row_conn"_a, "n_codes"_a, "ordered"_a = false, "binary"_a = true,
+        "Aggregate apply_tensor_unit's row_connection_counts into a unit vector,\n"
+        "matching tma's R aggregation (as.unordered + colSums.ena.matrix(binary)).\n\n"
+        "row_conn : ndarray 2-D  (n_response_rows x n_codes^2) per-row directed counts\n"
+        "n_codes  : int          number of codes p\n"
+        "ordered  : bool         True = directed p^2 column sums (no fold/binarize);\n"
+        "                        False = fold each row to choose(p,2) then sum\n"
+        "binary   : bool         unordered only: binarize each folded row before summing\n\n"
+        "Returns a 1-D ndarray of length p^2 (ordered) or choose(p,2) (unordered).");
+
     // ── rotation ──────────────────────────────────────────────────────────────
     auto rot = m.def_submodule("rotation",
         "Rotation primitives: SVD, deflation, orthogonal SVD, means rotation, "

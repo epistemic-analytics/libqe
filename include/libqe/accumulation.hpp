@@ -493,6 +493,56 @@ inline TensorNetworks apply_tensor_unit(
     return result;
 }
 
+/** @brief Aggregate per-response-row tensor connections into a unit vector.
+ *
+ *  Mirrors tma's R aggregation of @c apply_tensor_unit()'s
+ *  @c row_connection_counts (tma/R/accum_multidim_c.R): the @c ordered branch is
+ *  a plain column sum over the directed p² space, while the unordered branch
+ *  folds each response row to the upper triangle (@c as.unordered) and, when
+ *  @p binary is @c true, clamps each folded row to presence before summing
+ *  (@c colSums.ena.matrix(binary = TRUE)).
+ *
+ *  This is the aggregation step tma performs in R; libqe's @c apply_tensor_unit
+ *  intentionally returns the raw per-row matrix so callers can compose it.
+ *  Kept as a standalone kernel function so the fold/binarize/sum semantics live
+ *  in one place shared by every binding, instead of being re-implemented in each
+ *  wrapper layer.
+ *
+ *  @param[in] row_conn  Per-response-row directed connection matrix
+ *                       (n_response_rows × p²), i.e.
+ *                       @c TensorNetworks::row_connection_counts.
+ *  @param[in] n_codes   Number of codes @c p.
+ *  @param[in] ordered   When @c true, return the directed p² column sums (no fold,
+ *                       no binarization).  When @c false, fold each row to
+ *                       @c choose_two(p) and sum.
+ *  @param[in] binary    Unordered only: when @c true, binarize each folded
+ *                       response row (presence, 0/1) before summing — the rENA /
+ *                       tma co-occurrence convention.
+ *
+ *  @returns Flat unit connection vector of length p² (ordered) or
+ *           @c choose_two(p) (unordered).
+ */
+inline arma::rowvec aggregate_row_connections(
+    const arma::mat& row_conn,
+    int  n_codes,
+    bool ordered = false,
+    bool binary  = true
+) {
+    if (ordered) return arma::sum(row_conn, 0);
+
+    int n_rows = static_cast<int>(row_conn.n_rows);
+    int n_tri  = choose_two(n_codes);
+    arma::rowvec out(n_tri, arma::fill::zeros);
+
+    for (int r = 0; r < n_rows; ++r) {
+        arma::rowvec folded =
+            fold_directed_network(arma::vectorise(row_conn.row(r)));
+        if (binary) folded.elem(arma::find(folded > 0)).ones();
+        out += folded;
+    }
+    return out;
+}
+
 /// @}
 
 /// @name Per-row co-occurrence and rolling window (rENA accumulation primitives)

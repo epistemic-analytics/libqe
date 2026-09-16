@@ -368,6 +368,19 @@ static val accumulate_tensor_unit(
     return result;
 }
 
+// aggregate_row_connections(row_conn, rows, cols, n_codes, ordered, binary)
+//   row_conn — Float64Array, row-major (rows × cols), cols == n_codes²
+//              (TensorNetworks.row_connection_counts from accumulate_tensor_unit)
+// → Float64Array — unit vector, length n_codes² (ordered) or choose_two (unordered)
+static val aggregate_row_connections(
+        const val& row_conn_val, int rows, int cols,
+        int n_codes, bool ordered, bool binary) {
+    arma::mat row_conn = js_to_mat(row_conn_val, rows, cols);
+    arma::rowvec out = qe::aggregate_row_connections(row_conn, n_codes, ordered, binary);
+    std::vector<double> v(out.memptr(), out.memptr() + out.n_elem);
+    return val::array(v.begin(), v.end());
+}
+
 // ── Rotation ──────────────────────────────────────────────────────────────────
 
 // ena_svd(data, rows, cols)
@@ -800,6 +813,7 @@ EMSCRIPTEN_BINDINGS(libqe) {
     function("accumulate_unit",                       &accumulate_unit);
     function("accumulate_unit_with_rows",             &accumulate_unit_with_rows);
     function("accumulate_tensor_unit",                &accumulate_tensor_unit);
+    function("aggregate_row_connections",             &aggregate_row_connections);
 
     // Rotation
     function("ena_svd",                               &ena_svd);
