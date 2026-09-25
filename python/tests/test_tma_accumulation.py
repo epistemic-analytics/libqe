@@ -166,3 +166,66 @@ class TestApplyTensorUnit:
             make_default_tensor(0.0, 5.0), [2],
             [], [], [], ctx, [1, 2], codes, times, True)
         assert np.all(out.connection_counts == 0)
+
+
+# ── aggregate_row_connections / finalize_row_connections (weight models) ──────
+
+def weighted_row_conn():
+    """Two response rows x 3 codes, directed 3x3 per row (column-major within
+    the row); counts > 1 and asymmetric (same fixture as the R / wasm tests)."""
+    rc = np.zeros((2, 9), dtype=np.float64)
+    rc[0, 3] = 2.0    # m(0,1)
+    rc[0, 1] = 1.0    # m(1,0)  -> row 0 folds to A&B = 3
+    rc[0, 7] = 4.0    # m(1,2)  -> row 0 B&C = 4
+    rc[1, 6] = 9.0    # m(0,2)  -> row 1 A&C = 9
+    rc[1, 3] = 0.5    # m(0,1)  -> row 1 A&B = 0.5
+    return rc
+
+
+class TestAggregateRowConnectionsWeights:
+    def agg(self, weight, ordered=False):
+        return accumulation.aggregate_row_connections(weighted_row_conn(), 3, ordered, weight)
+
+    def test_unordered_weights_apply_per_row_before_sum(self):
+        np.testing.assert_allclose(self.agg("binary"),  [2, 1, 1])
+        np.testing.assert_allclose(self.agg("product"), [3.5, 9, 4])
+        np.testing.assert_allclose(self.agg("sqrt"),    [np.sqrt(3) + np.sqrt(0.5), 3, 2])
+        np.testing.assert_allclose(self.agg("log1p"),   [np.log1p(3) + np.log1p(0.5), np.log1p(9), np.log1p(4)])
+        np.testing.assert_allclose(self.agg("log"),     self.agg("log1p"))
+
+    def test_legacy_bool_and_default(self):
+        np.testing.assert_array_equal(self.agg(True),  self.agg("binary"))
+        np.testing.assert_array_equal(self.agg(False), self.agg("product"))
+        np.testing.assert_array_equal(
+            accumulation.aggregate_row_connections(weighted_row_conn(), 3), self.agg("binary"))
+
+    def test_ordered_binary_keeps_raw_counts(self):
+        rc = weighted_row_conn()
+        np.testing.assert_allclose(self.agg("binary", True),  rc.sum(axis=0))
+        np.testing.assert_allclose(self.agg("product", True), rc.sum(axis=0))
+        np.testing.assert_allclose(self.agg("sqrt", True),    np.sqrt(rc).sum(axis=0))
+
+    def test_finalize_rows_sum_to_aggregate(self):
+        for weight in ("binary", "product", "sqrt", "log1p"):
+            for ordered in (False, True):
+                fin = accumulation.finalize_row_connections(weighted_row_conn(), 3, ordered, weight)
+                assert fin.shape == (2, 9 if ordered else 3)
+                np.testing.assert_allclose(fin.sum(axis=0), self.agg(weight, ordered))
+
+    def test_unknown_weight_raises(self):
+        with pytest.raises(ValueError, match="Unknown weight model"):
+            self.agg("cube")
+
+    def test_tensor_rows_match_rena_weight_by(self):
+        # One unit/conversation, window 3 (same example pinned in the R tests).
+        codes = np.array([[2, 0, 1], [1, 3, 0], [0, 1, 2]], dtype=np.float64)
+        out = accumulation.apply_tensor_unit(
+            make_default_tensor(1.0, 3.0), [2], [], [], [],
+            make_context_lookup(3), [0, 1, 2], codes,
+            np.arange(3, dtype=np.float64), True)
+        rc = np.ascontiguousarray(out.row_connection_counts)
+        agg = lambda w: accumulation.aggregate_row_connections(rc, 3, False, w)
+        np.testing.assert_allclose(agg("binary"),  [2, 3, 2])
+        np.testing.assert_allclose(agg("product"), [12, 9, 12])
+        np.testing.assert_allclose(agg("sqrt"),  [4.73205080756888, 4.86370330515627, 4.73205080756888], rtol=1e-12)
+        np.testing.assert_allclose(agg("log1p"), [3.68887945411394, 3.73766961828337, 3.68887945411394], rtol=1e-12)

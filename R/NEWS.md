@@ -1,3 +1,10 @@
+# libqe (development version)
+
+- Added weight models to `aggregate_row_connections` (= rENA's `weight.by`): `"binary"`, `"product"`, `"sqrt"` and `"log1p"` (alias `"log"`). The weight is applied per response row — after the fold (unordered) or per directed cell (ordered) — and before rows are summed into the unit network, the same stage legacy rENA applies `weight.by`. `"binary"` on ordered networks keeps the raw directed counts, as before.
+- Added `finalize_row_connections`, the per-row step (fold + weight) without the sum, so callers can expose line-level connection counts.
+- The weight argument accepts either a weight-model name or the previous boolean binary flag (`TRUE` = `"binary"`, `FALSE` = `"product"`); existing callers are unaffected. The C++ `bool binary` overload is retained with identical results.
+- Both functions are now exported from the R package (previously WASM and Python only). WASM and Python bindings updated; the Python keyword is now `weight`.
+
 # libqe 0.1.4
 
 - Added `aggregate_row_connections`, the fold + per-row-binarize + sum aggregation of `apply_tensor_unit`'s per-response-row counts into a unit vector — the step tma performs in R (`as.unordered` + `colSums.ena.matrix(binary)`), now shared in the C++ kernel. WASM and Python bindings added. `apply_tensor_unit` itself is unchanged, so the R tma pipeline (which already does this aggregation in R) is unaffected; no R wrapper is exported for the new function. Note: the JS (rena-wasm) and Python (pytma) consumers previously mis-aggregated the tensor path by reading the raw `connection_counts` — both now call `aggregate_row_connections`.

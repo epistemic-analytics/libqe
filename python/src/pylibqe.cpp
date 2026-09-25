@@ -16,7 +16,9 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 #include <nanobind/stl/optional.h>
+#include <nanobind/stl/variant.h>
 #include <optional>
+#include <variant>
 
 #include <armadillo>
 #include <libqe/libqe.hpp>
@@ -539,20 +541,43 @@ NB_MODULE(_pylibqe, m) {
         "Default mode: when dims=[2] and tensor has 2 elements [weight, window], uses\n"
         "a simplified single-weight/window path (equivalent to tma's default tensor).");
 
+    // Weight model: a name ("binary" | "product" | "sqrt" | "log1p" | "log") or
+    // the legacy bool binary flag (True -> "binary", False -> "product").
+    auto weight_model = [](const std::variant<bool, std::string>& w) {
+        return std::holds_alternative<bool>(w)
+            ? qe::weight_model_from_bool(std::get<bool>(w))
+            : qe::weight_model_from_string(std::get<std::string>(w));
+    };
+
     acc.def("aggregate_row_connections",
-        [](NpMat row_conn, int n_codes, bool ordered, bool binary) {
+        [weight_model](NpMat row_conn, int n_codes, bool ordered,
+                       std::variant<bool, std::string> weight) {
             return from_rowvec(qe::aggregate_row_connections(
-                to_mat(row_conn), n_codes, ordered, binary));
+                to_mat(row_conn), n_codes, ordered, weight_model(weight)));
         },
-        "row_conn"_a, "n_codes"_a, "ordered"_a = false, "binary"_a = true,
+        "row_conn"_a, "n_codes"_a, "ordered"_a = false, "weight"_a = "binary",
         "Aggregate apply_tensor_unit's row_connection_counts into a unit vector,\n"
-        "matching tma's R aggregation (as.unordered + colSums.ena.matrix(binary)).\n\n"
+        "matching tma's R aggregation (as.unordered + colSums.ena.matrix), with the\n"
+        "weight model applied per row before the sum (= rENA's weight.by).\n\n"
         "row_conn : ndarray 2-D  (n_response_rows x n_codes^2) per-row directed counts\n"
         "n_codes  : int          number of codes p\n"
-        "ordered  : bool         True = directed p^2 column sums (no fold/binarize);\n"
-        "                        False = fold each row to choose(p,2) then sum\n"
-        "binary   : bool         unordered only: binarize each folded row before summing\n\n"
+        "ordered  : bool         True = directed p^2 rows; False = fold each row to choose(p,2)\n"
+        "weight   : str | bool   'binary' (unordered: clamp to 1; ordered: raw counts),\n"
+        "                        'product' (raw counts), 'sqrt', 'log1p' (alias 'log');\n"
+        "                        a bool is the legacy binary flag (True = 'binary',\n"
+        "                        False = 'product')\n\n"
         "Returns a 1-D ndarray of length p^2 (ordered) or choose(p,2) (unordered).");
+
+    acc.def("finalize_row_connections",
+        [weight_model](NpMat row_conn, int n_codes, bool ordered,
+                       std::variant<bool, std::string> weight) {
+            return from_mat(qe::finalize_row_connections(
+                to_mat(row_conn), n_codes, ordered, weight_model(weight)));
+        },
+        "row_conn"_a, "n_codes"_a, "ordered"_a = false, "weight"_a = "binary",
+        "Per-row step of aggregate_row_connections (fold + weight model) without\n"
+        "the sum; its rows sum to aggregate_row_connections.\n\n"
+        "Returns a 2-D ndarray (n_response_rows x p^2 ordered, or x choose(p,2)).");
 
     // ── rotation ──────────────────────────────────────────────────────────────
     auto rot = m.def_submodule("rotation",

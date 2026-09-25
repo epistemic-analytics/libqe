@@ -333,6 +333,34 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// finalize_row_connections
+arma::mat finalize_row_connections(arma::mat row_conn, int n_codes, bool ordered, SEXP weight);
+RcppExport SEXP _libqe_finalize_row_connections(SEXP row_connSEXP, SEXP n_codesSEXP, SEXP orderedSEXP, SEXP weightSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type row_conn(row_connSEXP);
+    Rcpp::traits::input_parameter< int >::type n_codes(n_codesSEXP);
+    Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type weight(weightSEXP);
+    rcpp_result_gen = Rcpp::wrap(finalize_row_connections(row_conn, n_codes, ordered, weight));
+    return rcpp_result_gen;
+END_RCPP
+}
+// aggregate_row_connections
+NumericVector aggregate_row_connections(arma::mat row_conn, int n_codes, bool ordered, SEXP weight);
+RcppExport SEXP _libqe_aggregate_row_connections(SEXP row_connSEXP, SEXP n_codesSEXP, SEXP orderedSEXP, SEXP weightSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type row_conn(row_connSEXP);
+    Rcpp::traits::input_parameter< int >::type n_codes(n_codesSEXP);
+    Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type weight(weightSEXP);
+    rcpp_result_gen = Rcpp::wrap(aggregate_row_connections(row_conn, n_codes, ordered, weight));
+    return rcpp_result_gen;
+END_RCPP
+}
 // ena_svd
 List ena_svd(arma::mat points);
 RcppExport SEXP _libqe_ena_svd(SEXP pointsSEXP) {
@@ -645,6 +673,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_libqe_accumulate_unit_with_rows", (DL_FUNC) &_libqe_accumulate_unit_with_rows, 4},
     {"_libqe_apply_tensor", (DL_FUNC) &_libqe_apply_tensor, 10},
     {"_libqe_apply_tensor_members", (DL_FUNC) &_libqe_apply_tensor_members, 10},
+    {"_libqe_finalize_row_connections", (DL_FUNC) &_libqe_finalize_row_connections, 4},
+    {"_libqe_aggregate_row_connections", (DL_FUNC) &_libqe_aggregate_row_connections, 4},
     {"_libqe_ena_svd", (DL_FUNC) &_libqe_ena_svd, 1},
     {"_libqe_deflate", (DL_FUNC) &_libqe_deflate, 2},
     {"_libqe_orthogonal_svd", (DL_FUNC) &_libqe_orthogonal_svd, 3},

@@ -347,3 +347,76 @@ test('ccd_window: conversations shorter than min_overlap default to window 1', (
     expect(r.window_size).toBe(1);
     expect(r.peak_lag).toBe(0);
 });
+
+// ── aggregate_row_connections / finalize_row_connections (weight models) ─────
+
+// Two response rows × 3 codes, directed 3×3 per row (column-major within the
+// row), row-major overall — counts > 1 and asymmetric (same fixture as R tests).
+function weightedRowConn() {
+    const rc = new Float64Array(2 * 9);
+    rc[0 * 9 + 3] = 2;    // m(0,1)
+    rc[0 * 9 + 1] = 1;    // m(1,0)  → row 0 folds to A&B = 3
+    rc[0 * 9 + 7] = 4;    // m(1,2)  → row 0 B&C = 4
+    rc[1 * 9 + 6] = 9;    // m(0,2)  → row 1 A&C = 9
+    rc[1 * 9 + 3] = 0.5;  // m(0,1)  → row 1 A&B = 0.5
+    return rc;
+}
+const agg = (w, ordered = false) =>
+    Array.from(qe.aggregate_row_connections(weightedRowConn(), 2, 9, 3, ordered, w));
+const expectClose = (got, want) => want.forEach((v, i) => expect(got[i]).toBeCloseTo(v, 12));
+
+test('aggregate_row_connections: unordered weight models apply per row before the sum', () => {
+    expectClose(agg('binary'),  [2, 1, 1]);
+    expectClose(agg('product'), [3.5, 9, 4]);
+    expectClose(agg('sqrt'),    [Math.sqrt(3) + Math.sqrt(0.5), 3, 2]);
+    expectClose(agg('log1p'),   [Math.log1p(3) + Math.log1p(0.5), Math.log1p(9), Math.log1p(4)]);
+    expectClose(agg('log'),     agg('log1p'));
+});
+
+test('aggregate_row_connections: legacy boolean flag maps to binary / product', () => {
+    expect(agg(true)).toEqual(agg('binary'));
+    expect(agg(false)).toEqual(agg('product'));
+});
+
+test('aggregate_row_connections: ordered binary keeps raw directed counts', () => {
+    const rc = weightedRowConn();
+    const colSum = f => Array.from({ length: 9 }, (_, c) => f(rc[c]) + f(rc[9 + c]));
+    expectClose(agg('binary', true),  colSum(x => x));
+    expectClose(agg('product', true), colSum(x => x));
+    expectClose(agg('sqrt', true),    colSum(Math.sqrt));
+});
+
+test('finalize_row_connections: per-row output sums to the aggregate', () => {
+    for (const w of ['binary', 'product', 'sqrt', 'log1p']) {
+        for (const ordered of [false, true]) {
+            const fin = qe.finalize_row_connections(weightedRowConn(), 2, 9, 3, ordered, w);
+            expect(fin.rows).toBe(2);
+            expect(fin.cols).toBe(ordered ? 9 : 3);
+            const sums = Array.from({ length: fin.cols }, (_, c) => fin.data[c] + fin.data[fin.cols + c]);
+            expectClose(sums, agg(w, ordered));
+        }
+    }
+});
+
+test('aggregate_row_connections: rejects unknown weight model names', () => {
+    expect(() => agg('cube')).toThrow();
+});
+
+test('aggregate_row_connections: tensor rows match rENA ena.accumulate.data weight.by', () => {
+    // One unit/conversation, window 3 (same example pinned in the R tests).
+    const out = qe.accumulate_tensor_unit(
+        new Float64Array([1, 3]), new Int32Array([2]),
+        new Int32Array([]), new Int32Array([]), new Int32Array([]),
+        new Int32Array([0, 0, 0]), 3, 1,
+        new Int32Array([0, 1, 2]),
+        new Float64Array([2, 0, 1,  1, 3, 0,  0, 1, 2]), 3, 3,
+        new Float64Array([0, 1, 2]),
+        /*ordered=*/true
+    );
+    const rc = out.row_connection_counts;
+    const a  = w => Array.from(qe.aggregate_row_connections(rc.data, rc.rows, rc.cols, 3, false, w));
+    expectClose(a('binary'),  [2, 3, 2]);
+    expectClose(a('product'), [12, 9, 12]);
+    expectClose(a('sqrt'),    [4.73205080756888, 4.86370330515627, 4.73205080756888]);
+    expectClose(a('log1p'),   [3.68887945411394, 3.73766961828337, 3.68887945411394]);
+});

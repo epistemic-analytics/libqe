@@ -484,6 +484,66 @@ List apply_tensor_members(arma::vec tensor,
     );
 }
 
+// Weight model from R: NULL (= "binary"), TRUE/FALSE (legacy binary flag) or a name.
+static qe::WeightModel weight_model_from_sexp(SEXP weight) {
+    if (Rf_isNull(weight)) return qe::WeightModel::Binary;
+    if (TYPEOF(weight) == STRSXP && Rf_length(weight) == 1)
+        return qe::weight_model_from_string(Rcpp::as<std::string>(weight));
+    if (TYPEOF(weight) == LGLSXP && Rf_length(weight) == 1)
+        return qe::weight_model_from_bool(Rcpp::as<bool>(weight));
+    Rcpp::stop("`weight` must be TRUE/FALSE or one of 'binary', 'product', 'sqrt', 'log1p'.");
+}
+
+//' Finalise per-response-row tensor connections (fold + weight model)
+//'
+//' The per-line step of tma's aggregation, before any summing: unordered rows
+//' are folded to the upper triangle, then the weight model is applied; ordered
+//' rows keep the directed n*n layout with the weight applied per cell.
+//'
+//' Weight models are applied per line, before the unit sum (the stage legacy
+//' rENA applies \code{weight.by}): \code{"binary"} clamps each unordered count
+//' to 1 (ordered counts are left raw), \code{"product"} keeps the counts,
+//' \code{"sqrt"} and \code{"log1p"} (alias \code{"log"}) transform each
+//' line's product count.
+//'
+//' @param row_conn Numeric matrix (n_response_rows x n_codes^2) of per-row
+//'   directed counts, i.e. \code{apply_tensor()$row_connection_counts}
+//' @param n_codes  Number of codes
+//' @param ordered  TRUE = keep directed n*n rows; FALSE = fold to choose(n, 2)
+//' @param weight   Weight model name (\code{"binary"}, \code{"product"},
+//'   \code{"sqrt"}, \code{"log1p"}), or TRUE/FALSE for the legacy binary flag
+//'   (TRUE = \code{"binary"}, FALSE = \code{"product"}). NULL (default) =
+//'   \code{"binary"}.
+//' @return Numeric matrix (n_response_rows x n_codes^2, or x choose(n_codes, 2))
+//' @export
+// [[Rcpp::export]]
+arma::mat finalize_row_connections(arma::mat row_conn,
+                                   int  n_codes,
+                                   bool ordered = false,
+                                   SEXP weight  = R_NilValue) {
+    return qe::finalize_row_connections(row_conn, n_codes, ordered,
+                                        weight_model_from_sexp(weight));
+}
+
+//' Aggregate per-response-row tensor connections into a unit vector
+//'
+//' Finalises each row (see \code{finalize_row_connections()}) and sums the
+//' rows: tma's aggregation of \code{apply_tensor()$row_connection_counts},
+//' with the weight model applied per line before the unit sum.
+//'
+//' @inheritParams finalize_row_connections
+//' @return Numeric vector of length n_codes^2 (ordered) or choose(n_codes, 2)
+//' @export
+// [[Rcpp::export]]
+NumericVector aggregate_row_connections(arma::mat row_conn,
+                                        int  n_codes,
+                                        bool ordered = false,
+                                        SEXP weight  = R_NilValue) {
+    arma::rowvec out = qe::aggregate_row_connections(row_conn, n_codes, ordered,
+                                                     weight_model_from_sexp(weight));
+    return NumericVector(out.begin(), out.end());
+}
+
 // =============================================================================
 // Rotation
 // =============================================================================

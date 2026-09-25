@@ -328,6 +328,45 @@ apply_tensor_members <- function(tensor, dims, dims_sender, dims_receiver, dims_
     .Call(`_libqe_apply_tensor_members`, tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered)
 }
 
+#' Finalise per-response-row tensor connections (fold + weight model)
+#'
+#' The per-line step of tma's aggregation, before any summing: unordered rows
+#' are folded to the upper triangle, then the weight model is applied; ordered
+#' rows keep the directed n*n layout with the weight applied per cell.
+#'
+#' Weight models are applied per line, before the unit sum (the stage legacy
+#' rENA applies \code{weight.by}): \code{"binary"} clamps each unordered count
+#' to 1 (ordered counts are left raw), \code{"product"} keeps the counts,
+#' \code{"sqrt"} and \code{"log1p"} (alias \code{"log"}) transform each
+#' line's product count.
+#'
+#' @param row_conn Numeric matrix (n_response_rows x n_codes^2) of per-row
+#'   directed counts, i.e. \code{apply_tensor()$row_connection_counts}
+#' @param n_codes  Number of codes
+#' @param ordered  TRUE = keep directed n*n rows; FALSE = fold to choose(n, 2)
+#' @param weight   Weight model name (\code{"binary"}, \code{"product"},
+#'   \code{"sqrt"}, \code{"log1p"}), or TRUE/FALSE for the legacy binary flag
+#'   (TRUE = \code{"binary"}, FALSE = \code{"product"}). NULL (default) =
+#'   \code{"binary"}.
+#' @return Numeric matrix (n_response_rows x n_codes^2, or x choose(n_codes, 2))
+#' @export
+finalize_row_connections <- function(row_conn, n_codes, ordered = FALSE, weight = NULL) {
+    .Call(`_libqe_finalize_row_connections`, row_conn, n_codes, ordered, weight)
+}
+
+#' Aggregate per-response-row tensor connections into a unit vector
+#'
+#' Finalises each row (see \code{finalize_row_connections()}) and sums the
+#' rows: tma's aggregation of \code{apply_tensor()$row_connection_counts},
+#' with the weight model applied per line before the unit sum.
+#'
+#' @inheritParams finalize_row_connections
+#' @return Numeric vector of length n_codes^2 (ordered) or choose(n_codes, 2)
+#' @export
+aggregate_row_connections <- function(row_conn, n_codes, ordered = FALSE, weight = NULL) {
+    .Call(`_libqe_aggregate_row_connections`, row_conn, n_codes, ordered, weight)
+}
+
 #' SVD rotation (matches prcomp(retx=F, scale=F, center=F, tol=0))
 #'
 #' Caller is responsible for centering upstream. Eigenvalues are stored as

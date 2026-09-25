@@ -368,17 +368,38 @@ static val accumulate_tensor_unit(
     return result;
 }
 
-// aggregate_row_connections(row_conn, rows, cols, n_codes, ordered, binary)
+// Weight model from JS: a name ('binary' | 'product' | 'sqrt' | 'log1p' | 'log')
+// or the legacy boolean binary flag (true → 'binary', false → 'product').
+static qe::WeightModel weight_model_from_val(const val& weight) {
+    if (weight.isString()) return qe::weight_model_from_string(weight.as<std::string>());
+    return qe::weight_model_from_bool(weight.as<bool>());
+}
+
+// aggregate_row_connections(row_conn, rows, cols, n_codes, ordered, weight)
 //   row_conn — Float64Array, row-major (rows × cols), cols == n_codes²
 //              (TensorNetworks.row_connection_counts from accumulate_tensor_unit)
+//   weight   — weight-model name, or boolean binary flag (legacy)
 // → Float64Array — unit vector, length n_codes² (ordered) or choose_two (unordered)
 static val aggregate_row_connections(
         const val& row_conn_val, int rows, int cols,
-        int n_codes, bool ordered, bool binary) {
+        int n_codes, bool ordered, const val& weight) {
     arma::mat row_conn = js_to_mat(row_conn_val, rows, cols);
-    arma::rowvec out = qe::aggregate_row_connections(row_conn, n_codes, ordered, binary);
+    arma::rowvec out = qe::aggregate_row_connections(
+        row_conn, n_codes, ordered, weight_model_from_val(weight));
     std::vector<double> v(out.memptr(), out.memptr() + out.n_elem);
     return val::array(v.begin(), v.end());
+}
+
+// finalize_row_connections(row_conn, rows, cols, n_codes, ordered, weight)
+//   Per-row fold + weight model, before the unit sum.
+// → { data: Float64Array, rows, cols } — row-major, cols = n_codes² (ordered)
+//   or choose_two (unordered)
+static val finalize_row_connections(
+        const val& row_conn_val, int rows, int cols,
+        int n_codes, bool ordered, const val& weight) {
+    arma::mat row_conn = js_to_mat(row_conn_val, rows, cols);
+    return mat_to_js(qe::finalize_row_connections(
+        row_conn, n_codes, ordered, weight_model_from_val(weight)));
 }
 
 // ── Rotation ──────────────────────────────────────────────────────────────────
@@ -814,6 +835,7 @@ EMSCRIPTEN_BINDINGS(libqe) {
     function("accumulate_unit_with_rows",             &accumulate_unit_with_rows);
     function("accumulate_tensor_unit",                &accumulate_tensor_unit);
     function("aggregate_row_connections",             &aggregate_row_connections);
+    function("finalize_row_connections",              &finalize_row_connections);
 
     // Rotation
     function("ena_svd",                               &ena_svd);

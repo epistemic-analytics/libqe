@@ -9,7 +9,11 @@
 #define LIBQE_ACCUMULATION_HPP
 
 #include <armadillo>
+#include <cctype>
+#include <cmath>
 #include <functional>
+#include <stdexcept>
+#include <string>
 #include <vector>
 #include "adjacency.hpp"
 
@@ -493,34 +497,155 @@ inline TensorNetworks apply_tensor_unit(
     return result;
 }
 
-/** @brief Aggregate per-response-row tensor connections into a unit vector.
+/// @name Weight models (per-line co-occurrence transforms, = rENA's weight.by)
+/// @{
+
+/** @brief Transform applied to each line's connection counts before the
+ *         per-unit sum.
  *
- *  Mirrors tma's R aggregation of @c apply_tensor_unit()'s
- *  @c row_connection_counts (tma/R/accum_multidim_c.R): the @c ordered branch is
- *  a plain column sum over the directed p² space, while the unordered branch
- *  folds each response row to the upper triangle (@c as.unordered) and, when
- *  @p binary is @c true, clamps each folded row to presence before summing
- *  (@c colSums.ena.matrix(binary = TRUE)).
+ *  Every model applies its weight at the same stage: after a response row's
+ *  connection counts are computed (and, for unordered networks, folded to the
+ *  upper triangle), and before rows are summed into the unit network. This is
+ *  the stage legacy rENA applies @c weight.by (accumulate.data.R). Because
+ *  sqrt(Σ) ≠ Σ sqrt, the transform must never be applied to unit totals.
  *
- *  This is the aggregation step tma performs in R; libqe's @c apply_tensor_unit
- *  intentionally returns the raw per-row matrix so callers can compose it.
- *  Kept as a standalone kernel function so the fold/binarize/sum semantics live
- *  in one place shared by every binding, instead of being re-implemented in each
- *  wrapper layer.
+ *  - @c Binary  — unordered: clamp each positive count to 1 (presence).
+ *                 Ordered: raw directed counts, unchanged — the established
+ *                 behaviour of every ordered/ONA model (tma ignores binary).
+ *  - @c Product — the non-binarized counts themselves ("summed cross
+ *                 products" of the response row with its window).
+ *  - @c Sqrt    — sqrt of each line's product count.
+ *  - @c Log1p   — log(1 + x) of each line's product count.
+ */
+enum class WeightModel { Binary, Product, Sqrt, Log1p };
+
+/** @brief Parse a weight-model name (case-insensitive).
+ *
+ *  Accepts @c "binary", @c "product", @c "sqrt", @c "log1p" and the alias
+ *  @c "log" (rena-wasm's name for log1p).
+ *  @throws std::invalid_argument for any other name.
+ */
+inline WeightModel weight_model_from_string(const std::string& name) {
+    std::string s;
+    s.reserve(name.size());
+    for (char c : name) s += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+
+    if (s == "binary")               return WeightModel::Binary;
+    if (s == "product")              return WeightModel::Product;
+    if (s == "sqrt")                 return WeightModel::Sqrt;
+    if (s == "log1p" || s == "log")  return WeightModel::Log1p;
+    throw std::invalid_argument(
+        "Unknown weight model '" + name + "'; expected one of "
+        "'binary', 'product', 'sqrt', 'log1p'.");
+}
+
+/** @brief Map the legacy @c binary flag to a weight model
+ *         (@c true → Binary, @c false → Product). */
+inline WeightModel weight_model_from_bool(bool binary) {
+    return binary ? WeightModel::Binary : WeightModel::Product;
+}
+
+/** @brief Apply a weight model in place to one line's connection vector. */
+inline void apply_weight_model(arma::rowvec& v, WeightModel weight, bool ordered) {
+    switch (weight) {
+        case WeightModel::Binary:
+            if (!ordered) v.elem(arma::find(v > 0)).ones();
+            break;
+        case WeightModel::Product:
+            break;
+        case WeightModel::Sqrt:
+            v.transform([](double x) { return std::sqrt(x); });
+            break;
+        case WeightModel::Log1p:
+            v.transform([](double x) { return std::log1p(x); });
+            break;
+    }
+}
+
+/// @}
+
+/** @brief Finalise each per-response-row tensor connection vector.
+ *
+ *  The per-line step of tma's R aggregation of @c apply_tensor_unit()'s
+ *  @c row_connection_counts (tma/R/accum_multidim_c.R), before any summing:
+ *  unordered rows are folded to the upper triangle (@c as.unordered), then the
+ *  weight model is applied; ordered rows keep the directed p² layout and have
+ *  the weight model applied per cell.
+ *
+ *  Returned per row so callers can expose line-level connection counts
+ *  (= R's @c model$row.connection.counts); summing the rows gives
+ *  aggregate_row_connections().
  *
  *  @param[in] row_conn  Per-response-row directed connection matrix
  *                       (n_response_rows × p²), i.e.
  *                       @c TensorNetworks::row_connection_counts.
  *  @param[in] n_codes   Number of codes @c p.
- *  @param[in] ordered   When @c true, return the directed p² column sums (no fold,
- *                       no binarization).  When @c false, fold each row to
+ *  @param[in] ordered   @c true keeps directed p² rows; @c false folds each row
+ *                       to @c choose_two(p).
+ *  @param[in] weight    Per-line weight model (see WeightModel).
+ *
+ *  @returns Matrix of shape n_response_rows × p² (ordered) or
+ *           n_response_rows × @c choose_two(p) (unordered).
+ */
+inline arma::mat finalize_row_connections(
+    const arma::mat& row_conn,
+    int         n_codes,
+    bool        ordered,
+    WeightModel weight
+) {
+    const int n_rows = static_cast<int>(row_conn.n_rows);
+    const int n_out  = ordered ? n_codes * n_codes : choose_two(n_codes);
+    arma::mat out(n_rows, n_out, arma::fill::zeros);
+
+    for (int r = 0; r < n_rows; ++r) {
+        arma::rowvec v = ordered
+            ? arma::rowvec(row_conn.row(r))
+            : fold_directed_network(arma::vectorise(row_conn.row(r)));
+        apply_weight_model(v, weight, ordered);
+        out.row(r) = v;
+    }
+    return out;
+}
+
+/** @brief Aggregate per-response-row tensor connections into a unit vector.
+ *
+ *  Finalises each response row (fold + weight model, see
+ *  finalize_row_connections()) and sums the rows — tma's R aggregation
+ *  (@c as.unordered + @c colSums.ena.matrix), with the weight model applied at
+ *  the same per-line stage legacy rENA applies @c weight.by.
+ *
+ *  This is the aggregation step tma performs in R; libqe's @c apply_tensor_unit
+ *  intentionally returns the raw per-row matrix so callers can compose it.
+ *  Kept as a standalone kernel function so the fold/weight/sum semantics live
+ *  in one place shared by every binding, instead of being re-implemented in each
+ *  wrapper layer.
+ *
+ *  @param[in] row_conn  Per-response-row directed connection matrix
+ *                       (n_response_rows × p²).
+ *  @param[in] n_codes   Number of codes @c p.
+ *  @param[in] ordered   @c true: directed p² sums; @c false: fold to
  *                       @c choose_two(p) and sum.
- *  @param[in] binary    Unordered only: when @c true, binarize each folded
- *                       response row (presence, 0/1) before summing — the rENA /
- *                       tma co-occurrence convention.
+ *  @param[in] weight    Per-line weight model (see WeightModel).
  *
  *  @returns Flat unit connection vector of length p² (ordered) or
  *           @c choose_two(p) (unordered).
+ */
+inline arma::rowvec aggregate_row_connections(
+    const arma::mat& row_conn,
+    int         n_codes,
+    bool        ordered,
+    WeightModel weight
+) {
+    const int n_out = ordered ? n_codes * n_codes : choose_two(n_codes);
+    if (row_conn.n_rows == 0) return arma::rowvec(n_out, arma::fill::zeros);
+    return arma::sum(finalize_row_connections(row_conn, n_codes, ordered, weight), 0);
+}
+
+/** @brief Legacy form: @p binary selects Binary (@c true) or Product (@c false).
+ *
+ *  Unchanged behaviour for existing callers: ordered rows are summed raw
+ *  (no binarization); unordered rows are folded and, when @p binary, clamped
+ *  to presence before summing.
  */
 inline arma::rowvec aggregate_row_connections(
     const arma::mat& row_conn,
@@ -528,19 +653,8 @@ inline arma::rowvec aggregate_row_connections(
     bool ordered = false,
     bool binary  = true
 ) {
-    if (ordered) return arma::sum(row_conn, 0);
-
-    int n_rows = static_cast<int>(row_conn.n_rows);
-    int n_tri  = choose_two(n_codes);
-    arma::rowvec out(n_tri, arma::fill::zeros);
-
-    for (int r = 0; r < n_rows; ++r) {
-        arma::rowvec folded =
-            fold_directed_network(arma::vectorise(row_conn.row(r)));
-        if (binary) folded.elem(arma::find(folded > 0)).ones();
-        out += folded;
-    }
-    return out;
+    return aggregate_row_connections(row_conn, n_codes, ordered,
+                                     weight_model_from_bool(binary));
 }
 
 /// @}

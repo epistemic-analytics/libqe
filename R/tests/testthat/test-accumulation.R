@@ -197,3 +197,74 @@ test_that("accumulate_stanza: ordered=TRUE binary binarises non-zero entries", {
     # continuous output can have values > 1
     expect_true(any(out_cont > 1))
 })
+
+# --- finalize_row_connections / aggregate_row_connections (weight models) ---
+
+# Two response rows, 3 codes, directed 3x3 per row (column-major), with counts > 1
+# and asymmetry so the fold and each weight model are distinguishable.
+weighted_rc <- function() {
+    rc <- matrix(0, nrow = 2, ncol = 9)
+    rc[1, 4] <- 2    # m(1,2)
+    rc[1, 2] <- 1    # m(2,1)  -> row 1 folds to A&B = 3
+    rc[1, 8] <- 4    # m(2,3)  -> row 1 B&C = 4
+    rc[2, 7] <- 9    # m(1,3)  -> row 2 A&C = 9
+    rc[2, 4] <- 0.5  # m(1,2)  -> row 2 A&B = 0.5
+    rc
+}
+
+test_that("aggregate_row_connections: unordered weight models apply per row before the sum", {
+    rc <- weighted_rc()
+    expect_equal(aggregate_row_connections(rc, 3L, FALSE, "binary"),  c(2, 1, 1))
+    expect_equal(aggregate_row_connections(rc, 3L, FALSE, "product"), c(3.5, 9, 4))
+    expect_equal(aggregate_row_connections(rc, 3L, FALSE, "sqrt"),    c(sqrt(3) + sqrt(0.5), 3, 2))
+    expect_equal(aggregate_row_connections(rc, 3L, FALSE, "log1p"),   c(log1p(3) + log1p(0.5), log1p(9), log1p(4)))
+    # per-row, not on the unit total: sqrt(3 + 0.5) != sqrt(3) + sqrt(0.5)
+    expect_false(isTRUE(all.equal(aggregate_row_connections(rc, 3L, FALSE, "sqrt")[1], sqrt(3.5))))
+})
+
+test_that("aggregate_row_connections: legacy TRUE/FALSE and NULL map to binary/product", {
+    rc <- weighted_rc()
+    expect_equal(aggregate_row_connections(rc, 3L, FALSE, TRUE),  aggregate_row_connections(rc, 3L, FALSE, "binary"))
+    expect_equal(aggregate_row_connections(rc, 3L, FALSE, FALSE), aggregate_row_connections(rc, 3L, FALSE, "product"))
+    expect_equal(aggregate_row_connections(rc, 3L),               aggregate_row_connections(rc, 3L, FALSE, "binary"))
+    expect_equal(aggregate_row_connections(rc, 3L, FALSE, "LOG"), aggregate_row_connections(rc, 3L, FALSE, "log1p"))
+    expect_error(aggregate_row_connections(rc, 3L, FALSE, "cube"), "Unknown weight model")
+    expect_error(aggregate_row_connections(rc, 3L, FALSE, 1), "must be TRUE/FALSE")
+})
+
+test_that("aggregate_row_connections: ordered binary keeps raw directed counts; other weights per cell", {
+    rc <- weighted_rc()
+    expect_equal(aggregate_row_connections(rc, 3L, TRUE, "binary"),  colSums(rc))
+    expect_equal(aggregate_row_connections(rc, 3L, TRUE, "product"), colSums(rc))
+    expect_equal(aggregate_row_connections(rc, 3L, TRUE, "sqrt"),    colSums(sqrt(rc)))
+    expect_equal(aggregate_row_connections(rc, 3L, TRUE, "log1p"),   colSums(log1p(rc)))
+})
+
+test_that("finalize_row_connections: rows are finalised individually and sum to the aggregate", {
+    rc <- weighted_rc()
+    for (w in c("binary", "product", "sqrt", "log1p")) for (ord in c(FALSE, TRUE)) {
+        fin <- finalize_row_connections(rc, 3L, ord, w)
+        expect_equal(dim(fin), c(2L, if (ord) 9L else 3L))
+        expect_equal(colSums(fin), aggregate_row_connections(rc, 3L, ord, w))
+    }
+    expect_equal(finalize_row_connections(rc, 3L, FALSE, "sqrt")[1, ], c(sqrt(3), 0, 2))
+})
+
+test_that("aggregate_row_connections: apply_tensor rows match rENA ena.accumulate.data weight.by", {
+    # One unit/conversation, window 3; rENA's legacy accumulator gives
+    # binary 2,3,2 | "product" 12,9,12 | sqrt 4.7321,4.8637,4.7321 | log1p 3.6889,3.7377,3.6889
+    codes <- matrix(c(2, 0, 1,
+                      1, 3, 0,
+                      0, 1, 2), nrow = 3, byrow = TRUE)
+    r <- apply_tensor(tensor = c(1, 3), dims = 2L, dims_sender = integer(0),
+                      dims_receiver = integer(0), dims_mode = integer(0),
+                      context_lookup = matrix(0L, 3, 0), unit_rows = 0:2,
+                      codes = codes, times = c(0, 1, 2), ordered = TRUE)
+    rc <- r$row_connection_counts
+    expect_equal(aggregate_row_connections(rc, 3L, FALSE, "binary"),  c(2, 3, 2))
+    expect_equal(aggregate_row_connections(rc, 3L, FALSE, "product"), c(12, 9, 12))
+    expect_equal(aggregate_row_connections(rc, 3L, FALSE, "sqrt"),
+                 c(4.73205080756888, 4.86370330515627, 4.73205080756888), tolerance = 1e-12)
+    expect_equal(aggregate_row_connections(rc, 3L, FALSE, "log1p"),
+                 c(3.68887945411394, 3.73766961828337, 3.68887945411394), tolerance = 1e-12)
+})

@@ -87,16 +87,27 @@ def apply_tensor_unit(tensor: Annotated[NDArray[numpy.float64], dict(shape=(None
     a simplified single-weight/window path (equivalent to tma's default tensor).
     """
 
-def aggregate_row_connections(row_conn: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], n_codes: int, ordered: bool = False, binary: bool = True) -> Annotated[NDArray[numpy.float64], dict(shape=(None,))]:
+def aggregate_row_connections(row_conn: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], n_codes: int, ordered: bool = False, weight: bool | str = 'binary') -> Annotated[NDArray[numpy.float64], dict(shape=(None,))]:
     """
     Aggregate apply_tensor_unit's row_connection_counts into a unit vector,
-    matching tma's R aggregation (as.unordered + colSums.ena.matrix(binary)).
+    matching tma's R aggregation (as.unordered + colSums.ena.matrix), with the
+    weight model applied per row before the sum (= rENA's weight.by).
 
     row_conn : ndarray 2-D  (n_response_rows x n_codes^2) per-row directed counts
     n_codes  : int          number of codes p
-    ordered  : bool         True = directed p^2 column sums (no fold/binarize);
-                            False = fold each row to choose(p,2) then sum
-    binary   : bool         unordered only: binarize each folded row before summing
+    ordered  : bool         True = directed p^2 rows; False = fold each row to choose(p,2)
+    weight   : str | bool   'binary' (unordered: clamp to 1; ordered: raw counts),
+                            'product' (raw counts), 'sqrt', 'log1p' (alias 'log');
+                            a bool is the legacy binary flag (True = 'binary',
+                            False = 'product')
 
     Returns a 1-D ndarray of length p^2 (ordered) or choose(p,2) (unordered).
+    """
+
+def finalize_row_connections(row_conn: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], n_codes: int, ordered: bool = False, weight: bool | str = 'binary') -> Annotated[NDArray[numpy.float64], dict(shape=(None, None))]:
+    """
+    Per-row step of aggregate_row_connections (fold + weight model) without
+    the sum; its rows sum to aggregate_row_connections.
+
+    Returns a 2-D ndarray (n_response_rows x p^2 ordered, or x choose(p,2)).
     """
