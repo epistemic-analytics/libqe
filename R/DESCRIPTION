@@ -4,7 +4,7 @@ Type: Package
 Author: Cody L Marquart [aut, cre]
 Authors@R: c(person("Cody L", "Marquart", role = c("aut", "cre"), email = "cody.marquart@wisc.edu", comment = c(ORCID = "0000-0002-3387-6792")))
 Maintainer: Cody L Marquart <cody.marquart@wisc.edu>
-Version: 0.1.4
+Version: 0.1.5
 Description: Header-only C++ library providing shared computational primitives for
     quantitative ethnography packages (rENA, tma, and others). Canonical headers
     live in include/libqe/ at the repository root; the configure script copies them

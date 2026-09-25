@@ -1,6 +1,6 @@
 {
   "name": "@qe-libs/libqe-wasm",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "WebAssembly bindings for libqe — shared C++ core for Quantitative Ethnography",
   "main": "js/index.js",
   "type": "module",

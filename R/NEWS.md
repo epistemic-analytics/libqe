@@ -1,4 +1,4 @@
-# libqe (development version)
+# libqe 0.1.5
 
 - Added weight models to `aggregate_row_connections` (= rENA's `weight.by`): `"binary"`, `"product"`, `"sqrt"` and `"log1p"` (alias `"log"`). The weight is applied per response row — after the fold (unordered) or per directed cell (ordered) — and before rows are summed into the unit network, the same stage legacy rENA applies `weight.by`. `"binary"` on ordered networks keeps the raw directed counts, as before.
 - Added `finalize_row_connections`, the per-row step (fold + weight) without the sum, so callers can expose line-level connection counts.
