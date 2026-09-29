@@ -120,7 +120,9 @@ jobs:
       - name: Build wheel
         shell: pwsh
         run: |
-          $toolchain = Join-Path $env:VCPKG_INSTALLATION_ROOT "scripts\buildsystems\vcpkg.cmake"
+          # Forward slashes: backslashes in a -D value get stripped by CMake's
+          # arg parsing (yields "C:vcpkgscripts...") — CMake accepts / on Windows.
+          $toolchain = (Join-Path $env:VCPKG_INSTALLATION_ROOT "scripts\buildsystems\vcpkg.cmake") -replace '\\','/'
           $installed = Join-Path $env:VCPKG_INSTALLATION_ROOT "installed\x64-windows"
           $env:CMAKE_ARGS = "-DCMAKE_TOOLCHAIN_FILE=$toolchain -DVCPKG_TARGET_TRIPLET=x64-windows -DBLA_VENDOR=OpenBLAS"
           $env:PATH = "$installed\bin;$env:PATH"   # openblas/lapack DLLs for import at build time
