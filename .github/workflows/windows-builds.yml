@@ -124,7 +124,10 @@ jobs:
           # arg parsing (yields "C:vcpkgscripts...") — CMake accepts / on Windows.
           $toolchain = (Join-Path $env:VCPKG_INSTALLATION_ROOT "scripts\buildsystems\vcpkg.cmake") -replace '\\','/'
           $installed = Join-Path $env:VCPKG_INSTALLATION_ROOT "installed\x64-windows"
-          $env:CMAKE_ARGS = "-DCMAKE_TOOLCHAIN_FILE=$toolchain -DVCPKG_TARGET_TRIPLET=x64-windows -DBLA_VENDOR=OpenBLAS"
+          # No -DBLA_VENDOR: let vcpkg's own FindBLAS/FindLAPACK wrapper resolve
+          # whichever provider it installed (forcing OpenBLAS rejects vcpkg's
+          # lapack-reference provider -> "LAPACK API not found").
+          $env:CMAKE_ARGS = "-DCMAKE_TOOLCHAIN_FILE=$toolchain -DVCPKG_TARGET_TRIPLET=x64-windows"
           $env:PATH = "$installed\bin;$env:PATH"   # openblas/lapack DLLs for import at build time
           python -m pip install --upgrade pip build
           Set-Location python
