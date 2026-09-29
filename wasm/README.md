@@ -1,6 +1,6 @@
 # @qe-libs/libqe-wasm
 
-WebAssembly bindings for [libqe](https://gitlab.com/epistemic-analytics/qe-packages/libqe) —
+WebAssembly bindings for [libqe](https://github.com/epistemic-analytics/libqe) —
 the shared C++ core for Quantitative Ethnography packages.
 
 Exposes the full libqe API as a zero-dependency ES module usable in browsers and Node.js.

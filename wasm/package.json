@@ -24,7 +24,7 @@
   "license": "GPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "https://gitlab.com/epistemic-analytics/qe-packages/libqe",
+    "url": "https://github.com/epistemic-analytics/libqe",
     "directory": "wasm"
   },
   "jest": {

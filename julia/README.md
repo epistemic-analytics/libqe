@@ -1,6 +1,6 @@
 # LibQE.jl
 
-Julia bindings for [libqe](https://gitlab.com/epistemic-analytics/qe-packages/libqe),
+Julia bindings for [libqe](https://github.com/epistemic-analytics/libqe),
 the shared C++ core for Quantitative Ethnography packages.
 
 Built with [CxxWrap.jl](https://github.com/JuliaInterop/CxxWrap.jl).

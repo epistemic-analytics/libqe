@@ -51,8 +51,8 @@ Then in your \file{.cpp} source:
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://gitlab.com/epistemic-analytics/qe-packages/libqe}
-  \item Report bugs at \url{https://gitlab.com/epistemic-analytics/qe-packages/libqe/-/issues}
+  \item \url{https://github.com/epistemic-analytics/libqe}
+  \item Report bugs at \url{https://github.com/epistemic-analytics/libqe/issues}
 }
 
 }

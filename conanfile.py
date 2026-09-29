@@ -9,7 +9,7 @@ class LibqeConan(ConanFile):
     version      = "0.0.0"   # placeholder — set_version() always overrides this
     description  = "Header-only C++ core for Quantitative Ethnography packages (rENA, tma)"
     license      = "GPL-3.0-only"
-    url          = "https://gitlab.com/epistemic-analytics/qe-packages/libqe"
+    url          = "https://github.com/epistemic-analytics/libqe"
     homepage     = url
     topics       = ("header-only", "quantitative-ethnography", "ena", "armadillo")
     package_type = "header-library"

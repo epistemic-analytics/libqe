@@ -15,8 +15,8 @@ Description: Header-only C++ library providing shared computational primitives f
     trajectory curve analysis, and stability metrics. Also exports Rcpp-wrapped
     versions of every function for direct use and testing in R.
 License: GPL-3
-URL: https://gitlab.com/epistemic-analytics/qe-packages/libqe
-BugReports: https://gitlab.com/epistemic-analytics/qe-packages/libqe/-/issues
+URL: https://github.com/epistemic-analytics/libqe
+BugReports: https://github.com/epistemic-analytics/libqe/issues
 Encoding: UTF-8
 Depends: R (>= 4.1.0)
 LinkingTo: Rcpp, RcppArmadillo
