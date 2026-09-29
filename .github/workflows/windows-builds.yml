@@ -80,18 +80,17 @@ jobs:
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
-  # Python Windows wheel per Python version.
-  # Armadillo (+ OpenBLAS/LAPACK) via the preinstalled vcpkg, with vcpkg's
-  # GitHub Actions binary cache (x-gha): the cold build happens once, then
-  # every later run restores the compiled ports from the Actions cache.
+  # Python Windows wheels (3.11-3.13) via cibuildwheel.
+  #  - Armadillo (+ BLAS/LAPACK) from the preinstalled vcpkg, cached via x-gha
+  #    (cold build once; installed once for all versions in CIBW_BEFORE_ALL).
+  #  - delvewheel repair bundles the vcpkg DLLs into each wheel so it imports
+  #    without vcpkg present (the Windows equivalent of auditwheel).
+  #  - cibuildwheel also handles the per-version matrix and the Windows
+  #    temp-cleanup quirk that made a raw `python -m build` flaky.
   # ---------------------------------------------------------------------------
   python-windows:
-    name: Python ${{ matrix.py }} Windows wheel
+    name: Python wheels (Windows)
     runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        py: ["3.11", "3.12", "3.13"]
     env:
       VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
     steps:
@@ -101,7 +100,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.py }}
+          python-version: "3.12"
 
       # vcpkg's x-gha binary cache needs these two runtime values exported.
       - name: Enable vcpkg GitHub Actions cache
@@ -111,31 +110,23 @@ jobs:
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
-      - name: Install Armadillo via vcpkg
+      - name: Build + repair wheels
         shell: pwsh
+        env:
+          CIBW_BUILD: "cp311-win_amd64 cp312-win_amd64 cp313-win_amd64"
+          # Install native deps once before building (shared across versions).
+          CIBW_BEFORE_ALL_WINDOWS: 'C:\vcpkg\vcpkg.exe install armadillo --triplet x64-windows'
+          # Forward-slash toolchain path — backslashes get stripped in -D values.
+          CIBW_ENVIRONMENT_WINDOWS: 'CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows"'
+          # Bundle armadillo/openblas/lapack/gfortran DLLs into each wheel.
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: 'delvewheel repair --add-path C:/vcpkg/installed/x64-windows/bin -w {dest_dir} {wheel}'
         run: |
-          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install armadillo --triplet x64-windows
-          if ($LASTEXITCODE -ne 0) { throw "vcpkg install failed" }
-
-      - name: Build wheel
-        shell: pwsh
-        run: |
-          # Forward slashes: backslashes in a -D value get stripped by CMake's
-          # arg parsing (yields "C:vcpkgscripts...") — CMake accepts / on Windows.
-          $toolchain = (Join-Path $env:VCPKG_INSTALLATION_ROOT "scripts\buildsystems\vcpkg.cmake") -replace '\\','/'
-          $installed = Join-Path $env:VCPKG_INSTALLATION_ROOT "installed\x64-windows"
-          # No -DBLA_VENDOR: let vcpkg's own FindBLAS/FindLAPACK wrapper resolve
-          # whichever provider it installed (forcing OpenBLAS rejects vcpkg's
-          # lapack-reference provider -> "LAPACK API not found").
-          $env:CMAKE_ARGS = "-DCMAKE_TOOLCHAIN_FILE=$toolchain -DVCPKG_TARGET_TRIPLET=x64-windows"
-          $env:PATH = "$installed\bin;$env:PATH"   # openblas/lapack DLLs for import at build time
-          python -m pip install --upgrade pip build
-          Set-Location python
-          python -m build --wheel --outdir ..\wheelhouse
-          if ($LASTEXITCODE -ne 0) { throw "wheel build failed" }
+          python -m pip install --upgrade pip cibuildwheel
+          python -m cibuildwheel --output-dir wheelhouse python
+          if ($LASTEXITCODE -ne 0) { throw "cibuildwheel failed" }
 
       - uses: actions/upload-artifact@v4
         with:
-          name: libqe-py${{ matrix.py }}-windows
+          name: libqe-python-windows
           path: wheelhouse/*.whl
           if-no-files-found: error
