@@ -163,6 +163,36 @@ test_that("complete_rotation: column labels are user-provided then SVD", {
     expect_equal(out$column_names, c("GMR1", "GMR2", "SVD3", "SVD4", "SVD5", "SVD6"))
 })
 
+test_that("complete_rotation: orthonormal when the data are rank-deficient", {
+    # An all-zero column (a masked connection) costs the data a rank, so one
+    # of the leading SVD columns of the deflated data comes from its null
+    # space -- which contains the named axes -- and used to nearly duplicate
+    # one of them (|off-diagonal| ~ 0.99). The fill must stay orthogonal.
+    set.seed(7)
+    pts <- scale(matrix(rnorm(40 * 6), 40, 6), scale = FALSE)
+    pts[, 2] <- 0
+    a1 <- c(0.6, 0, 0.8, 0, 0, 0)
+    a2 <- c(0, 0, 0, 1, 0, 0)
+    for (axes in list(cbind(a1), cbind(a1, a2))) {
+        k <- ncol(axes)
+        out <- complete_rotation(pts, axes, paste0("GMR", seq_len(k)))
+        G <- crossprod(out$rotation)
+        expect_equal(unname(G), diag(6), tolerance = 1e-10)
+        expect_equal(unname(out$rotation[, 1:k, drop = FALSE]), unname(axes), tolerance = 1e-12)
+        # A rotation is a full basis, so the projected variance is the total
+        expect_equal(sum(apply(pts %*% out$rotation, 2, var)), sum(apply(pts, 2, var)), tolerance = 1e-10)
+    }
+})
+
+test_that("complete_rotation: orthonormal with more connections than units", {
+    set.seed(11)
+    pts <- scale(matrix(rnorm(5 * 8), 5, 8), scale = FALSE)   # rank 4 < p = 8
+    ax <- cbind(c(1, rep(0, 7)))
+    out <- complete_rotation(pts, ax, "GMR1")
+    expect_equal(unname(crossprod(out$rotation)), diag(8), tolerance = 1e-10)
+    expect_equal(unname(out$rotation[, 1]), unname(ax[, 1]), tolerance = 1e-12)
+})
+
 # ── orthogonal_svd ────────────────────────────────────────────────────────────
 
 test_that("orthogonal_svd: equals means_rotation for the same inputs", {

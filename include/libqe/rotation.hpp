@@ -242,7 +242,10 @@ inline RotationResult orthogonal_svd(
  *
  * @returns A RotationResult where columns 0..k-1 of `rotation` equal
  *          `named_axes` verbatim and columns k..p-1 come from the SVD of
- *          the deflated data.
+ *          the deflated data. Columns from the deflated data's null space
+ *          (rank-deficient data) are orthogonalised against the named axes
+ *          and each other, so the result is orthonormal whenever the named
+ *          axes are.
  *
  * @note Equivalent to the tail of `ena.rotate.by.generalized` in rENA
  *       (canonical version: commit 2c079126 on rENA `origin/main`).
@@ -275,9 +278,52 @@ inline RotationResult complete_rotation(
     arma::vec eigenvalues(p, arma::fill::zeros);
     rotation.cols(0, k - 1) = named_axes;
     if (k < p) {
-        rotation.cols(k, p - 1) = inner.rotation.cols(0, p - k - 1);
-        for (arma::uword j = 0; j < (p - k); ++j) {
-            eigenvalues(k + j) = inner.eigenvalues(j);
+        // The SVD columns with non-zero singular values are taken as they are
+        // (rENA's pattern; with orthonormal named axes they lie in defA's row
+        // space, orthogonal to the axes). When the data are rank-deficient --
+        // e.g. an all-zero connection column from a code mask, or fewer units
+        // than connections -- the trailing columns come from defA's null
+        // space, which contains the named axes themselves, so the SVD can
+        // return one that nearly duplicates a named axis (|cos| ~ 0.99): the
+        // rotation is no longer orthonormal and that axis's variance is
+        // counted twice. Null-space columns are therefore orthogonalised
+        // against the named axes and the axes already chosen (Gram-Schmidt),
+        // skipping any with nothing left. Full-rank data are unaffected.
+        arma::mat basis(p, p, arma::fill::zeros);   // orthonormal span so far
+        arma::uword nb = 0;
+        auto add_to_basis = [&](arma::vec v) {
+            for (int pass = 0; pass < 2; ++pass)
+                if (nb > 0) v -= basis.cols(0, nb - 1) * (basis.cols(0, nb - 1).t() * v);
+            const double len = arma::norm(v);
+            if (len > 1e-10 && nb < p) basis.col(nb++) = v / len;
+        };
+        for (arma::uword j = 0; j < k; ++j) add_to_basis(named_axes.col(j));
+
+        // A singular value below 1e-7 of the largest is numerically zero.
+        const double max_eig  = inner.eigenvalues.is_empty() ? 0.0 : inner.eigenvalues.max();
+        const double null_eig = 1e-14 * max_eig;
+        arma::uword filled = 0;
+        auto take = [&](arma::vec v, double eigenvalue, bool in_null_space) {
+            if (filled >= p - k) return;
+            if (in_null_space) {
+                for (int pass = 0; pass < 2; ++pass)
+                    if (nb > 0) v -= basis.cols(0, nb - 1) * (basis.cols(0, nb - 1).t() * v);
+                const double len = arma::norm(v);
+                if (len < 1e-8) return;        // nothing left: skip the candidate
+                v /= len;
+            }
+            rotation.col(k + filled) = v;
+            eigenvalues(k + filled) = eigenvalue;
+            ++filled;
+            add_to_basis(v);
+        };
+        for (arma::uword j = 0; j < inner.rotation.n_cols && filled < p - k; ++j)
+            take(inner.rotation.col(j), inner.eigenvalues(j), inner.eigenvalues(j) <= null_eig);
+        // The SVD columns span R^p, so this only runs on degenerate input.
+        for (arma::uword i = 0; i < p && filled < p - k; ++i) {
+            arma::vec e(p, arma::fill::zeros);
+            e(i) = 1.0;
+            take(e, 0.0, true);
         }
     }
 
