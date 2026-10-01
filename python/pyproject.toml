@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "pylibqe"
-version = "0.1.5"
+version = "0.1.6"
 description = "Python bindings for libqe — low-level QE math including ENA, accumulation, door, and trajectory kernels"
 readme = "README.md"
 requires-python = ">=3.9"

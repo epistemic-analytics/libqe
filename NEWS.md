@@ -1,6 +1,8 @@
-# libqe (development version)
+# libqe 0.1.6
 
 - Fixed `complete_rotation` — and so `generalized_means_rotation` (GMR, rENA's `ena.rotate.by.generalized`) — returning a non-orthonormal rotation on rank-deficient data, e.g. a model with a masked (all-zero) connection column or fewer units than connections. The trailing SVD axes then came from the deflated data's null space, which contains the named axes, so one could nearly duplicate GMR1 (|cos| 0.99 on a masked RS.data model): the SVD axes after the named ones were skewed and the variance shares wrong (GMR1 23.7% instead of 29.9%). Null-space axes are now orthogonalised against the named axes and each other. Full-rank results are unchanged (bit-identical on RS.data), as is the rENA pattern for non-orthogonal named axes.
+- R: corrected the OpenMP flags in `Makevars` / `Makevars.win` to `SHLIB_OPENMP_CXXFLAGS` for both compiling and linking (was the C/Fortran variables), as R requires for a C++ package; fixes linking on Windows.
+- Package metadata (R `URL`/`BugReports`, Python project URLs, npm `repository`) now points at https://github.com/epistemic-analytics/libqe.
 
 # libqe 0.1.5
 
