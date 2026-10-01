@@ -267,6 +267,35 @@ class TestCompleteRotation:
         np.testing.assert_allclose(out.rotation[:, :2], axes, atol=1e-10)
         assert_columns_equal_up_to_sign(out.rotation[:, 2:], ref[:, 2:])
 
+    @pytest.mark.parametrize("k", [1, 2])
+    def test_orthonormal_on_rank_deficient_data(self, k):
+        """An all-zero column (a masked connection) costs the data a rank, so
+        trailing SVD columns of the deflated data come from its null space --
+        which contains the named axes -- and used to nearly duplicate one
+        (|cos| ~ 0.99). The fill must stay orthonormal."""
+        rng = np.random.default_rng(7)
+        pts = rng.standard_normal((40, 6))
+        pts_c = pts - pts.mean(axis=0)
+        pts_c[:, 1] = 0.0
+        axes = np.column_stack([[0.6, 0, 0.8, 0, 0, 0], [0, 0, 0, 1.0, 0, 0]])[:, :k].copy()
+        out = rotation.complete_rotation(pts_c, axes, [f"GMR{i + 1}" for i in range(k)])
+        R = np.asarray(out.rotation)
+        np.testing.assert_allclose(R.T @ R, np.eye(6), atol=1e-10)
+        np.testing.assert_allclose(R[:, :k], axes, atol=1e-12)
+        # A rotation is a full basis, so the projected variance is the total
+        np.testing.assert_allclose((pts_c @ R).var(axis=0, ddof=1).sum(),
+                                   pts_c.var(axis=0, ddof=1).sum(), rtol=1e-10)
+
+    def test_orthonormal_with_more_connections_than_units(self):
+        rng = np.random.default_rng(11)
+        pts = rng.standard_normal((5, 8))
+        pts_c = pts - pts.mean(axis=0)          # rank 4 < p = 8
+        axes = np.zeros((8, 1)); axes[0, 0] = 1.0
+        out = rotation.complete_rotation(pts_c, axes, ["GMR1"])
+        R = np.asarray(out.rotation)
+        np.testing.assert_allclose(R.T @ R, np.eye(8), atol=1e-10)
+        np.testing.assert_allclose(R[:, 0], axes[:, 0], atol=1e-12)
+
     def test_column_names(self):
         rng = np.random.default_rng(24)
         pts = rng.standard_normal((30, 4))
