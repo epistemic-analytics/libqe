@@ -1,3 +1,7 @@
+# libqe (development version)
+
+- Python: Linux wheels link exactly one BLAS/LAPACK (OpenBLAS) and use Armadillo header-only. They used to link the distro's `libarmadillo` wrapper plus every BLAS CMake found — three OpenBLAS builds, ATLAS, reference BLAS/LAPACK, SuperLU and ARPACK — all of which `auditwheel` bundled, making each manylinux wheel ~43 MB (the qe-libs.org site passed GitLab Pages' 1 GB limit). A manylinux_2_28 wheel is now ~5 MB (aarch64: 23.1 → 5.2 MB) with identical results. macOS (Accelerate) and Windows (vcpkg) builds are unchanged.
+
 # libqe 0.1.6
 
 - Fixed `complete_rotation` — and so `generalized_means_rotation` (GMR, rENA's `ena.rotate.by.generalized`) — returning a non-orthonormal rotation on rank-deficient data, e.g. a model with a masked (all-zero) connection column or fewer units than connections. The trailing SVD axes then came from the deflated data's null space, which contains the named axes, so one could nearly duplicate GMR1 (|cos| 0.99 on a masked RS.data model): the SVD axes after the named ones were skewed and the variance shares wrong (GMR1 23.7% instead of 29.9%). Null-space axes are now orthogonalised against the named axes and each other. Full-rank results are unchanged (bit-identical on RS.data), as is the rENA pattern for non-orthogonal named axes.

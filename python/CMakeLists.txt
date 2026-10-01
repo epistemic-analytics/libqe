@@ -37,14 +37,35 @@ target_include_directories(_pylibqe PRIVATE
 )
 
 # Link armadillo + platform BLAS/LAPACK
-target_link_libraries(_pylibqe PRIVATE ${ARMADILLO_LIBRARIES})
-
 if(APPLE)
     # macOS ships BLAS/LAPACK inside the Accelerate framework
-    target_link_libraries(_pylibqe PRIVATE "-framework Accelerate")
-else()
+    target_link_libraries(_pylibqe PRIVATE ${ARMADILLO_LIBRARIES} "-framework Accelerate")
+elseif(WIN32)
+    # vcpkg's armadillo port (pulls in openblas + lapack)
+    target_link_libraries(_pylibqe PRIVATE ${ARMADILLO_LIBRARIES})
     find_package(LAPACK REQUIRED)
     find_package(BLAS  REQUIRED)
+    target_link_libraries(_pylibqe PRIVATE ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES})
+else()
+    # Linux: use Armadillo header-only and link exactly one BLAS/LAPACK.
+    # The distro's libarmadillo wrapper, plus an unconstrained
+    # find_package(BLAS/LAPACK), linked three OpenBLAS builds (serial,
+    # pthreads, OpenMP), ATLAS, reference BLAS/LAPACK, SuperLU and ARPACK on
+    # manylinux, all of which auditwheel bundled into every wheel (~43 MB).
+    # Prefer OpenBLAS (manylinux); fall back to whatever single BLAS is
+    # installed (e.g. reference BLAS on Debian's libarmadillo-dev, as in
+    # libqe's own test:python CI job).
+    target_compile_definitions(_pylibqe PRIVATE
+        ARMA_DONT_USE_WRAPPER ARMA_DONT_USE_SUPERLU ARMA_DONT_USE_ARPACK)
+    set(BLA_VENDOR OpenBLAS)
+    find_package(BLAS QUIET)
+    if(NOT BLAS_FOUND)
+        message(STATUS "OpenBLAS not found; using the system BLAS/LAPACK")
+        unset(BLA_VENDOR)
+        find_package(BLAS REQUIRED)
+    endif()
+    find_package(LAPACK REQUIRED)
+    message(STATUS "pylibqe links BLAS: ${BLAS_LIBRARIES}  LAPACK: ${LAPACK_LIBRARIES}")
     target_link_libraries(_pylibqe PRIVATE ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES})
 endif()
 
