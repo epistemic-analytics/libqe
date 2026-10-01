@@ -20,4 +20,8 @@ List with \code{rotation}, \code{eigenvalues}, \code{column_names}
 Mirrors the tail of \code{ena.rotate.by.generalized}: the named axes
 appear in the output exactly as provided, and the trailing columns come
 from an SVD of the data deflated by all named axes.
+On rank-deficient data (e.g. an all-zero connection column) the trailing
+axes that come from the deflated data's null space are orthogonalised
+against the named axes, so the rotation is orthonormal whenever the named
+axes are.
 }

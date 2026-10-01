@@ -67,6 +67,10 @@ def complete_rotation(data: Annotated[NDArray[numpy.float64], dict(shape=(None, 
     (each projection comes off the original data), matching rENA's
     literal expression `defA <- A - A %*% v1 %*% t(v1) - A %*% v2 %*% t(v2)`.
     For mutually orthogonal axes this equals sequential deflation.
+    On rank-deficient data (e.g. an all-zero connection column) the
+    trailing axes that come from the deflated data's null space are
+    orthogonalised against the named axes, so the rotation is orthonormal
+    whenever the named axes are.
 
     Caller is responsible for ensuring each column of `named_axes` is
     unit-norm. Orthonormality between columns is NOT assumed.
