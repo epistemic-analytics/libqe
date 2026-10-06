@@ -1,5 +1,6 @@
-# libqe (development version)
+# libqe 0.1.7
 
+- Python: the package is now published as **`qe-lib`** and imported as **`qe`** (was `pylibqe`; extension module `_pylibqe` → `_qe`). Already-published `pylibqe` wheels stay installable from qe-libs.org. The C++ API is unchanged.
 - Python: Linux wheels link exactly one BLAS/LAPACK (OpenBLAS) and use Armadillo header-only. They used to link the distro's `libarmadillo` wrapper plus every BLAS CMake found — three OpenBLAS builds, ATLAS, reference BLAS/LAPACK, SuperLU and ARPACK — all of which `auditwheel` bundled, making each manylinux wheel ~43 MB (the qe-libs.org site passed GitLab Pages' 1 GB limit). A manylinux_2_28 wheel is now ~5 MB (aarch64: 23.1 → 5.2 MB) with identical results. macOS (Accelerate) and Windows (vcpkg) builds are unchanged.
 
 # libqe 0.1.6
