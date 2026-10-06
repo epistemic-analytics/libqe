@@ -1,40 +1,40 @@
 """
-pylibqe — Python bindings for libqe ENA math primitives.
+qe — Python bindings for libqe ENA math primitives.
 
 Submodules
 ----------
-pylibqe.adjacency
+qe.adjacency
     Upper-triangle conversions, index helpers, string pair names.
 
-pylibqe.normalization
+qe.normalization
     Row-wise L2 sphere normalization.
 
-pylibqe.modeling
+qe.modeling
     Column centering, ENA correlation, least-squares node positions,
     and two-group comparison statistics.
     Also exports :class:`NodePositions` and :class:`GroupStatsResult`.
 
-pylibqe.accumulation
+qe.accumulation
     Stanza-window accumulation, rolling window sum,
     per-row co-occurrence, adjacency matrix construction.
 
-pylibqe.rotation
+qe.rotation
     SVD rotation, deflation, orthogonal SVD, means rotation, and the
     generalized-rotation tail. Also exports :class:`RotationResult`.
 
-pylibqe.door
+qe.door
     Door lookback pooling and EMA smoothing.
 
-pylibqe.trajectory
+qe.trajectory
     Parametric trajectory fitting, derivatives, distances, and lag analysis.
 
-pylibqe.ccd
+qe.ccd
     Cross-covariance decay (CCD) window-size estimation.
 
 All matrix inputs/outputs use numpy float64 arrays.
 """
 
-from ._pylibqe import (
+from ._qe import (
     adjacency,
     normalization,
     modeling,
@@ -44,8 +44,8 @@ from ._pylibqe import (
     trajectory,
     ccd,
 )
-from ._pylibqe.modeling import NodePositions, GroupStatsResult
-from ._pylibqe import UnitNetworks, TensorNetworks, RotationResult
+from ._qe.modeling import NodePositions, GroupStatsResult
+from ._qe import UnitNetworks, TensorNetworks, RotationResult
 
 __all__ = [
     "adjacency",

@@ -1,7 +1,7 @@
-"""Tests for pylibqe.adjacency."""
+"""Tests for qe.adjacency."""
 import numpy as np
 import pytest
-from pylibqe import adjacency
+from qe import adjacency
 
 
 class TestChooseTwo:

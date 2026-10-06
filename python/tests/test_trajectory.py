@@ -1,8 +1,8 @@
-"""Tests for pylibqe.trajectory."""
+"""Tests for qe.trajectory."""
 
 import numpy as np
 
-from pylibqe import trajectory
+from qe import trajectory
 
 
 def test_fit_poly_defaults_to_orthogonal_basis_and_predicts_curve():

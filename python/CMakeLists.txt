@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-project(pylibqe VERSION 0.1.0)
+project(qe VERSION 0.1.0)
 
 # ── Python ────────────────────────────────────────────────────────────────────
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
@@ -29,9 +29,9 @@ if(NOT EXISTS "${LIBQE_INCLUDE_DIR}/libqe/libqe.hpp")
 endif()
 
 # ── binding module ────────────────────────────────────────────────────────────
-nanobind_add_module(_pylibqe NB_STATIC src/pylibqe.cpp)
+nanobind_add_module(_qe NB_STATIC src/qe.cpp)
 
-target_include_directories(_pylibqe PRIVATE
+target_include_directories(_qe PRIVATE
     ${LIBQE_INCLUDE_DIR}
     ${ARMADILLO_INCLUDE_DIRS}
 )
@@ -39,13 +39,13 @@ target_include_directories(_pylibqe PRIVATE
 # Link armadillo + platform BLAS/LAPACK
 if(APPLE)
     # macOS ships BLAS/LAPACK inside the Accelerate framework
-    target_link_libraries(_pylibqe PRIVATE ${ARMADILLO_LIBRARIES} "-framework Accelerate")
+    target_link_libraries(_qe PRIVATE ${ARMADILLO_LIBRARIES} "-framework Accelerate")
 elseif(WIN32)
     # vcpkg's armadillo port (pulls in openblas + lapack)
-    target_link_libraries(_pylibqe PRIVATE ${ARMADILLO_LIBRARIES})
+    target_link_libraries(_qe PRIVATE ${ARMADILLO_LIBRARIES})
     find_package(LAPACK REQUIRED)
     find_package(BLAS  REQUIRED)
-    target_link_libraries(_pylibqe PRIVATE ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES})
+    target_link_libraries(_qe PRIVATE ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES})
 else()
     # Linux: use Armadillo header-only and link exactly one BLAS/LAPACK.
     # The distro's libarmadillo wrapper, plus an unconstrained
@@ -55,7 +55,7 @@ else()
     # Prefer OpenBLAS (manylinux); fall back to whatever single BLAS is
     # installed (e.g. reference BLAS on Debian's libarmadillo-dev, as in
     # libqe's own test:python CI job).
-    target_compile_definitions(_pylibqe PRIVATE
+    target_compile_definitions(_qe PRIVATE
         ARMA_DONT_USE_WRAPPER ARMA_DONT_USE_SUPERLU ARMA_DONT_USE_ARPACK)
     set(BLA_VENDOR OpenBLAS)
     find_package(BLAS QUIET)
@@ -65,8 +65,8 @@ else()
         find_package(BLAS REQUIRED)
     endif()
     find_package(LAPACK REQUIRED)
-    message(STATUS "pylibqe links BLAS: ${BLAS_LIBRARIES}  LAPACK: ${LAPACK_LIBRARIES}")
-    target_link_libraries(_pylibqe PRIVATE ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES})
+    message(STATUS "qe links BLAS: ${BLAS_LIBRARIES}  LAPACK: ${LAPACK_LIBRARIES}")
+    target_link_libraries(_qe PRIVATE ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES})
 endif()
 
-install(TARGETS _pylibqe LIBRARY DESTINATION pylibqe)
+install(TARGETS _qe LIBRARY DESTINATION qe)

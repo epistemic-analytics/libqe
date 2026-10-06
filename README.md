@@ -43,8 +43,8 @@ libqe/
 │   ├── src/
 │   │   └── libqe_rcpp.cpp
 │   └── tests/testthat/
-├── python/             ← pylibqe Python extension (nanobind + CMake)
-│   ├── src/pylibqe.cpp
+├── python/             ← qe-lib Python extension, `import qe` (nanobind + CMake)
+│   ├── src/qe.cpp
 │   ├── tests/
 │   └── pyproject.toml
 ├── julia/              ← LibQE.jl Julia bindings (CxxWrap.jl + CMake)

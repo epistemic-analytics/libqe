@@ -1,7 +1,7 @@
 """Tests for tma-specific accumulation: accumulate_unit, accumulate_unit_with_rows, apply_tensor_unit."""
 import numpy as np
 import pytest
-from pylibqe import accumulation, UnitNetworks, TensorNetworks
+from qe import accumulation, UnitNetworks, TensorNetworks
 
 
 # ── accumulate_unit ───────────────────────────────────────────────────────────

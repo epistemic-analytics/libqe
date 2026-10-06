@@ -1,4 +1,4 @@
-"""Shared fixtures for pylibqe tests."""
+"""Shared fixtures for qe tests."""
 import numpy as np
 import pytest
 

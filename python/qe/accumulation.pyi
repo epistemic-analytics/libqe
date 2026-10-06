@@ -6,7 +6,7 @@ from typing import Annotated
 import numpy
 from numpy.typing import NDArray
 
-import _pylibqe
+import _qe
 
 
 def connection_matrix(ground: Annotated[NDArray[numpy.float64], dict(shape=(None,), order='C', device='cpu')], response: Annotated[NDArray[numpy.float64], dict(shape=(None,), order='C', device='cpu')], response_weight: float = 1.0, ordered: bool = True) -> Annotated[NDArray[numpy.float64], dict(shape=(None, None))]:
@@ -58,7 +58,7 @@ def accumulate_unit(codes: Annotated[NDArray[numpy.float64], dict(shape=(None, N
     Returns ndarray 1-D — flat connection vector.
     """
 
-def accumulate_unit_with_rows(codes: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], unit_rows: Sequence[int], decay_fn: object, ordered: bool = False) -> _pylibqe.UnitNetworks:
+def accumulate_unit_with_rows(codes: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], unit_rows: Sequence[int], decay_fn: object, ordered: bool = False) -> _qe.UnitNetworks:
     """
     Ground/response accumulation returning per-row connection data (tma model).
 
@@ -66,7 +66,7 @@ def accumulate_unit_with_rows(codes: Annotated[NDArray[numpy.float64], dict(shap
     Returns UnitNetworks with .networks (1-D) and .row_networks (2-D).
     """
 
-def apply_tensor_unit(tensor: Annotated[NDArray[numpy.float64], dict(shape=(None,), order='C', device='cpu')], dims: Sequence[int], dims_sender: Sequence[int], dims_receiver: Sequence[int], dims_mode: Sequence[int], context_lookup: Annotated[NDArray[numpy.int32], dict(shape=(None, None), order='C', device='cpu')], unit_rows: Sequence[int], codes: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], times: Annotated[NDArray[numpy.float64], dict(shape=(None,), order='C', device='cpu')], ordered: bool = True) -> _pylibqe.TensorNetworks:
+def apply_tensor_unit(tensor: Annotated[NDArray[numpy.float64], dict(shape=(None,), order='C', device='cpu')], dims: Sequence[int], dims_sender: Sequence[int], dims_receiver: Sequence[int], dims_mode: Sequence[int], context_lookup: Annotated[NDArray[numpy.int32], dict(shape=(None, None), order='C', device='cpu')], unit_rows: Sequence[int], codes: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], times: Annotated[NDArray[numpy.float64], dict(shape=(None,), order='C', device='cpu')], ordered: bool = True) -> _qe.TensorNetworks:
     """
     Tensor-based multi-modal accumulation for one unit (tma model).
 

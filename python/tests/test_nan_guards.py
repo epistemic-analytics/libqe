@@ -2,7 +2,7 @@
 import math
 import numpy as np
 import pytest
-from pylibqe import modeling, normalization, rotation
+from qe import modeling, normalization, rotation
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────

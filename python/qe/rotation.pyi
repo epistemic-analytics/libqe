@@ -8,10 +8,10 @@ from typing import Annotated
 import numpy
 from numpy.typing import NDArray
 
-import _pylibqe
+import _qe
 
 
-def ena_svd(points: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')]) -> _pylibqe.RotationResult:
+def ena_svd(points: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')]) -> _qe.RotationResult:
     """
     SVD rotation matching prcomp(retx=F, scale=F, center=F, tol=0).
 
@@ -38,7 +38,7 @@ def deflate(data: Annotated[NDArray[numpy.float64], dict(shape=(None, None), ord
     Returns a matrix of the same shape as `data`.
     """
 
-def orthogonal_svd(data: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], weights: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], named_labels: Sequence[str]) -> _pylibqe.RotationResult:
+def orthogonal_svd(data: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], weights: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], named_labels: Sequence[str]) -> _qe.RotationResult:
     """
     Orthonormalize named axes via QR, fill the rest from SVD.
 
@@ -56,7 +56,7 @@ def orthogonal_svd(data: Annotated[NDArray[numpy.float64], dict(shape=(None, Non
     Returns RotationResult with column_names = named_labels + ['SVD{k+1}'..'SVDp'].
     """
 
-def complete_rotation(data: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], named_axes: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], named_labels: Sequence[str]) -> _pylibqe.RotationResult:
+def complete_rotation(data: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], named_axes: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], named_labels: Sequence[str]) -> _qe.RotationResult:
     """
     Keep named axes verbatim, fill remaining axes from an SVD of the
     data deflated by all named axes in parallel:
@@ -79,7 +79,7 @@ def complete_rotation(data: Annotated[NDArray[numpy.float64], dict(shape=(None, 
     then 'SVD{k+1}'..'SVDp'.
     """
 
-def means_rotation(points: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], group_pairs: list) -> _pylibqe.RotationResult:
+def means_rotation(points: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], group_pairs: list) -> _qe.RotationResult:
     """
     Means rotation matching ena.rotate.by.mean.
 
@@ -102,7 +102,7 @@ def means_rotation(points: Annotated[NDArray[numpy.float64], dict(shape=(None, N
     (latent bug carried forward from rENA verbatim).
     """
 
-def generalized_means_rotation(V: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], x_model: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], x_target: Annotated[NDArray[numpy.float64], dict(shape=(None,), order='C', device='cpu')], x1_cols: Sequence[int], x_categorical: bool, x_n_groups: int, x_subset: Sequence[int], has_y: bool, y_model: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], y_target: Annotated[NDArray[numpy.float64], dict(shape=(None,), order='C', device='cpu')], y1_cols: Sequence[int], y_categorical: bool, y_n_groups: int, n_lambda: int = 50, k_folds: int = 5, lasso_eps: float = 0.01) -> _pylibqe.RotationResult:
+def generalized_means_rotation(V: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], x_model: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], x_target: Annotated[NDArray[numpy.float64], dict(shape=(None,), order='C', device='cpu')], x1_cols: Sequence[int], x_categorical: bool, x_n_groups: int, x_subset: Sequence[int], has_y: bool, y_model: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], y_target: Annotated[NDArray[numpy.float64], dict(shape=(None,), order='C', device='cpu')], y1_cols: Sequence[int], y_categorical: bool, y_n_groups: int, n_lambda: int = 50, k_folds: int = 5, lasso_eps: float = 0.01) -> _qe.RotationResult:
     """
     Generalized Means Rotation (GMR) with Lasso-based covariate adjustment.
 

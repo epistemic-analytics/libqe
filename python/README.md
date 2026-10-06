@@ -1,6 +1,7 @@
-# pylibqe — Python bindings for libqe
+# qe-lib — Python bindings for libqe
 
-nanobind bindings that expose the libqe modules as a `pylibqe` Python package,
+nanobind bindings that expose the libqe modules as the `qe` Python package
+(install `qe-lib`, `import qe`),
 built with CMake + scikit-build-core.
 
 ## API reference
@@ -9,7 +10,7 @@ All matrix arguments are 2-D `numpy.ndarray` with `dtype=float64`, C-contiguous.
 All vector arguments are 1-D `numpy.ndarray` with `dtype=float64`.
 Return values are always freshly allocated numpy arrays owned by Python.
 
-### `pylibqe.adjacency`
+### `qe.adjacency`
 
 | Function | Returns | Notes |
 |----------|---------|-------|
@@ -20,14 +21,14 @@ Return values are always freshly allocated numpy arrays owned by Python.
 | `network_to_vector(x, full=True)` | `1-D ndarray` | Matrix → flat vector. `full=True` → n², `False` → upper-tri |
 | `connection_names(names)` | `list[str]` | `"A & B"` pair labels for every upper-tri position |
 
-### `pylibqe.normalization`
+### `qe.normalization`
 
 | Function | Returns | Notes |
 |----------|---------|-------|
 | `normalize_networks(m)` | `2-D ndarray` | Row-wise L2 normalization. Zero rows left unchanged. |
 | `scale_networks(m)` | `2-D ndarray` | Max-norm scaling: divide all rows by the largest row L2 norm. |
 
-### `pylibqe.modeling`
+### `qe.modeling`
 
 | Function | Returns | Notes |
 |----------|---------|-------|
@@ -58,7 +59,7 @@ Return values are always freshly allocated numpy arrays owned by Python.
 | `effect_r` | `ndarray (n_dims,)` | Rank-biserial: 1 − 2·U / (n1·n2) |
 | `medians` | `2 × n_dims ndarray` | Row 0 = group1, row 1 = group2 |
 
-### `pylibqe.accumulation`
+### `qe.accumulation`
 
 | Function | Returns | Notes |
 |----------|---------|-------|
@@ -74,7 +75,7 @@ Return values are always freshly allocated numpy arrays owned by Python.
 `UnitNetworks` fields: `.networks`, `.row_networks`.
 `TensorNetworks` fields: `.connection_counts`, `.row_connection_counts`.
 
-### `pylibqe.rotation`
+### `qe.rotation`
 
 | Function | Returns | Notes |
 |----------|---------|-------|
@@ -87,14 +88,14 @@ Return values are always freshly allocated numpy arrays owned by Python.
 
 `RotationResult` fields: `.rotation`, `.eigenvalues`, `.column_names`.
 
-### `pylibqe.door`
+### `qe.door`
 
 | Function | Returns | Notes |
 |----------|---------|-------|
 | `lookback_block(block, lookback_size=20, aggregate_mean=False, weighting_linear=False, segment_ids=[])` | `2-D ndarray` | Lookback pooling over one unit block; matches ETM missing-value behavior. |
 | `ema_block(block, alpha=0.1, segment_ids=[])` | `2-D ndarray` | EMA smoothing over one unit block; missing current values carry the prior smoothed value. |
 
-### `pylibqe.trajectory`
+### `qe.trajectory`
 
 | Function | Returns | Notes |
 |----------|---------|-------|
@@ -139,7 +140,7 @@ pytest tests/
 
 ```python
 import numpy as np
-from pylibqe import adjacency, normalization, modeling, accumulation
+from qe import adjacency, normalization, modeling, accumulation
 
 # Pair names for 3 codes
 print(adjacency.connection_names(["X", "Y", "Z"]))

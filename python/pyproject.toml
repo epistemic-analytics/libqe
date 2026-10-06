@@ -3,7 +3,7 @@ requires = ["scikit-build-core>=0.4", "nanobind>=1.9"]
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "pylibqe"
+name = "qe-lib"
 version = "0.1.6"
 description = "Python bindings for libqe — low-level QE math including ENA, accumulation, door, and trajectory kernels"
 readme = "README.md"
@@ -21,7 +21,7 @@ Repository = "https://github.com/epistemic-analytics/libqe"
 
 [tool.scikit-build]
 cmake.source-dir = "."
-wheel.packages = ["pylibqe"]
+wheel.packages = ["qe"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

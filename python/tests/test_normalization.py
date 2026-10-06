@@ -1,7 +1,7 @@
-"""Tests for pylibqe.normalization."""
+"""Tests for qe.normalization."""
 import numpy as np
 import pytest
-from pylibqe import normalization
+from qe import normalization
 
 
 class TestNormalizeNetworks:

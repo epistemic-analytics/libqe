@@ -1,11 +1,11 @@
-// pylibqe — nanobind bindings for libqe
+// qe — nanobind bindings for libqe
 //
 // Exposes five submodules that mirror the five C++ headers:
-//   pylibqe.adjacency     — vector/matrix upper-triangle utilities
-//   pylibqe.normalization — row-wise normalization
-//   pylibqe.modeling      — centering, correlation, node-position solvers
-//   pylibqe.accumulation  — stanza window, rolling sum, co-occurrence
-//   pylibqe.rotation      — SVD, means rotation, generalized-rotation tail
+//   qe.adjacency     — vector/matrix upper-triangle utilities
+//   qe.normalization — row-wise normalization
+//   qe.modeling      — centering, correlation, node-position solvers
+//   qe.accumulation  — stanza window, rolling sum, co-occurrence
+//   qe.rotation      — SVD, means rotation, generalized-rotation tail
 //
 // All matrix arguments are accepted as 2-D numpy float64 arrays (C-contiguous).
 // All vector arguments are accepted as 1-D numpy float64 arrays.
@@ -125,8 +125,8 @@ static void check_finite(const arma::mat& m, const char* param) {
 
 // ── Module definition ─────────────────────────────────────────────────────────
 
-NB_MODULE(_pylibqe, m) {
-    m.doc() = "pylibqe — Python bindings for libqe ENA math primitives";
+NB_MODULE(_qe, m) {
+    m.doc() = "qe — Python bindings for libqe ENA math primitives";
 
     // ── adjacency ─────────────────────────────────────────────────────────────
     auto adj = m.def_submodule("adjacency",

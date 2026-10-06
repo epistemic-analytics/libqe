@@ -1,8 +1,8 @@
-"""Tests for pylibqe.door."""
+"""Tests for qe.door."""
 
 import numpy as np
 
-from pylibqe import door
+from qe import door
 
 
 class TestLookbackBlock:

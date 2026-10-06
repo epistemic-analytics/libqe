@@ -1,7 +1,7 @@
-"""Tests for pylibqe.accumulation."""
+"""Tests for qe.accumulation."""
 import numpy as np
 import pytest
-from pylibqe import accumulation
+from qe import accumulation
 
 
 class TestConnectionMatrix:
@@ -27,7 +27,7 @@ class TestConnectionMatrix:
 
 class TestAccumulateStanza:
     def test_output_shape(self, codes_binary):
-        from pylibqe import adjacency
+        from qe import adjacency
         out = accumulation.accumulate_stanza(codes_binary, window_back=1)
         assert out.shape == (codes_binary.shape[0],
                              adjacency.choose_two(codes_binary.shape[1]))
@@ -57,7 +57,7 @@ class TestAccumulateStanza:
 
 class TestRowConnections:
     def test_output_dimensions(self, codes_binary):
-        from pylibqe import adjacency
+        from qe import adjacency
         out = accumulation.row_connections(codes_binary)
         assert out.shape == (4, adjacency.choose_two(3))
 

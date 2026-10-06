@@ -1,7 +1,7 @@
-"""Tests for pylibqe.modeling."""
+"""Tests for qe.modeling."""
 import numpy as np
 import pytest
-from pylibqe import modeling, NodePositions, GroupStatsResult
+from qe import modeling, NodePositions, GroupStatsResult
 
 
 class TestMeanCI:
@@ -226,8 +226,8 @@ class TestGroupStats:
         assert isinstance(result, GroupStatsResult)
 
     def test_importable_from_top_level(self):
-        """GroupStatsResult must be importable from the pylibqe namespace."""
-        from pylibqe import GroupStatsResult as GSR  # noqa: F401
+        """GroupStatsResult must be importable from the qe namespace."""
+        from qe import GroupStatsResult as GSR  # noqa: F401
 
     # --- scalar fields ---
 
