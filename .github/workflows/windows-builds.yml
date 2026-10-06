@@ -1,19 +1,49 @@
 name: Windows builds
 
-# Builds the Windows binaries that the GitLab SaaS runners can't produce
+# Builds the Windows binaries that GitLab's SaaS runners can't produce reliably
 # (R binary .zip + compiled Python wheels). GitHub's windows-latest ships Rtools
-# via r-lib/actions and a preinstalled vcpkg with a native Actions binary cache,
-# so the Rtools-install hang and the slow-cold-vcpkg problems don't apply here.
+# via r-lib/actions and a preinstalled vcpkg with a native Actions binary cache.
 #
-# For now this builds from the repo and uploads artifacts. Wiring cranqe to
-# trigger this and pull the artifacts back into the qe-libs registries is a
-# follow-up (workflow_dispatch inputs below are the hook for that).
+# Two modes:
+#   workflow_dispatch  cranqe's nightly (scripts/github_windows.py) dispatches
+#                      this with the URLs of the *published* R source tarball
+#                      and/or Python sdist on qe-libs.org, waits for the run,
+#                      downloads the artifacts and publishes them. Building from
+#                      the published sources means the binaries carry exactly
+#                      the released (or .9xxx dev) version users install.
+#   push               CI check on main and version tags: builds from the
+#                      checkout. Artifacts are not published.
+#
+# Artifact names are a contract with cranqe's scripts/github_windows.py:
+#   r-windows-<R version>   <pkg>_<version>.zip
+#   py-windows              *.whl (all Python versions)
+
+run-name: >-
+  ${{ github.event_name == 'workflow_dispatch'
+      && format('Windows builds [{0}]', inputs.request_id)
+      || format('Windows builds ({0})', github.ref_name) }}
 
 on:
   workflow_dispatch:
     inputs:
-      ref:
-        description: "Git ref/tag to build (default: the branch this runs on)"
+      r_tarball_url:
+        description: "Published R source tarball to build (empty: skip R)"
+        required: false
+        default: ""
+      r_versions:
+        description: 'R versions, JSON list (e.g. ["4.5","4.6"])'
+        required: false
+        default: '["4.5","4.6"]'
+      py_sdist_url:
+        description: "Published Python sdist to build (empty: skip Python)"
+        required: false
+        default: ""
+      py_versions:
+        description: 'Python versions, JSON list (e.g. ["3.11","3.12","3.13"])'
+        required: false
+        default: '["3.11","3.12","3.13"]'
+      request_id:
+        description: "Caller's id, echoed in the run name so it can find the run"
         required: false
         default: ""
   push:
@@ -24,8 +54,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: windows-builds-${{ github.ref }}
-  cancel-in-progress: true
+  # Each dispatch is a separate request; only pushes supersede each other.
+  group: windows-builds-${{ inputs.request_id || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -34,15 +65,15 @@ jobs:
   # ---------------------------------------------------------------------------
   r-windows:
     name: R ${{ matrix.r }} Windows binary
+    if: github.event_name == 'push' || inputs.r_tarball_url != ''
     runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
-        r: ["4.5", "4.6"]
+        r: ${{ fromJSON(inputs.r_versions || '["4.5","4.6"]') }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.ref || github.ref }}
+        if: github.event_name == 'push'
 
       - uses: r-lib/actions/setup-r@v2
         with:
@@ -50,11 +81,39 @@ jobs:
           # Rtools is selected automatically for the R version.
           update-rtools: true
 
+      # -- dispatch: build the published source tarball ------------------------
+      - name: Build Windows binary from published tarball
+        if: github.event_name == 'workflow_dispatch'
+        shell: Rscript {0}
+        env:
+          TARBALL_URL: ${{ inputs.r_tarball_url }}
+        run: |
+          url <- Sys.getenv("TARBALL_URL")
+          tarball <- basename(url)
+          download.file(url, tarball, mode = "wb")
+          src <- file.path(tempdir(), "src")
+          untar(tarball, exdir = src)
+          pkg_dir <- list.dirs(src, recursive = FALSE)[1]
+          repos <- c(qe = "https://qe-libs.org/cran",
+                     CRAN = "https://packagemanager.posit.co/cran/latest")
+          install.packages("remotes", repos = repos["CRAN"])
+          remotes::install_deps(pkg_dir, dependencies = c("Depends", "Imports", "LinkingTo"),
+                                repos = repos, upgrade = "never")
+          dir.create("out", showWarnings = FALSE)
+          status <- system2("R", c("CMD", "INSTALL", "--build", tarball))
+          if (status != 0) stop("R CMD INSTALL --build failed")
+          zips <- list.files(".", "\\.zip$")
+          file.rename(zips, file.path("out", zips))
+          print(list.files("out"))
+
+      # -- push: build the checkout --------------------------------------------
       - name: Sync headers into R/inst/include
+        if: github.event_name == 'push'
         shell: bash
         run: sh scripts/sync-headers.sh
 
       - name: Install R deps + generate Rcpp exports
+        if: github.event_name == 'push'
         shell: Rscript {0}
         run: |
           install.packages(
@@ -64,7 +123,8 @@ jobs:
           # RcppExports.cpp/.R are gitignored (generated) — regenerate before build.
           Rcpp::compileAttributes("R/")
 
-      - name: Build Windows binary
+      - name: Build Windows binary from checkout
+        if: github.event_name == 'push'
         shell: bash
         run: |
           set -e
@@ -75,28 +135,27 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: libqe-R${{ matrix.r }}-windows
+          name: r-windows-${{ matrix.r }}
           path: out/*.zip
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
-  # Python Windows wheels (3.11-3.13) via cibuildwheel.
+  # Python Windows wheels via cibuildwheel.
   #  - Armadillo (+ BLAS/LAPACK) from the preinstalled vcpkg, cached via x-gha
   #    (cold build once; installed once for all versions in CIBW_BEFORE_ALL).
   #  - delvewheel repair bundles the vcpkg DLLs into each wheel so it imports
   #    without vcpkg present (the Windows equivalent of auditwheel).
-  #  - cibuildwheel also handles the per-version matrix and the Windows
-  #    temp-cleanup quirk that made a raw `python -m build` flaky.
+  #  - cibuildwheel builds from a directory (push) or an sdist (dispatch).
   # ---------------------------------------------------------------------------
   python-windows:
     name: Python wheels (Windows)
+    if: github.event_name == 'push' || inputs.py_sdist_url != ''
     runs-on: windows-latest
     env:
       VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.ref || github.ref }}
+        if: github.event_name == 'push'
 
       - uses: actions/setup-python@v5
         with:
@@ -110,10 +169,26 @@ jobs:
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
+      - name: Select source and Python versions
+        shell: pwsh
+        env:
+          SDIST_URL: ${{ inputs.py_sdist_url }}
+          PY_VERSIONS: ${{ inputs.py_versions || '["3.11","3.12","3.13"]' }}
+        run: |
+          if ($env:SDIST_URL) {
+            $sdist = Join-Path $PWD (Split-Path $env:SDIST_URL -Leaf)
+            Invoke-WebRequest -Uri $env:SDIST_URL -OutFile $sdist -UseBasicParsing
+            "PKG_SOURCE=$sdist" | Out-File -FilePath $env:GITHUB_ENV -Append
+          } else {
+            "PKG_SOURCE=python" | Out-File -FilePath $env:GITHUB_ENV -Append
+          }
+          $tags = ($env:PY_VERSIONS | ConvertFrom-Json | ForEach-Object { "cp$($_ -replace '\.', '')-win_amd64" }) -join ' '
+          "CIBW_BUILD=$tags" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Write-Host "Source: $(if ($env:SDIST_URL) { $env:SDIST_URL } else { 'checkout' }); building $tags"
+
       - name: Build + repair wheels
         shell: pwsh
         env:
-          CIBW_BUILD: "cp311-win_amd64 cp312-win_amd64 cp313-win_amd64"
           # Install native deps once before building (shared across versions).
           CIBW_BEFORE_ALL_WINDOWS: 'C:\vcpkg\vcpkg.exe install armadillo --triplet x64-windows'
           # Forward-slash toolchain path — backslashes get stripped in -D values.
@@ -122,11 +197,11 @@ jobs:
           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: 'delvewheel repair --add-path C:/vcpkg/installed/x64-windows/bin -w {dest_dir} {wheel}'
         run: |
           python -m pip install --upgrade pip cibuildwheel
-          python -m cibuildwheel --output-dir wheelhouse python
+          python -m cibuildwheel --output-dir wheelhouse $env:PKG_SOURCE
           if ($LASTEXITCODE -ne 0) { throw "cibuildwheel failed" }
 
       - uses: actions/upload-artifact@v4
         with:
-          name: libqe-python-windows
+          name: py-windows
           path: wheelhouse/*.whl
           if-no-files-found: error

@@ -21,11 +21,18 @@ find_package(nanobind CONFIG REQUIRED)
 # ── Armadillo ─────────────────────────────────────────────────────────────────
 find_package(Armadillo REQUIRED)
 
-# ── libqe headers — canonical location at repo root include/ ─────────────────
-set(LIBQE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../include")
+# ── libqe headers ────────────────────────────────────────────────────────────
+# Canonical location is the repo root include/.  An sdist only contains python/,
+# so scripts/sync-headers.sh copies them to python/include/ first; prefer that
+# copy when present, else build in-tree from ../include.
+set(LIBQE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
 if(NOT EXISTS "${LIBQE_INCLUDE_DIR}/libqe/libqe.hpp")
-    message(FATAL_ERROR "libqe headers not found at ${LIBQE_INCLUDE_DIR}. "
-            "Expected ../include/libqe/libqe.hpp relative to libqe/python/.")
+    set(LIBQE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../include")
+endif()
+if(NOT EXISTS "${LIBQE_INCLUDE_DIR}/libqe/libqe.hpp")
+    message(FATAL_ERROR "libqe headers not found in python/include/ or ../include/. "
+            "Building from a git checkout needs ../include/libqe/libqe.hpp; an sdist "
+            "needs scripts/sync-headers.sh run before it is built.")
 endif()
 
 # ── binding module ────────────────────────────────────────────────────────────

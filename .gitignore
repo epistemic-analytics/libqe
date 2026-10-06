@@ -17,6 +17,8 @@ R/inst/include/libqe/*.hpp
 # Python
 **/__pycache__/
 python/build/
+# Copied from include/ by scripts/sync-headers.sh so the sdist is self-contained.
+python/include/
 
 # WASM
 wasm/dist/

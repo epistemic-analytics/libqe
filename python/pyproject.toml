@@ -22,6 +22,13 @@ Repository = "https://github.com/epistemic-analytics/libqe"
 [tool.scikit-build]
 cmake.source-dir = "."
 wheel.packages = ["qe"]
+# A fixed build dir instead of a temp one: on Windows, deleting the temp build
+# dir races with handles still held open (WinError 32) and fails the build.
+build-dir = "build/{wheel_tag}"
+# include/ is git-ignored (copied by scripts/sync-headers.sh) but must ship in
+# the sdist; build/ must not.
+sdist.include = ["include/"]
+sdist.exclude = ["build/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
