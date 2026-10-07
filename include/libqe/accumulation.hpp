@@ -333,6 +333,8 @@ inline int flat_index(const std::vector<int>& indices,
         throw std::invalid_argument("Number of indices must match number of dimensions.");
     size_t linear = 0, stride = 1;
     for (size_t v = 0; v < indices.size(); ++v) {
+        if (dims[v] <= 0 || indices[v] < 0 || indices[v] >= dims[v])
+            throw std::out_of_range("Tensor index out of range for its dimension.");
         linear += static_cast<size_t>(indices[v]) * stride;
         stride *= static_cast<size_t>(dims[v]);
     }
@@ -408,6 +410,29 @@ inline TensorNetworks apply_tensor_unit(
     int code_cnt    = codes.n_cols;
     int n_unit_rows = static_cast<int>(unit_rows.size());
     int ctx_cols    = static_cast<int>(context_lookup.n_cols);
+
+    // Validate shapes up front: tensor[] and times[] are unchecked below, and
+    // the bindings (WASM in particular) pass these straight from callers.
+    {
+        size_t tensor_len = 1;
+        for (int d : dims) {
+            if (d <= 0) throw std::invalid_argument("tensor dims must be positive");
+            tensor_len *= static_cast<size_t>(d);
+        }
+        if (tensor_len != tensor.n_elem)
+            throw std::invalid_argument("tensor length does not match the product of dims");
+        if (!IS_DEFAULT && dims.size() != static_cast<size_t>(ctx_cols) + 1)
+            throw std::invalid_argument("dims must have one entry per context column plus one");
+        const arma::uword n_rows = codes.n_rows;
+        if (times.n_elem < n_rows || (ctx_cols > 0 && context_lookup.n_rows < n_rows))
+            throw std::invalid_argument("times and context_lookup must cover every code row");
+        for (int ri : unit_rows)
+            if (ri < 0 || static_cast<arma::uword>(ri) >= n_rows)
+                throw std::out_of_range("unit row index out of range");
+        for (int dim : dims_receiver)
+            if (dim < 0 || dim > ctx_cols)
+                throw std::out_of_range("receiver dimension out of range");
+    }
 
     arma::mat g_w_mat(code_cnt, code_cnt, arma::fill::zeros);
     arma::mat row_conn(n_unit_rows, code_cnt * code_cnt, arma::fill::zeros);

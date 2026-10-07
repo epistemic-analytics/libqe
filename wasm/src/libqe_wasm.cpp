@@ -34,9 +34,19 @@ using namespace emscripten;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+// The caller's rows × cols must describe exactly the array it passed:
+// arma::mat(ptr, ...) copies rows*cols elements from ptr, so a short array
+// would otherwise be padded with whatever follows it on the heap.
+static void check_dims(size_t n, int rows, int cols) {
+    if (rows < 0 || cols < 0 ||
+        static_cast<size_t>(rows) * static_cast<size_t>(cols) != n)
+        throw std::invalid_argument("matrix dimensions do not match the data length");
+}
+
 // JS Float64Array (row-major) → arma::mat (column-major)
 static arma::mat js_to_mat(const val& data, int rows, int cols) {
     std::vector<double> v = vecFromJSArray<double>(data);
+    check_dims(v.size(), rows, cols);
     // arma::mat(ptr, rows, cols) reads column-major; transpose to convert
     // from the row-major JS layout.
     arma::mat m(v.data(), cols, rows);   // read as (cols × rows) col-major
@@ -46,6 +56,7 @@ static arma::mat js_to_mat(const val& data, int rows, int cols) {
 // JS Int32Array (row-major) → arma::imat (column-major integers)
 static arma::imat js_to_imat(const val& data, int rows, int cols) {
     std::vector<int> v = vecFromJSArray<int>(data);
+    check_dims(v.size(), rows, cols);
     arma::imat m(v.data(), cols, rows);  // read as (cols × rows) col-major
     return m.t();                         // transpose → (rows × cols)
 }

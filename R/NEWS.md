@@ -1,5 +1,6 @@
 # libqe (development version)
 
+- Bounds checking at the language boundaries. The WASM bindings copied `rows × cols` values without checking the array length, so a size larger than the data returned leftover heap memory in the results (e.g. 4,096 values from one input); they now raise an error. `flat_index()` rejects out-of-range indices, and `apply_tensor_unit()` validates the tensor length against `dims`, unit rows, receiver dimensions, and `times`/`context_lookup` coverage before indexing (R, Python and WASM).
 # libqe 0.1.8
 
 - Python: the `qe-lib` sdist is self-contained. It used to omit the libqe headers (CMake read them from `../include`, outside the sdist), so every source install failed — Windows, Python 3.14, macOS before 26. `scripts/sync-headers.sh` now also copies them into `python/include/`.
