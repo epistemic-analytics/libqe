@@ -1,4 +1,4 @@
-# libqe (development version)
+# libqe 0.1.8
 
 - Python: the `qe-lib` sdist is self-contained. It used to omit the libqe headers (CMake read them from `../include`, outside the sdist), so every source install failed — Windows, Python 3.14, macOS before 26. `scripts/sync-headers.sh` now also copies them into `python/include/`.
 - Python: Windows wheels are built by the GitHub `windows-builds.yml` workflow from the published sdist (dispatched by cranqe's nightly), and the build uses a fixed `build/{wheel_tag}` directory instead of a temp dir whose cleanup failed on Windows (WinError 32).
