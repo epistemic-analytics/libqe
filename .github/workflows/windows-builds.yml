@@ -96,6 +96,9 @@ jobs:
           pkg_dir <- list.dirs(src, recursive = FALSE)[1]
           repos <- c(qe = "https://qe-libs.org/cran",
                      CRAN = "https://packagemanager.posit.co/cran/latest")
+          # A dev tarball (from qe-libs.org/cran-dev) may need sibling dev builds.
+          if (grepl("/cran-dev/", url, fixed = TRUE))
+            repos <- c(qe_dev = "https://qe-libs.org/cran-dev", repos)
           install.packages("remotes", repos = repos["CRAN"])
           remotes::install_deps(pkg_dir, dependencies = c("Depends", "Imports", "LinkingTo"),
                                 repos = repos, upgrade = "never")
