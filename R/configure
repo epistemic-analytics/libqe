@@ -1,23 +1,32 @@
 #!/bin/sh
 # configure — run by R CMD INSTALL before compilation.
 #
-# Copies the canonical C++ headers from the repo-level include/libqe/ into
-# inst/include/libqe/ so that R's LinkingTo mechanism can find them.
+# Copies the canonical C++ headers from the repo-level include/<lib>/ into
+# inst/include/<lib>/ so that R's LinkingTo mechanism can find them.  libena
+# and libtma are copied too while libqe.hpp still includes them (transitional,
+# until libqe 0.2.0).  Only top-level *.hpp files are copied: the binding
+# helpers under include/<lib>/bind/ need nanobind/Emscripten/CxxWrap and are
+# never compiled by R.
 #
 # Working directory when R runs this script: the package root (i.e. R/).
 # Note: devtools::install() copies source to a temp directory first, so
 # ../include/ will only exist when installing directly from the repo root
 # (e.g. R CMD INSTALL R/ from the repo, or in CI).  In all other cases
-# the headers must already be present in inst/include/libqe/ — either
+# the headers must already be present in inst/include/ — either
 # committed to git or pre-copied by the CI pipeline before R CMD build.
 
-HEADER_SRC="../include/libqe"
-HEADER_DST="inst/include/libqe"
+for LIB in libqe libena libtma; do
+    HEADER_SRC="../include/${LIB}"
+    HEADER_DST="inst/include/${LIB}"
 
-if [ -d "${HEADER_SRC}" ]; then
-    echo "** libqe configure: copying headers ${HEADER_SRC} -> ${HEADER_DST}"
-    mkdir -p "${HEADER_DST}"
-    cp "${HEADER_SRC}"/*.hpp "${HEADER_DST}/"
-else
-    echo "** libqe configure: ${HEADER_SRC} not found — headers must already be present in ${HEADER_DST}"
-fi
+    if [ -d "${HEADER_SRC}" ]; then
+        echo "** libqe configure: copying headers ${HEADER_SRC} -> ${HEADER_DST}"
+        mkdir -p "${HEADER_DST}"
+        # Clear previously copied headers first so a header that moved or was
+        # removed upstream is not left behind and shipped via LinkingTo.
+        rm -f "${HEADER_DST}"/*.hpp
+        cp "${HEADER_SRC}"/*.hpp "${HEADER_DST}/"
+    else
+        echo "** libqe configure: ${HEADER_SRC} not found — headers must already be present in ${HEADER_DST}"
+    fi
+done

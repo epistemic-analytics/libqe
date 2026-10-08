@@ -24,9 +24,14 @@ find_package(Armadillo REQUIRED)
 # ── libqe headers ────────────────────────────────────────────────────────────
 # Canonical location is the repo root include/.  An sdist only contains python/,
 # so scripts/sync-headers.sh copies them to python/include/ first; prefer that
-# copy when present, else build in-tree from ../include.
+# copy when present, else build in-tree from ../include.  libqe.hpp still
+# includes libena and libtma (transitional, until libqe 0.2.0), so a copy is
+# only usable when all three trees are present — an older sync that predates
+# the split has libqe/ alone.
 set(LIBQE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
-if(NOT EXISTS "${LIBQE_INCLUDE_DIR}/libqe/libqe.hpp")
+if(NOT EXISTS "${LIBQE_INCLUDE_DIR}/libqe/libqe.hpp"
+   OR NOT EXISTS "${LIBQE_INCLUDE_DIR}/libena/libena.hpp"
+   OR NOT EXISTS "${LIBQE_INCLUDE_DIR}/libtma/libtma.hpp")
     set(LIBQE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 endif()
 if(NOT EXISTS "${LIBQE_INCLUDE_DIR}/libqe/libqe.hpp")

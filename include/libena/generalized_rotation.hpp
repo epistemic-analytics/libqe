@@ -40,9 +40,9 @@
 #ifndef LIBQE_GENERALIZED_ROTATION_HPP
 #define LIBQE_GENERALIZED_ROTATION_HPP
 
-#include "linalg_fallback.hpp"  // qe::linalg::eig_sym (works w/o LAPACK)
-#include "rotation.hpp"         // ena_svd, complete_rotation, RotationResult
-#include "lasso.hpp"            // lasso_x1_contribution
+#include <libqe/linalg_fallback.hpp>  // qe::linalg::eig_sym (works w/o LAPACK)
+#include <libqe/lasso.hpp>            // lasso_x1_contribution
+#include "rotation.hpp"               // ena_svd, complete_rotation, RotationResult
 
 #include <armadillo>
 #include <stdexcept>

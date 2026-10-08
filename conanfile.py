@@ -16,7 +16,12 @@ class LibqeConan(ConanFile):
 
     # Export the canonical headers into the Conan recipe cache so they are
     # available to package() regardless of where conan create is invoked from.
-    exports_sources = "include/libqe/*.hpp"
+    # libena and libtma ship here too while libqe.hpp still includes them
+    # (transitional, until libqe 0.2.0 — they then get their own recipes in
+    # rENA and tma).
+    exports_sources = ("include/libqe/*.hpp",
+                       "include/libena/*.hpp",
+                       "include/libtma/*.hpp")
 
     # No source files need copying to the build folder — headers are read
     # directly from the exported source tree.

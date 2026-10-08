@@ -9,7 +9,7 @@
 #ifndef LIBQE_ROTATION_HPP
 #define LIBQE_ROTATION_HPP
 
-#include "linalg_fallback.hpp"
+#include <libqe/linalg_fallback.hpp>
 #include <armadillo>
 #include <stdexcept>
 #include <string>

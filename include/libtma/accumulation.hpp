@@ -15,7 +15,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include "adjacency.hpp"
+#include <libqe/adjacency.hpp>
 
 namespace qe {
 

@@ -18,19 +18,25 @@
 #ifndef LIBQE_HPP
 #define LIBQE_HPP
 
+// TRANSITIONAL: the <libena/...> and <libtma/...> includes below keep every
+// existing consumer of <libqe/libqe.hpp> compiling while the ENA and
+// accumulation headers move out to rENA (libena) and tma (libtma).  They are
+// removed in libqe 0.2.0; new code should include <libena/libena.hpp> or
+// <libtma/libtma.hpp> directly.  Include order is unchanged from before the
+// split.
 #include "adjacency.hpp"
 #include "normalization.hpp"
 #include "modeling.hpp"
-#include "accumulation.hpp"
+#include <libtma/accumulation.hpp>
 #include "linalg_fallback.hpp"
-#include "rotation.hpp"
+#include <libena/rotation.hpp>
 #include "lasso.hpp"
-#include "generalized_rotation.hpp"
+#include <libena/generalized_rotation.hpp>
 #include "door.hpp"
 #include "trajectory.hpp"
 #include "trajectory_distance.hpp"
 #include "trajectory_following.hpp"
 #include "stability.hpp"
-#include "ccd.hpp"
+#include <libena/ccd.hpp>
 
 #endif // LIBQE_HPP
