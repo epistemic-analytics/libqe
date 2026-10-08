@@ -26,7 +26,8 @@
 // split.
 #include "adjacency.hpp"
 #include "normalization.hpp"
-#include "modeling.hpp"
+#include "stats.hpp"
+#include <libena/positions.hpp>
 #include <libtma/accumulation.hpp>
 #include "linalg_fallback.hpp"
 #include <libena/rotation.hpp>

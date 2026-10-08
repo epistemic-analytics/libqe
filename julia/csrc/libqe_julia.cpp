@@ -130,7 +130,7 @@ static RotationResultJ pack_rotation(const qe::RotationResult& r) {
 }
 
 // ── GroupStats ────────────────────────────────────────────────────────────────
-// modeling.hpp group_stats returns qe::GroupStats.  All per-dimension vectors
+// stats.hpp group_stats returns qe::GroupStats.  All per-dimension vectors
 // are flattened to std::vector<double>; matrices are flat column-major (Julia
 // native) with accompanying row/col counts so Julia can reshape() them.
 
