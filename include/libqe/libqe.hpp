@@ -39,5 +39,8 @@
 #include "trajectory_following.hpp"
 #include "stability.hpp"
 #include <libena/ccd.hpp>
+#include "validate.hpp"
+// bind/*.hpp (nanobind, Emscripten, CxxWrap helpers) are deliberately not
+// included: they need third-party headers and are for binding code only.
 
 #endif // LIBQE_HPP

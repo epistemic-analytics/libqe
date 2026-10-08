@@ -27,6 +27,7 @@
 #include <libqe/libqe.hpp>
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
+#include <libqe/bind/emscripten.hpp>
 #include <vector>
 #include <string>
 
@@ -34,51 +35,9 @@ using namespace emscripten;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-// The caller's rows × cols must describe exactly the array it passed:
-// arma::mat(ptr, ...) copies rows*cols elements from ptr, so a short array
-// would otherwise be padded with whatever follows it on the heap.
-static void check_dims(size_t n, int rows, int cols) {
-    if (rows < 0 || cols < 0 ||
-        static_cast<size_t>(rows) * static_cast<size_t>(cols) != n)
-        throw std::invalid_argument("matrix dimensions do not match the data length");
-}
-
-// JS Float64Array (row-major) → arma::mat (column-major)
-static arma::mat js_to_mat(const val& data, int rows, int cols) {
-    std::vector<double> v = vecFromJSArray<double>(data);
-    check_dims(v.size(), rows, cols);
-    // arma::mat(ptr, rows, cols) reads column-major; transpose to convert
-    // from the row-major JS layout.
-    arma::mat m(v.data(), cols, rows);   // read as (cols × rows) col-major
-    return m.t();                         // transpose → (rows × cols)
-}
-
-// JS Int32Array (row-major) → arma::imat (column-major integers)
-static arma::imat js_to_imat(const val& data, int rows, int cols) {
-    std::vector<int> v = vecFromJSArray<int>(data);
-    check_dims(v.size(), rows, cols);
-    arma::imat m(v.data(), cols, rows);  // read as (cols × rows) col-major
-    return m.t();                         // transpose → (rows × cols)
-}
-
-// arma::mat (column-major) → JS { data: Float64Array, rows, cols }
-static val mat_to_js(const arma::mat& m) {
-    // Transpose to row-major for JS consumers.
-    arma::mat row_major = m.t();
-    std::vector<double> v(row_major.memptr(),
-                          row_major.memptr() + row_major.n_elem);
-    val result = val::object();
-    result.set("data", val::array(v.begin(), v.end()));
-    result.set("rows", static_cast<int>(m.n_rows));
-    result.set("cols", static_cast<int>(m.n_cols));
-    return result;
-}
-
-// arma::rowvec → JS Float64Array
-static val rowvec_to_js(const arma::rowvec& v) {
-    std::vector<double> vec(v.memptr(), v.memptr() + v.n_elem);
-    return val::array(vec.begin(), vec.end());
-}
+// Array conversion (js_to_mat, mat_to_js, …) and the rows × cols length
+// check come from libqe/bind/emscripten.hpp and libqe/validate.hpp.
+using namespace qe::bind::js;
 
 // RotationResult → JS { rotation: matObj, eigenvalues: Float64Array, column_names: string[] }
 static val rotation_to_js(const qe::RotationResult& r) {

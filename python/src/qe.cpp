@@ -22,106 +22,15 @@
 
 #include <armadillo>
 #include <libqe/libqe.hpp>
+#include <libqe/validate.hpp>
+#include <libqe/bind/nanobind.hpp>
 
 namespace nb = nanobind;
 using namespace nb::literals;
 
-// ── Armadillo ↔ numpy conversion helpers ──────────────────────────────────────
-//
-// Armadillo stores matrices in column-major order; numpy defaults to row-major.
-// We always copy on the boundary so callers never see stale memory.
-
-using NpMat  = nb::ndarray<double, nb::ndim<2>, nb::c_contig, nb::device::cpu>;
-using NpVec  = nb::ndarray<double, nb::ndim<1>, nb::c_contig, nb::device::cpu>;
-
-// numpy 2-D (rows × cols, C-order) → arma::mat (col-major)
-static arma::mat to_mat(NpMat arr) {
-    arma::mat m(arr.shape(0), arr.shape(1));
-    for (size_t i = 0; i < arr.shape(0); ++i)
-        for (size_t j = 0; j < arr.shape(1); ++j)
-            m(i, j) = arr(i, j);
-    return m;
-}
-
-// numpy 1-D → arma::rowvec (copy)
-static arma::rowvec to_rowvec(NpVec arr) {
-    return arma::rowvec(const_cast<double*>(arr.data()), arr.shape(0), /*copy=*/true);
-}
-
-// numpy 1-D → arma::vec (copy)
-static arma::vec to_vec(NpVec arr) {
-    return arma::vec(const_cast<double*>(arr.data()), arr.shape(0), /*copy=*/true);
-}
-
-// arma::mat → numpy 2-D (rows × cols, C-order, Python owns the copy)
-static nb::ndarray<nb::numpy, double, nb::ndim<2>> from_mat(const arma::mat& m) {
-    size_t shape[2] = {m.n_rows, m.n_cols};
-    double* data = new double[m.n_rows * m.n_cols];
-    for (size_t i = 0; i < m.n_rows; ++i)
-        for (size_t j = 0; j < m.n_cols; ++j)
-            data[i * m.n_cols + j] = m(i, j);
-    nb::capsule owner(data, [](void* p) noexcept { delete[] static_cast<double*>(p); });
-    return nb::ndarray<nb::numpy, double, nb::ndim<2>>(data, 2, shape, owner);
-}
-
-// arma::rowvec → numpy 1-D (Python owns the copy)
-static nb::ndarray<nb::numpy, double, nb::ndim<1>> from_rowvec(const arma::rowvec& v) {
-    size_t shape[1] = {v.n_elem};
-    double* data = new double[v.n_elem];
-    std::copy(v.begin(), v.end(), data);
-    nb::capsule owner(data, [](void* p) noexcept { delete[] static_cast<double*>(p); });
-    return nb::ndarray<nb::numpy, double, nb::ndim<1>>(data, 1, shape, owner);
-}
-
-// arma::umat → numpy 2-D int64 (Python owns the copy)
-static nb::ndarray<nb::numpy, int64_t, nb::ndim<2>> from_umat(const arma::umat& m) {
-    size_t shape[2] = {m.n_rows, m.n_cols};
-    int64_t* data = new int64_t[m.n_rows * m.n_cols];
-    for (size_t i = 0; i < m.n_rows; ++i)
-        for (size_t j = 0; j < m.n_cols; ++j)
-            data[i * m.n_cols + j] = static_cast<int64_t>(m(i, j));
-    nb::capsule owner(data, [](void* p) noexcept { delete[] static_cast<int64_t*>(p); });
-    return nb::ndarray<nb::numpy, int64_t, nb::ndim<2>>(data, 2, shape, owner);
-}
-
-// int32 matrix type for context_lookup (arma::imat)
-using NpIMat = nb::ndarray<int32_t, nb::ndim<2>, nb::c_contig, nb::device::cpu>;
-
-// arma::imat → NpIMat input converter
-static arma::imat to_imat(NpIMat arr) {
-    arma::imat m(arr.shape(0), arr.shape(1));
-    for (size_t i = 0; i < arr.shape(0); ++i)
-        for (size_t j = 0; j < arr.shape(1); ++j)
-            m(i, j) = arr(i, j);
-    return m;
-}
-
-// arma::vec (column vector) → numpy 1-D
-static nb::ndarray<nb::numpy, double, nb::ndim<1>> from_vec(const arma::vec& v) {
-    size_t shape[1] = {v.n_elem};
-    double* data = new double[v.n_elem];
-    std::copy(v.begin(), v.end(), data);
-    nb::capsule owner(data, [](void* p) noexcept { delete[] static_cast<double*>(p); });
-    return nb::ndarray<nb::numpy, double, nb::ndim<1>>(data, 1, shape, owner);
-}
-
-// arma::uvec → numpy 1-D int64
-static nb::ndarray<nb::numpy, int64_t, nb::ndim<1>> from_uvec(const arma::uvec& v) {
-    size_t shape[1] = {v.n_elem};
-    int64_t* data = new int64_t[v.n_elem];
-    for (size_t i = 0; i < v.n_elem; ++i) data[i] = static_cast<int64_t>(v[i]);
-    nb::capsule owner(data, [](void* p) noexcept { delete[] static_cast<int64_t*>(p); });
-    return nb::ndarray<nb::numpy, int64_t, nb::ndim<1>>(data, 1, shape, owner);
-}
-
-// ── Input validation helpers ──────────────────────────────────────────────────
-
-static void check_finite(const arma::mat& m, const char* param) {
-    if (!m.is_finite())
-        throw std::invalid_argument(
-            std::string(param) + " contains NaN or Inf — "
-            "filter or impute rows with non-finite values before calling");
-}
+// Armadillo ↔ numpy conversion (to_mat, from_mat, …) comes from
+// libqe/bind/nanobind.hpp; input validation from libqe/validate.hpp.
+using namespace qe::bind::py;
 
 // ── Module definition ─────────────────────────────────────────────────────────
 
@@ -354,8 +263,8 @@ NB_MODULE(_qe, m) {
     mod.def("node_positions", [&make_py_np](NpMat adj_mats, NpMat t, int num_dims) {
         arma::mat am = to_mat(adj_mats);
         arma::mat tv = to_mat(t);
-        check_finite(am, "adj_mats");
-        check_finite(tv, "t");
+        qe::require_finite(am, "adj_mats");
+        qe::require_finite(tv, "t");
         return make_py_np(qe::node_positions(am, tv, num_dims));
     }, "adj_mats"_a, "t"_a, "num_dims"_a,
         "Multiobjective least-squares node positions for undirected ENA.");
@@ -363,8 +272,8 @@ NB_MODULE(_qe, m) {
     mod.def("directed_node_positions", [&make_py_np](NpMat line_weights, NpMat points, int num_dims) {
         arma::mat lw = to_mat(line_weights);
         arma::mat pt = to_mat(points);
-        check_finite(lw, "line_weights");
-        check_finite(pt, "points");
+        qe::require_finite(lw, "line_weights");
+        qe::require_finite(pt, "points");
         return make_py_np(qe::directed_node_positions(lw, pt, num_dims));
     }, "line_weights"_a, "points"_a, "num_dims"_a,
         "Least-squares node positions for directed (ordered) ENA.");
@@ -373,8 +282,8 @@ NB_MODULE(_qe, m) {
         [&make_py_np](NpMat line_weights, NpMat points, int num_dims) {
             arma::mat lw = to_mat(line_weights);
             arma::mat pt = to_mat(points);
-            check_finite(lw, "line_weights");
-            check_finite(pt, "points");
+            qe::require_finite(lw, "line_weights");
+            qe::require_finite(pt, "points");
             return make_py_np(qe::directed_node_positions(lw, pt, num_dims, true));
         }, "line_weights"_a, "points"_a, "num_dims"_a,
         "Directed node positions with paired ground+response rows combined before solving.");
@@ -628,7 +537,7 @@ NB_MODULE(_qe, m) {
 
     rot.def("ena_svd", [make_py_rot](NpMat points) {
         arma::mat pt = to_mat(points);
-        check_finite(pt, "points");
+        qe::require_finite(pt, "points");
         return make_py_rot(qe::ena_svd(pt));
     }, "points"_a,
         "SVD rotation matching prcomp(retx=F, scale=F, center=F, tol=0).\n\n"
