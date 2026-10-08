@@ -93,6 +93,7 @@ libqe/
 │   └── test/basic.test.js
 ├── conanfile.py        ← Conan recipe (header-only, exports include/{libqe,libena,libtma}/)
 ├── conan-test/         ← Conan test_package consumer
+├── docs/split-plan.md  ← plan and status for moving libena / libtma out
 └── scripts/
     ├── sync-headers.sh          ← copy include/ → R/inst/include/ and python/include/
     └── check-headers-in-sync.sh ← verify the two trees match
@@ -100,6 +101,9 @@ libqe/
 
 Edit headers under `include/` only. The R `configure` script and
 `scripts/sync-headers.sh` propagate them.
+
+`include/libena/` and `include/libtma/` are moving to the rENA and tma repos;
+see [docs/split-plan.md](docs/split-plan.md) for the plan and its status.
 
 ## Installing the R package
 
