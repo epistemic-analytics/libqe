@@ -59,8 +59,12 @@ target_include_directories(libqe_julia PRIVATE
     ${ARMADILLO_INCLUDE_DIRS}
 )
 
+# cxxwrap_julia_stl provides the std::vector wrappers used via jlcxx/stl.hpp.
+# Linux tolerates its symbols being unresolved at link time (CxxWrap loads the
+# library first), but macOS's linker rejects undefined symbols.
 target_link_libraries(libqe_julia PRIVATE
     JlCxx::cxxwrap_julia
+    JlCxx::cxxwrap_julia_stl
     ${ARMADILLO_LIBRARIES}
 )
 
