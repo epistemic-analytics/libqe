@@ -1,3 +1,5 @@
+# libqe (development version)
+
 # libqe 0.1.9
 
 - Bounds checking at the language boundaries. The WASM bindings copied `rows × cols` values without checking the array length, so a size larger than the data returned leftover heap memory in the results (e.g. 4,096 values from one input); they now raise an error. `flat_index()` rejects out-of-range indices, and `apply_tensor_unit()` validates the tensor length against `dims`, unit rows, receiver dimensions, and `times`/`context_lookup` coverage before indexing (R, Python and WASM).
