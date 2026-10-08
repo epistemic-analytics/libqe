@@ -1,6 +1,6 @@
 # Splitting libqe into libqe, libena and libtma
 
-Status: **phases 1–3 done; phase 4 next** (updated 2026-10-08).
+Status: **phases 1–3 done; 4a committed on rENA `split/libena` (unpushed); 4b next** (updated 2026-10-08).
 
 ## Goal
 
@@ -107,7 +107,7 @@ candidates for phase 7.
 | 1 | Baseline: all suites green, rotation parity fixtures recorded | ✅ Done |
 | 2 | Split inside libqe (no repo moves) | ✅ Done — `6c4a20b`, `391fd0b`, `9c84a54`, `9ed8cf6` (+ fixes `c0ad788`, `7125a16`) |
 | 3 | Release libqe 0.1.9 (additive) | ✅ Done — tag `v0.1.9` at `740dba2`; R, Python, Conan, npm, Julia published |
-| 4a | libena → rENA | ⬜ Next |
+| 4a | libena → rENA | 🟡 Committed on rENA branch `split/libena` (`ac93dd4`…`52737cb`) + cranqe `main` (`9d1fba31`, `69a37d6c`); not pushed, CI not run |
 | 4b | libtma → tma | ⬜ Blocked (see open items) |
 | 5 | Switch rENA and ona callers to `tma::` | ⬜ |
 | 6 | Release libqe 0.2.0 (drop ENA and accumulation code) | ⬜ |
@@ -163,6 +163,31 @@ Remove the ENA and accumulation headers, wrappers, bindings and the
 - Retire the stale `libqe-wasm` repo and the `pylibqe` references in ena-mcp.
 - Optionally rename to `qe::ena` / `qe::tma`.
 
+## Phase 4a as built
+
+- **R:** `inst/include/libena/` (canonical), wrappers in `src/libena_rcpp.cpp`
+  (internal; `ena_correlation_c` / `directed_node_positions_c` because rENA
+  exports R functions with the plain names). `-I../inst/include` is in
+  `PKG_CPPFLAGS` so rENA's libena wins over libqe's transitional copy.
+- **Headers for the other bindings:** `scripts/sync-headers.sh` vendors libena
+  and libqe (from Conan, pinned `LIBQE_VERSION`, default 0.1.9) into
+  `python/include`, `wasm/include`, `julia/include`. Bump it with
+  DESCRIPTION's `LinkingTo: libqe` floor.
+- **Python:** qe-ena compiles `ena._libena` (nanobind); `ena.libena` wraps the
+  dicts in NamedTuples. Still depends on qe-lib for generic + accumulation.
+- **WASM:** rena-wasm builds `dist/libena.{js,wasm}`; `src/index.js` proxies the
+  11 libena names to it, the rest to libqe-wasm.
+- **Julia:** new package **ENA.jl** (`julia/`, `using ENA`); results are plain
+  tuples (no `add_type`), so it loads alongside LibQE.jl. Adds `ccd_window`.
+- **Conan:** `conan/conanfile.py` — recipe `libena`, version from DESCRIPTION,
+  requires `libqe/[>=0.1.9 <0.3]`.
+- **cranqe:** macOS Python builds run `sync-headers.sh`; Julia builds too;
+  Julia packages register under `Project.toml`'s name (libqe's entry moves
+  to `LibQE` on its next release); Conan uploads under the recipe name.
+- **Bugs found in LibQE.jl (fixed in ENA.jl, still in LibQE.jl 0.1.9):**
+  `ena_correlation` reshapes to `n_units × 3` instead of `n_dims × 3`;
+  `directed_node_positions_combine_pairs` uses undefined `pr`/`pc`.
+
 ## Open items
 
 - **Before 4b:** tma's unmerged `feature/global-encoding-perf` branch (encoding
@@ -173,6 +198,9 @@ Remove the ENA and accumulation headers, wrappers, bindings and the
   accum_stanza_window's column order correctly").
 - **libqe 0.1.10 dev bump** is committed (`f6dfc5d`) and goes out with the next
   substantive push.
+- **Before 4a ships:** push rENA `split/libena` and cranqe `main`; watch the
+  first compiled builds (R binaries, qe-ena wheels incl. Windows on GitHub,
+  rena-wasm, ENA.jl, libena Conan); then release rENA and its bindings.
 
 ## Issues carried into tma
 
