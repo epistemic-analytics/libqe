@@ -1,6 +1,10 @@
 # libqe (development version)
 
 - Bounds checking at the language boundaries. The WASM bindings copied `rows × cols` values without checking the array length, so a size larger than the data returned leftover heap memory in the results (e.g. 4,096 values from one input); they now raise an error. `flat_index()` rejects out-of-range indices, and `apply_tensor_unit()` validates the tensor length against `dims`, unit rows, receiver dimensions, and `times`/`context_lookup` coverage before indexing (R, Python and WASM).
+- C++ headers reorganised ahead of splitting libqe into three layers: `libqe` (generic numerics), `libena` (ENA model code, moving to rENA) and `libtma` (all accumulation, moving to tma). Rotation, generalized rotation, node positions / `ena_correlation` and CCD are now under `include/libena/`; accumulation is under `include/libtma/`; `modeling.hpp` is split into `libqe/stats.hpp` and `libena/positions.hpp`. `<libqe/libqe.hpp>` still includes everything, so code that includes it is unaffected; code that includes an individual header needs the new path (e.g. `<libqe/rotation.hpp>` → `<libena/rotation.hpp>`). The R package and the Conan package ship all three header trees. No functions changed.
+- New `libqe/validate.hpp` (`require_finite`, `require_dims`) and `libqe/bind/{nanobind,emscripten,cxxwrap}.hpp` (array conversion), shared by the Python, WASM and Julia bindings instead of each carrying its own copy.
+- Julia: the binding now links `cxxwrap_julia_stl`, fixing a macOS link failure (`jlcxx::stl::StlWrappers::instance()` undefined).
+
 # libqe 0.1.8
 
 - Python: the `qe-lib` sdist is self-contained. It used to omit the libqe headers (CMake read them from `../include`, outside the sdist), so every source install failed — Windows, Python 3.14, macOS before 26. `scripts/sync-headers.sh` now also copies them into `python/include/`.

@@ -10,33 +10,63 @@ downstream C++ consumers.
 
 ## Modules
 
+The headers are being split into three layers. `libqe` keeps the generic
+numerics; the ENA model code (`libena`) is moving to rENA and all accumulation
+(`libtma`) to tma. Until then all three trees ship from this repo.
+
+**libqe** — `include/libqe/`
+
 | Module | Header | Contents |
 |--------|--------|----------|
 | **adjacency** | `adjacency.hpp` | Upper-triangle index pairs, vector/matrix ↔ upper-tri conversions, code-name pair strings |
 | **normalization** | `normalization.hpp` | Row-wise L2 sphere norm, max-norm (skip-sphere) scaling |
-| **modeling** | `modeling.hpp` | Column-mean centering, group confidence interval (t-based, matches rENA), outlier interval (IQR-based, matches rENA), Pearson correlation with CI, least-squares node positions (undirected, directed, ground/response) |
-| **accumulation** | `accumulation.hpp` | Core adjacency math, stanza-window accumulation (rENA), ground/response accumulation with decay (tma), tensor-based multi-modal accumulation (tma), rolling window sum, per-row co-occurrence |
+| **stats** | `stats.hpp` | Column-mean centering, normal/t quantiles, group confidence interval (t-based, matches rENA), outlier interval (IQR-based, matches rENA), two-group statistics (Welch t-test, Wilcoxon rank-sum) |
+| **linear algebra** | `linalg_fallback.hpp`, `lasso.hpp` | LAPACK-free eigen/QR/SVD/SPD-solve fallbacks; coordinate-descent lasso |
 | **door** | `door.hpp` | Lookback and EMA temporal pooling kernels for trajectory/model workflows |
 | **trajectory** | `trajectory.hpp`, `trajectory_distance.hpp`, `trajectory_following.hpp` | R-compatible polynomial trajectory fitting, curve evaluation, derivatives, integrated distances, and lag/following metrics |
 | **stability** | `stability.hpp` | Distance-distance correlation for stability comparisons |
+| **validation** | `validate.hpp` | Shared input checks (`require_finite`, `require_dims`) |
+| **binding helpers** | `bind/nanobind.hpp`, `bind/emscripten.hpp`, `bind/cxxwrap.hpp` | Armadillo ↔ numpy / JavaScript / Julia array conversion for the language bindings; need the respective binding library, so not included by `libqe.hpp` |
 
-All modules are pulled in by `#include <libqe/libqe.hpp>`.
+**libena** — `include/libena/` (moving to rENA)
+
+| Module | Header | Contents |
+|--------|--------|----------|
+| **rotation** | `rotation.hpp`, `generalized_rotation.hpp` | ENA SVD, means rotation, generalized means rotation (GMR) |
+| **positions** | `positions.hpp` | Least-squares node positions (undirected, directed), points-to-centroids correlation with CI |
+| **ccd** | `ccd.hpp` | Moving-window size estimate from cross-covariance decay |
+
+**libtma** — `include/libtma/` (moving to tma)
+
+| Module | Header | Contents |
+|--------|--------|----------|
+| **accumulation** | `accumulation.hpp` | Connection-matrix kernel, stanza-window accumulation (rENA), ground/response accumulation with decay, tensor-based multi-modal accumulation, weight models, rolling window sum, per-row co-occurrence |
+
+Each layer has an umbrella header: `<libena/libena.hpp>` and
+`<libtma/libtma.hpp>` include `<libqe/libqe.hpp>` plus their own modules.
+For now `<libqe/libqe.hpp>` still includes the libena and libtma headers too,
+so existing code keeps compiling; that goes away in libqe 0.2.0.
 
 ## Repository layout
 
 ```
 libqe/
-├── include/libqe/      ← canonical C++ headers (single source of truth)
-│   ├── libqe.hpp
-│   ├── adjacency.hpp
-│   ├── normalization.hpp
-│   ├── modeling.hpp
-│   ├── accumulation.hpp
-│   ├── door.hpp
-│   ├── trajectory.hpp
-│   ├── trajectory_distance.hpp
-│   ├── trajectory_following.hpp
-│   └── stability.hpp
+├── include/            ← canonical C++ headers (single source of truth)
+│   ├── libqe/          ← generic numerics
+│   │   ├── libqe.hpp
+│   │   ├── adjacency.hpp, normalization.hpp, stats.hpp
+│   │   ├── linalg_fallback.hpp, lasso.hpp
+│   │   ├── door.hpp, stability.hpp
+│   │   ├── trajectory.hpp, trajectory_distance.hpp, trajectory_following.hpp
+│   │   ├── validate.hpp
+│   │   └── bind/       ← nanobind / Emscripten / CxxWrap array helpers
+│   ├── libena/         ← ENA model code (moving to rENA)
+│   │   ├── libena.hpp
+│   │   ├── rotation.hpp, generalized_rotation.hpp
+│   │   └── positions.hpp, ccd.hpp
+│   └── libtma/         ← accumulation (moving to tma)
+│       ├── libtma.hpp
+│       └── accumulation.hpp
 ├── R/                  ← R package (Rcpp wrappers + LinkingTo mechanism)
 │   ├── DESCRIPTION
 │   ├── configure       ← copies headers into inst/include/ at install time
@@ -61,14 +91,14 @@ libqe/
 │   ├── profiles/wasm   ← Conan cross-compilation profile for Emscripten
 │   ├── js/index.js
 │   └── test/basic.test.js
-├── conanfile.py        ← Conan recipe (header-only, exports include/libqe/)
+├── conanfile.py        ← Conan recipe (header-only, exports include/{libqe,libena,libtma}/)
 ├── conan-test/         ← Conan test_package consumer
 └── scripts/
-    ├── sync-headers.sh          ← copy include/ → R/inst/include/
+    ├── sync-headers.sh          ← copy include/ → R/inst/include/ and python/include/
     └── check-headers-in-sync.sh ← verify the two trees match
 ```
 
-Edit headers in `include/libqe/` only. The R `configure` script and
+Edit headers under `include/` only. The R `configure` script and
 `scripts/sync-headers.sh` propagate them.
 
 ## Installing the R package
@@ -195,9 +225,12 @@ conan create . --test-folder=conan-test --build=missing
 
 ## Header sync
 
-The R package's `configure` script copies `include/libqe/*.hpp` into
-`R/inst/include/libqe/` at install time.  To sync manually (e.g. before
-`R CMD build`):
+The R package's `configure` script copies `include/<lib>/*.hpp` into
+`R/inst/include/<lib>/` for `libqe`, `libena` and `libtma` at install time,
+clearing previously copied headers first. Only top-level headers are copied —
+`bind/` is for the language bindings and never reaches R. To sync manually
+(e.g. before `R CMD build`, or before building a Python sdist, which also
+gets `bind/`):
 
 ```bash
 bash scripts/sync-headers.sh

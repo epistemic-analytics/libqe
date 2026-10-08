@@ -1,11 +1,19 @@
 // qe — nanobind bindings for libqe
 //
-// Exposes five submodules that mirror the five C++ headers:
-//   qe.adjacency     — vector/matrix upper-triangle utilities
-//   qe.normalization — row-wise normalization
-//   qe.modeling      — centering, correlation, node-position solvers
-//   qe.accumulation  — stanza window, rolling sum, co-occurrence
-//   qe.rotation      — SVD, means rotation, generalized-rotation tail
+// Exposes these submodules (C++ header in parentheses):
+//   qe.adjacency     — vector/matrix upper-triangle utilities (libqe/adjacency.hpp)
+//   qe.normalization — row-wise normalization (libqe/normalization.hpp)
+//   qe.modeling      — centering, confidence intervals, group statistics
+//                      (libqe/stats.hpp); correlation, node-position solvers
+//                      (libena/positions.hpp)
+//   qe.accumulation  — stanza window, rolling sum, co-occurrence, tensor
+//                      accumulation, weight models (libtma/accumulation.hpp)
+//   qe.rotation      — SVD, means rotation, generalized rotation
+//                      (libena/rotation.hpp, libena/generalized_rotation.hpp)
+//   qe.door          — lookback / EMA temporal pooling (libqe/door.hpp)
+//   qe.trajectory    — curve fitting, derivatives, distance, following
+//                      (libqe/trajectory*.hpp)
+//   qe.ccd           — moving-window size estimate (libena/ccd.hpp)
 //
 // All matrix arguments are accepted as 2-D numpy float64 arrays (C-contiguous).
 // All vector arguments are accepted as 1-D numpy float64 arrays.
