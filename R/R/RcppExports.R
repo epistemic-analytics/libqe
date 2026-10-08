@@ -414,6 +414,10 @@ orthogonal_svd <- function(data, weights, named_labels) {
 #' Mirrors the tail of \code{ena.rotate.by.generalized}: the named axes
 #' appear in the output exactly as provided, and the trailing columns come
 #' from an SVD of the data deflated by all named axes.
+#' On rank-deficient data (e.g. an all-zero connection column) the trailing
+#' axes that come from the deflated data's null space are orthogonalised
+#' against the named axes, so the rotation is orthonormal whenever the named
+#' axes are.
 #'
 #' @param data         Numeric matrix (n_units x n_dims)
 #' @param named_axes   Numeric matrix (n_dims x k); columns must be unit-norm
