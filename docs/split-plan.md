@@ -1,6 +1,6 @@
 # Splitting libqe into libqe, libena and libtma
 
-Status: **phases 1–3 done; 4a on rENA `develop` (pushed, CI green; held from `main`); 4b next** (updated 2026-10-08).
+Status: **phases 1–3 done; 4a on rENA `develop` (pushed, CI green); 4b on tma `develop` (local); both held from `main`; phase 5 next** (updated 2026-10-08).
 
 ## Goal
 
@@ -108,7 +108,7 @@ candidates for phase 7.
 | 2 | Split inside libqe (no repo moves) | ✅ Done — `6c4a20b`, `391fd0b`, `9c84a54`, `9ed8cf6` (+ fixes `c0ad788`, `7125a16`) |
 | 3 | Release libqe 0.1.9 (additive) | ✅ Done — tag `v0.1.9` at `740dba2`; R, Python, Conan, npm, Julia published |
 | 4a | libena → rENA | 🟡 On rENA `develop` (`ac93dd4`…`52737cb`, rENA CI green) + cranqe `main` (`9d1fba31`, `69a37d6c`, pushed). **Held from rENA `main`** until verified against the converted tma/libqe |
-| 4b | libtma → tma | ⬜ Next |
+| 4b | libtma → tma | 🟡 On tma `develop` (`c8fc081`…`9db2c8a`, not pushed) + cranqe `a83eabfa` (not pushed). Held from tma `main` with rENA |
 | 5 | Switch rENA and ona callers to `tma::` | ⬜ |
 | 6 | Release libqe 0.2.0 (drop ENA and accumulation code) | ⬜ |
 | 7 | Cleanup | ⬜ |
@@ -189,6 +189,28 @@ Remove the ENA and accumulation headers, wrappers, bindings and the
   `directed_node_positions_combine_pairs` used undefined `pr`/`pc`. Fixed in
   LibQE.jl too (`f8d9db5`).
 
+## Phase 4b as built
+
+Decided with the user: full parity in tma (Python, WASM, Julia, Conan), and
+pyTMA becomes **qe-tma** (`import tma`). Julia package name **TMA**.
+
+- **R:** `inst/include/libtma/` (canonical; `accumulation.hpp` gained the
+  `<algorithm>` include it relied on implicitly), wrappers in
+  `src/libtma_rcpp.cpp`, **exported** (tma is where rENA/ona get accumulation in
+  phase 5). tma 0.3.6.
+- **Python:** qe-tma 0.1.3 compiles `tma._libtma`; `tma.libtma` wraps dicts in
+  `UnitNetworks` / `TensorNetworks`. Node positions from qe-ena (`ena.libena`,
+  >= 0.1.6 — on rENA `develop` only, so tma's `test:python` builds qe-ena from
+  rENA `develop` via `QE_ENA_REF` until it is published).
+- **WASM:** new `@qe-libs/tma-wasm` 0.1.0 (`dist/libtma`), `loadTMA()`.
+- **Julia:** new **TMA.jl** 0.1.0 (`using TMA`); adds the weight models;
+  `accumulate_unit_with_rows` no longer reuses the ENA struct.
+- **Conan:** `conan/conanfile.py` — recipe `libtma`, version from DESCRIPTION.
+- **cranqe:** tma uses per-target release tags; Julia builds skip a missing
+  subdir (as the other languages do).
+- **Parity:** every binding has tests checking identical results against
+  libqe's copy (skipped once libqe 0.2.0 removes it).
+
 ## Open items
 
 - **tma's old perf branch and stashes — not blocking (decided 2026-10-08):**
@@ -201,9 +223,10 @@ Remove the ENA and accumulation headers, wrappers, bindings and the
   accum_stanza_window's column order correctly").
 - **libqe 0.1.10 dev bump** is committed (`f6dfc5d`) and goes out with the next
   substantive push.
-- **Before 4a ships:** rENA stays on `develop` until it is verified against the
-  converted tma (4b) and libqe; then merge rENA to `main` and watch the
-  first compiled builds (R binaries, qe-ena wheels incl. Windows on GitHub,
+- **Before 4a/4b ship:** rENA and tma stay on `develop` until rENA is verified
+  against the converted tma and libqe (phase 5 switches rENA/ona/rena-wasm to
+  tma's accumulation); then merge both to `main` and watch the first compiled
+  builds (R binaries, qe-ena wheels incl. Windows on GitHub,
   rena-wasm, ENA.jl, libena Conan); then release rENA and its bindings.
 
 ## Issues carried into tma
