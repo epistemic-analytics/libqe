@@ -62,7 +62,7 @@ r = group_stats(g1, g2)
 | `center_points(m)` | `Matrix{Float64}` | Subtract column means |
 | `mean_ci(pts; conf_level=0.95)` | `n_dims × 3 Matrix` | `[mean, ci_lower, ci_upper]` — matches rENA `t.test` exactly |
 | `outlier_ci(pts; iqr_factor=1.5)` | `n_dims × 2 Matrix` | `[lower, upper]` symmetric around 0 — matches rENA IQR formula |
-| `ena_correlation(pts, centroids; conf_level=0.95)` | `n_units × 3 Matrix` | Pearson r with CI: `[r, ci_lower, ci_upper]` |
+| `ena_correlation(pts, centroids; conf_level=0.95)` | `n_dims × 3 Matrix` | Pearson r with CI: `[r, ci_lower, ci_upper]` |
 | `node_positions(adj, t, dims)` | `NamedTuple` | Undirected ENA node positions → `(nodes, centroids, weights, points)` |
 | `directed_node_positions(lw, pts, dims)` | `NamedTuple` | Directed ENA node positions → same structure |
 | `directed_node_positions_combine_pairs(lw, pts, dims)` | `NamedTuple` | Directed ENA — ground/response rows averaged before solve |

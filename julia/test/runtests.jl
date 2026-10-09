@@ -165,3 +165,18 @@ end
     @test size(r.rotation) == (2, 2)
     @test all(isfinite, r.rotation)
 end
+
+@testset "ena_correlation: one row per dimension" begin
+    pts = reshape(collect(1.0:20.0), 10, 2)       # 10 units × 2 dims
+    r   = ena_correlation(pts, 2 .* pts)
+    @test size(r) == (2, 3)
+    @test r[:, 1] ≈ [1.0, 1.0] atol = 1e-8
+end
+
+@testset "directed_node_positions_combine_pairs" begin
+    Random.seed!(9)
+    pts = rand(6, 2)
+    r   = directed_node_positions_combine_pairs(rand(6, 9), pts, 2)   # 3 codes → 3²
+    @test size(r.nodes) == (3, 2)
+    @test size(r.centroids) == (6, 2)
+end

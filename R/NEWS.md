@@ -1,5 +1,7 @@
 # libqe (development version)
 
+- Julia: `ena_correlation` returns one row per dimension (`n_dims × 3`), as in R and Python; it reshaped to `n_units` rows and threw unless the two counts matched. `directed_node_positions_combine_pairs` no longer throws `UndefVarError` (it read the points' size before computing it). Both moved to ENA.jl as part of the split; this fixes the LibQE.jl copies kept until 0.2.0.
+
 # libqe 0.1.9
 
 - Bounds checking at the language boundaries. The WASM bindings copied `rows × cols` values without checking the array length, so a size larger than the data returned leftover heap memory in the results (e.g. 4,096 values from one input); they now raise an error. `flat_index()` rejects out-of-range indices, and `apply_tensor_unit()` validates the tensor length against `dims`, unit rows, receiver dimensions, and `times`/`context_lookup` coverage before indexing (R, Python and WASM).

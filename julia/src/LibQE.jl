@@ -236,16 +236,17 @@ end
     ena_correlation(points, centroids; conf_level=0.95) -> Matrix{Float64}
 
 Pearson correlation with CI between ENA unit points and group centroids.
-Returns an `n_units × 3` matrix with columns `[r, ci_lower, ci_upper]`.
+Returns an `n_dims × 3` matrix (one row per dimension) with columns
+`[r, ci_lower, ci_upper]`.
 """
 function ena_correlation(points::Matrix{Float64}, centroids::Matrix{Float64};
                           conf_level::Float64 = 0.95)
     pr, pc = size(points)
     cr, cc = size(centroids)
-    n_units = pr
+    n_dims = pc
     reshape(ena_correlation(vec(points), Int32(pr), Int32(pc),
                                 vec(centroids), Int32(cr), Int32(cc),
-                                conf_level), n_units, 3)
+                                conf_level), n_dims, 3)
 end
 
 """
@@ -299,6 +300,7 @@ function directed_node_positions_combine_pairs(line_weights::Matrix{Float64},
         throw(ArgumentError("directed_node_positions_combine_pairs: input matrices must not contain NaN or Inf — " *
                             "filter or impute rows with non-finite values before calling"))
     lr, lc = size(line_weights)
+    pr, pc = size(points)
     r = directed_node_positions_combine_pairs(
             vec(line_weights), Int32(lr), Int32(lc),
             vec(points),       Int32(pr), Int32(pc),
