@@ -234,7 +234,9 @@ Decided with the user: rENA's non-R products **compile the libtma they use**
   libqe's copies.
 
 ### Release order
-1. **tma**: merge `develop` → `main`, push cranqe `fd7a5240` with it, then
+1. **tma**: ✅ merged `develop` → `main` and pushed with cranqe `fd7a5240`
+   (2026-10-09; `main` had to be protected first — see open items); first
+   cranqe dev build published every target. Next:
    release `v0.3.6` **and `conan/v0.3.6`** (rENA's cranqe builds take libtma
    from Conan at exactly that version), plus qe-tma / tma-wasm / TMA.jl tags
    as wanted. qe-tma needs qe-ena >= 0.1.6, so its install works once step 2
@@ -262,6 +264,11 @@ Decided with the user: rENA's non-R products **compile the libtma they use**
   tma's accumulation); then merge both to `main` and watch the first compiled
   builds (R binaries, qe-ena wheels incl. Windows on GitHub,
   rena-wasm, ENA.jl, libena Conan); then release rENA and its bindings.
+
+- **Protected refs:** the cranqe trigger token is a protected group variable,
+  so a package's `main` and `v*` (and `*/v*`) tags must be protected or its
+  trigger 404s. Done 2026-10-09: `main` in tma, ncodeR, rhoR, PRIA; tags in
+  tma and ona (libqe and rENA already had both).
 
 ## Issues carried into tma
 
