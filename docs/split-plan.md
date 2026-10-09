@@ -1,6 +1,6 @@
 # Splitting libqe into libqe, libena and libtma
 
-Status: **phases 1–3 done; 4a on rENA `develop` (pushed, CI green); 4b on tma `develop` (local); both held from `main`; phase 5 next** (updated 2026-10-08).
+Status: **phases 1–3 done; 4a, 4b and 5 built on the `develop` branches of rENA, tma and ona, held from `main`; release order below; then phase 6** (updated 2026-10-08).
 
 ## Goal
 
@@ -109,7 +109,7 @@ candidates for phase 7.
 | 3 | Release libqe 0.1.9 (additive) | ✅ Done — tag `v0.1.9` at `740dba2`; R, Python, Conan, npm, Julia published |
 | 4a | libena → rENA | 🟡 On rENA `develop` (`ac93dd4`…`52737cb`, rENA CI green) + cranqe `main` (`9d1fba31`, `69a37d6c`, pushed). **Held from rENA `main`** until verified against the converted tma/libqe |
 | 4b | libtma → tma | 🟡 On tma `develop` (`c8fc081`…`9db2c8a`, not pushed) + cranqe `fd7a5240` (tma targets; push only with tma merged) and `25894ff4` (Julia skip fix, pushed). Held from tma `main` with rENA |
-| 5 | Switch rENA and ona callers to `tma::` | ⬜ |
+| 5 | Switch rENA and ona callers to `tma::` | 🟡 rENA `develop` `3874496`, `e6c8b95`; tma `develop` `c197f6f`; ona `develop` `98f937c` (not pushed) |
 | 6 | Release libqe 0.2.0 (drop ENA and accumulation code) | ⬜ |
 | 7 | Cleanup | ⬜ |
 
@@ -210,6 +210,40 @@ pyTMA becomes **qe-tma** (`import tma`). Julia package name **TMA**.
   subdir (as the other languages do).
 - **Parity:** every binding has tests checking identical results against
   libqe's copy (skipped once libqe 0.2.0 removes it).
+
+## Phase 5 as built
+
+Decided with the user: rENA's non-R products **compile the libtma they use**
+(qe-ena does not depend on qe-tma, which depends on qe-ena — no cycle).
+
+- **R:** rENA's stanza wrappers call `tma::accumulate_stanza` /
+  `row_connections` / `rolling_window_sum` (rENA Imports `tma (>= 0.3.6)`);
+  ona's `accum_stanza_window` calls `tma::accumulate_stanza` (ona 0.1.3,
+  Imports tma, no longer libqe).
+- **Shared bindings:** libtma's nanobind and Embind bindings moved into tma's
+  `bind/` headers as `def_<name>()` / `register_<name>()`; each module picks
+  what it needs (qe-ena: `accumulate_stanza`; rena-wasm: all ten).
+- **Headers:** rENA's `sync-headers.sh` vendors libtma: `LIBTMA_INCLUDE`, else
+  Conan `libtma/$LIBTMA_VERSION` (0.3.6), else a `../tma` checkout, else a
+  clone of `$TMA_REF` from `$TMA_GIT_URL`.
+- **CI (temporary):** rENA's and ona's pipelines install tma (and ona: rENA)
+  from `develop` via the job token (tma is private; its allowlist admits the
+  epistemic-analytics group). Drop once released.
+- **Verified locally:** rENA R 568, qe-ena 159, rena-wasm 249, ona 6 tests
+  pass against tma `develop`; parity tests confirm identical results to
+  libqe's copies.
+
+### Release order
+1. **tma**: merge `develop` → `main`, push cranqe `fd7a5240` with it, then
+   release `v0.3.6` **and `conan/v0.3.6`** (rENA's cranqe builds take libtma
+   from Conan at exactly that version), plus qe-tma / tma-wasm / TMA.jl tags
+   as wanted. qe-tma needs qe-ena >= 0.1.6, so its install works once step 2
+   publishes it.
+2. **rENA**: merge `develop` → `main`; release R, qe-ena (`python/v0.1.6`),
+   rena-wasm, ENA.jl, libena.
+3. **ona**: merge `develop` → `main`; release 0.1.3.
+4. Remove the temporary `develop` installs from rENA's, tma's and ona's CI.
+5. Then phase 6 (libqe 0.2.0).
 
 ## Open items
 
