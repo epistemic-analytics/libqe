@@ -1,6 +1,6 @@
 # Splitting libqe into libqe, libena and libtma
 
-Status: **phases 1–3 done; 4a, 4b and 5 built on the `develop` branches of rENA, tma and ona, held from `main`; release order below; then phase 6** (updated 2026-10-08).
+Status: **phases 1–3 done; 4a, 4b and 5 on the `develop` branches of rENA, tma and ona — pushed, all CI green against each other; held from `main` until released in the order below; then phase 6** (updated 2026-10-08).
 
 ## Goal
 
@@ -108,8 +108,8 @@ candidates for phase 7.
 | 2 | Split inside libqe (no repo moves) | ✅ Done — `6c4a20b`, `391fd0b`, `9c84a54`, `9ed8cf6` (+ fixes `c0ad788`, `7125a16`) |
 | 3 | Release libqe 0.1.9 (additive) | ✅ Done — tag `v0.1.9` at `740dba2`; R, Python, Conan, npm, Julia published |
 | 4a | libena → rENA | 🟡 On rENA `develop` (`ac93dd4`…`52737cb`, rENA CI green) + cranqe `main` (`9d1fba31`, `69a37d6c`, pushed). **Held from rENA `main`** until verified against the converted tma/libqe |
-| 4b | libtma → tma | 🟡 On tma `develop` (`c8fc081`…`9db2c8a`, not pushed) + cranqe `fd7a5240` (tma targets; push only with tma merged) and `25894ff4` (Julia skip fix, pushed). Held from tma `main` with rENA |
-| 5 | Switch rENA and ona callers to `tma::` | 🟡 rENA `develop` `3874496`, `e6c8b95`; tma `develop` `c197f6f`; ona `develop` `98f937c` (not pushed) |
+| 4b | libtma → tma | 🟡 On tma `develop` (`c8fc081`…`9db2c8a`, pushed, CI green) + cranqe `fd7a5240` (tma targets; push only with tma merged) and `25894ff4` (Julia skip fix, pushed). Held from tma `main` with rENA |
+| 5 | Switch rENA and ona callers to `tma::` | 🟡 rENA `develop` `3874496`, `e6c8b95`; tma `develop` `c197f6f`, `69e30d5`; ona `develop` `98f937c`. Pushed; CI green (rENA 2928965796, tma 2928969688, ona 2928965873) |
 | 6 | Release libqe 0.2.0 (drop ENA and accumulation code) | ⬜ |
 | 7 | Cleanup | ⬜ |
 
