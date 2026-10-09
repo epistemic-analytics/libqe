@@ -108,7 +108,7 @@ candidates for phase 7.
 | 2 | Split inside libqe (no repo moves) | ✅ Done — `6c4a20b`, `391fd0b`, `9c84a54`, `9ed8cf6` (+ fixes `c0ad788`, `7125a16`) |
 | 3 | Release libqe 0.1.9 (additive) | ✅ Done — tag `v0.1.9` at `740dba2`; R, Python, Conan, npm, Julia published |
 | 4a | libena → rENA | 🟡 On rENA `develop` (`ac93dd4`…`52737cb`, rENA CI green) + cranqe `main` (`9d1fba31`, `69a37d6c`, pushed). **Held from rENA `main`** until verified against the converted tma/libqe |
-| 4b | libtma → tma | ⬜ Blocked (see open items) |
+| 4b | libtma → tma | ⬜ Next |
 | 5 | Switch rENA and ona callers to `tma::` | ⬜ |
 | 6 | Release libqe 0.2.0 (drop ENA and accumulation code) | ⬜ |
 | 7 | Cleanup | ⬜ |
@@ -191,10 +191,12 @@ Remove the ENA and accumulation headers, wrappers, bindings and the
 
 ## Open items
 
-- **Before 4b:** tma's unmerged `feature/global-encoding-perf` branch (encoding
-  changes, a C++ fold, `apply_tensor_batch`) rewrites `accum_multidim_c.R`,
-  which 4b also touches — merge, rebase or abandon it first. tma also has 9 old
-  stashes (2024-07 to 2025-08), five on `accumulation_testing`; review or drop.
+- **tma's old perf branch and stashes — not blocking (decided 2026-10-08):**
+  `feature/global-encoding-perf`'s two bug fixes are already on tma `main`;
+  its perf work (global `match()` encoding, C++ fold, `apply_tensor_batch`,
+  benchmarks) targets the pre-libqe `src/code.cpp` and is a reference for a
+  later perf pass on libtma (phase 7). The 9 stashes (2024-07 to 2025-08) all
+  predate the move to libqe. Both left as they are.
 - **Before 5:** ona's unpushed commit `fd04d92` ("docs: state
   accum_stanza_window's column order correctly").
 - **libqe 0.1.10 dev bump** is committed (`f6dfc5d`) and goes out with the next
