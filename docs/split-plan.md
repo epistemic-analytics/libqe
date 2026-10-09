@@ -236,7 +236,10 @@ Decided with the user: rENA's non-R products **compile the libtma they use**
 ### Release order
 1. **tma**: ✅ merged `develop` → `main` and pushed with cranqe `fd7a5240`
    (2026-10-09; `main` had to be protected first — see open items); first
-   cranqe dev build published every target. Next:
+   cranqe dev build published every target. ✅ Released 2026-10-09: `v0.3.6`
+   (R), `conan/v0.3.6` (libtma; needed cranqe's verify-tag-version to accept
+   conanfile.py, `96ab513a`), `python/v0.1.3` (qe-tma), `wasm/v0.1.0`
+   (tma-wasm), `julia/v0.1.0` (TMA.jl, registered as `TMA`). Originally:
    release `v0.3.6` **and `conan/v0.3.6`** (rENA's cranqe builds take libtma
    from Conan at exactly that version), plus qe-tma / tma-wasm / TMA.jl tags
    as wanted. qe-tma needs qe-ena >= 0.1.6, so its install works once step 2
@@ -269,6 +272,12 @@ Decided with the user: rENA's non-R products **compile the libtma they use**
   so a package's `main` and `v*` (and `*/v*`) tags must be protected or its
   trigger 404s. Done 2026-10-09: `main` in tma, ncodeR, rhoR, PRIA; tags in
   tma and ona (libqe and rENA already had both).
+
+- **Julia packages from private repos:** the Julia registry points Pkg at the
+  package's git repo, so TMA.jl (tma: GitLab and GitHub private) and LibQE.jl
+  (libqe GitLab private; its GitHub mirror is public) install only for people
+  with repo access. ENA.jl is fine (rENA public). Decide: make the repos (or
+  a mirror) public and point Package.toml's `repo` there, or accept it.
 
 ## Issues carried into tma
 
