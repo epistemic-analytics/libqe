@@ -244,8 +244,14 @@ Decided with the user: rENA's non-R products **compile the libtma they use**
    from Conan at exactly that version), plus qe-tma / tma-wasm / TMA.jl tags
    as wanted. qe-tma needs qe-ena >= 0.1.6, so its install works once step 2
    publishes it.
-2. **rENA**: merge `develop` → `main`; release R, qe-ena (`python/v0.1.6`),
-   rena-wasm, ENA.jl, libena.
+2. **rENA**: ✅ merged `develop` → `main` (2026-10-09; two CI fixes on the
+   way: `sync-headers.sh` uses one Conan cache per package — libqe's package
+   ships a stale `include/libtma`; libena's Conan test package uses libqe's
+   fallback linear algebra — ConanCenter's prebuilt OpenBLAS hit SIGILL).
+   ✅ Released `v0.4.13` (R), `python/v0.1.6` (qe-ena), `wasm/v0.1.12`
+   (rena-wasm), `julia/v0.1.0` (ENA.jl, registered as `ENA`),
+   `conan/v0.4.13` (libena). Windows R binaries and wheels for rENA and tma
+   built on GitHub; the nightly publishes them.
 3. **ona**: merge `develop` → `main`; release 0.1.3.
 4. Remove the temporary `develop` installs from rENA's, tma's and ona's CI.
 5. Then phase 6 (libqe 0.2.0).
