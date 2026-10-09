@@ -108,7 +108,7 @@ candidates for phase 7.
 | 2 | Split inside libqe (no repo moves) | ✅ Done — `6c4a20b`, `391fd0b`, `9c84a54`, `9ed8cf6` (+ fixes `c0ad788`, `7125a16`) |
 | 3 | Release libqe 0.1.9 (additive) | ✅ Done — tag `v0.1.9` at `740dba2`; R, Python, Conan, npm, Julia published |
 | 4a | libena → rENA | 🟡 On rENA `develop` (`ac93dd4`…`52737cb`, rENA CI green) + cranqe `main` (`9d1fba31`, `69a37d6c`, pushed). **Held from rENA `main`** until verified against the converted tma/libqe |
-| 4b | libtma → tma | 🟡 On tma `develop` (`c8fc081`…`9db2c8a`, not pushed) + cranqe `a83eabfa` (not pushed). Held from tma `main` with rENA |
+| 4b | libtma → tma | 🟡 On tma `develop` (`c8fc081`…`9db2c8a`, not pushed) + cranqe `61a8ea03` (tma targets; push only with tma merged) and `25894ff4` (Julia skip fix). Held from tma `main` with rENA |
 | 5 | Switch rENA and ona callers to `tma::` | ⬜ |
 | 6 | Release libqe 0.2.0 (drop ENA and accumulation code) | ⬜ |
 | 7 | Cleanup | ⬜ |
