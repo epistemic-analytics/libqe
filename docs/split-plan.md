@@ -1,6 +1,6 @@
 # Splitting libqe into libqe, libena and libtma
 
-Status: **phases 1–3 done; 4a committed on rENA `develop` (unpushed); 4b next** (updated 2026-10-08).
+Status: **phases 1–3 done; 4a on rENA `develop` (pushed, CI green; held from `main`); 4b next** (updated 2026-10-08).
 
 ## Goal
 
@@ -107,7 +107,7 @@ candidates for phase 7.
 | 1 | Baseline: all suites green, rotation parity fixtures recorded | ✅ Done |
 | 2 | Split inside libqe (no repo moves) | ✅ Done — `6c4a20b`, `391fd0b`, `9c84a54`, `9ed8cf6` (+ fixes `c0ad788`, `7125a16`) |
 | 3 | Release libqe 0.1.9 (additive) | ✅ Done — tag `v0.1.9` at `740dba2`; R, Python, Conan, npm, Julia published |
-| 4a | libena → rENA | 🟡 Committed on rENA `develop` (`ac93dd4`…`52737cb`) + cranqe `main` (`9d1fba31`, `69a37d6c`); not pushed, CI not run |
+| 4a | libena → rENA | 🟡 On rENA `develop` (`ac93dd4`…`52737cb`, rENA CI green) + cranqe `main` (`9d1fba31`, `69a37d6c`, pushed). **Held from rENA `main`** until verified against the converted tma/libqe |
 | 4b | libtma → tma | ⬜ Blocked (see open items) |
 | 5 | Switch rENA and ona callers to `tma::` | ⬜ |
 | 6 | Release libqe 0.2.0 (drop ENA and accumulation code) | ⬜ |
@@ -199,7 +199,8 @@ Remove the ENA and accumulation headers, wrappers, bindings and the
   accum_stanza_window's column order correctly").
 - **libqe 0.1.10 dev bump** is committed (`f6dfc5d`) and goes out with the next
   substantive push.
-- **Before 4a ships:** push rENA `develop` and cranqe `main`, merge rENA to `main`; watch the
+- **Before 4a ships:** rENA stays on `develop` until it is verified against the
+  converted tma (4b) and libqe; then merge rENA to `main` and watch the
   first compiled builds (R binaries, qe-ena wheels incl. Windows on GitHub,
   rena-wasm, ENA.jl, libena Conan); then release rENA and its bindings.
 
