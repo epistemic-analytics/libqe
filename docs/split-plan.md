@@ -252,7 +252,11 @@ Decided with the user: rENA's non-R products **compile the libtma they use**
    (rena-wasm), `julia/v0.1.0` (ENA.jl, registered as `ENA`),
    `conan/v0.4.13` (libena). Windows R binaries and wheels for rENA and tma
    built on GitHub; the nightly publishes them.
-3. **ona**: merge `develop` → `main`; release 0.1.3.
+3. **ona**: on hold (user decision 2026-10-09). Its `develop` (`98f937c`,
+   pushed, CI green: `tma::accumulate_stanza`, ona 0.1.3) stays unmerged; ona's
+   `main` still calls `libqe::accumulate_stanza`, which keeps working until
+   libqe 0.2.0 -- so ona must merge (or pin `libqe (< 0.2.0)`) before phase 6.
+   Local `main` also holds the unpushed `fd04d92`.
 4. Remove the temporary `develop` installs from rENA's, tma's and ona's CI.
 5. Then phase 6 (libqe 0.2.0).
 
