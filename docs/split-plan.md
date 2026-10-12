@@ -110,7 +110,7 @@ candidates for phase 7.
 | 4a | libena → rENA | ✅ Released 2026-10-09: rENA `v0.4.13`, qe-ena 0.1.6, rena-wasm 0.1.12, ENA.jl 0.1.0, libena 0.4.13 |
 | 4b | libtma → tma | ✅ Released 2026-10-09: tma `v0.3.6`, qe-tma 0.1.3, tma-wasm 0.1.0, TMA.jl 0.1.0, libtma 0.3.6 |
 | 5 | Switch rENA and ona callers to `tma::` | ✅ Released with rENA 0.4.13 and ona 0.1.3 (2026-10-12) |
-| 6 | Release libqe 0.2.0 (drop ENA and accumulation code) | 🟡 Built on libqe `main`, not pushed; see "Phase 6 as built" |
+| 6 | Release libqe 0.2.0 (drop ENA and accumulation code) | ✅ Released 2026-10-12: tag `v0.2.0` at `71adc93`; R, Python, Conan, npm, Julia (registered as `LibQE`, renamed from `libqe`) published. See "Phase 6 as built" |
 | 7 | Cleanup | ⬜ |
 
 ### 1. Baseline
@@ -292,9 +292,12 @@ Decided with the user: rENA's non-R products **compile the libtma they use**
 - **Push order:** rENA, then tma, then libqe: tma's CI installs the newest
   qe-ena from the dev index (it needs the `<0.3` one once qe-lib 0.2.0 dev
   builds land), and both CIs install the newest qe-lib dev build.
-- **After release:** bump `LIBQE_VERSION` in rENA's and tma's
-  `sync-headers.sh` from 0.1.9 to 0.2.0 (its Conan package has no stale
-  libena/libtma copies).
+- **Released 2026-10-12** in that order: qe-ena 0.1.7 (`python/v0.1.7`),
+  qe-tma 0.1.4 (`python/v0.1.4`), then libqe `v0.2.0`; every pipeline green.
+- **After release:** rENA's and tma's `sync-headers.sh` take libqe/0.2.0
+  from Conan (rENA `39fc0ab`, tma `1ffab82`); libqe bumped to 0.2.1 for the
+  next dev cycle; the GitHub mirror gets `main` and `v0.2.0` for the
+  nightly's Windows builds.
 
 ## Open items
 

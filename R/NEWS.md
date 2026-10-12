@@ -1,3 +1,5 @@
+# libqe (development version)
+
 # libqe 0.2.0
 
 Breaking: the ENA model code and all accumulation have moved out of libqe, finishing the split started in 0.1.9. libqe keeps the generic numerics (adjacency, normalization, statistics, linear-algebra fallbacks, lasso, door, trajectory, stability, validation).

@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "qe-lib"
-version = "0.2.0"
+version = "0.2.1"
 description = "Python bindings for libqe — generic QE numerics: adjacency, normalization, statistics, door, and trajectory kernels"
 readme = "README.md"
 requires-python = ">=3.9"
