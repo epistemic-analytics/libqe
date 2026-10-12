@@ -151,8 +151,9 @@ ona's `accumulate_stanza(ordered = TRUE)`, move to `tma::`. ona adds
 
 ### 6. Release libqe 0.2.0
 Remove the ENA and accumulation headers, wrappers, bindings and the
-`libqe.hpp` shim entries. Needs 4a, 4b and 5 shipped. rENA and tma pin
-`libqe (>= 0.1.9, < 0.3)`.
+`libqe.hpp` shim entries. Needs 4a, 4b and 5 shipped. rENA and tma keep
+`libqe (>= 0.1.9)`: R's DESCRIPTION can't express an upper bound alongside
+it; qe-ena and qe-tma allow `qe-lib<0.3`.
 
 ### 7. Cleanup (separate, later)
 - Unify NaN/Inf validation across languages through `validate.hpp`
@@ -255,8 +256,12 @@ Decided with the user: rENA's non-R products **compile the libtma they use**
 3. **ona**: ✅ merged `develop` → `main` (2026-10-12; with CI installing tma
    and rENA from qe-libs.org instead of `develop`) and released `v0.1.3`
    (Imports tma, no longer libqe).
-4. Remove the temporary `develop` installs from rENA's and tma's CI (ona's:
-   done).
+4. ✅ Removed the temporary `develop` installs from rENA's (`afa2a63`, also
+   drops `sync-headers.sh`'s sibling/clone fallbacks for libtma), tma's
+   (`991cbbf`) and ona's CI. The same commits lift qe-ena / qe-tma to
+   `qe-lib<0.3` (qe-ena 0.1.7, qe-tma 0.1.4) and bump the other targets past
+   their releases (rENA 0.4.14, rena-wasm 0.1.13, ENA.jl 0.1.1; tma 0.3.7,
+   tma-wasm 0.1.1, TMA.jl 0.1.1).
 5. Then phase 6 (libqe 0.2.0).
 
 ## Phase 6 as built
@@ -280,8 +285,16 @@ Decided with the user: rENA's non-R products **compile the libtma they use**
   parity test now skips — its guard needed `inherits = FALSE`, ona
   `develop`); libena and libtma Conan test packages; qe-ena 155 and qe-tma 86
   (installed `--no-deps`: both pin `qe-lib<0.2`).
-- **Still to do:** lift qe-ena's and qe-tma's `qe-lib<0.2` pins (new
-  releases), so pip can install them next to qe-lib 0.2.0.
+- **Pins:** qe-ena 0.1.7 and qe-tma 0.1.4 allow `qe-lib<0.3` (rENA
+  `afa2a63`, tma `991cbbf`); verified with a normal (dependency-resolving)
+  install next to qe-lib 0.2.0. Release them before or with libqe 0.2.0 so
+  pip can pair them.
+- **Push order:** rENA, then tma, then libqe: tma's CI installs the newest
+  qe-ena from the dev index (it needs the `<0.3` one once qe-lib 0.2.0 dev
+  builds land), and both CIs install the newest qe-lib dev build.
+- **After release:** bump `LIBQE_VERSION` in rENA's and tma's
+  `sync-headers.sh` from 0.1.9 to 0.2.0 (its Conan package has no stale
+  libena/libtma copies).
 
 ## Open items
 
