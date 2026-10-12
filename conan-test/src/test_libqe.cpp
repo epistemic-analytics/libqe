@@ -23,18 +23,16 @@ int main() {
     for (arma::uword r = 0; r < normed.n_rows; ++r)
         assert(std::abs(arma::norm(normed.row(r)) - 1.0) < 1e-10);
 
-    // ── accumulation ─────────────────────────────────────────────────────────
-    arma::mat c = {{1, 1, 0}, {1, 0, 1}, {0, 1, 1}};
-    arma::mat out = qe::accumulate_stanza(c, /*back=*/2, /*forward=*/0, /*binary=*/true);
-    assert(out.n_rows == 3);
-    assert(out.n_cols == 3);  // choose_two(3)
-
     // ── modeling ─────────────────────────────────────────────────────────────
     arma::mat data = {{1, 2}, {3, 4}, {5, 6}};
     arma::mat centered = qe::center_points(data);
     arma::rowvec col_means = arma::mean(centered, 0);
     assert(std::abs(col_means(0)) < 1e-10);
     assert(std::abs(col_means(1)) < 1e-10);
+
+    arma::mat ci = qe::mean_ci(data, 0.95);
+    assert(ci.n_rows == 2 && ci.n_cols == 3);   // per dim: mean, lower, upper
+    assert(std::abs(ci(0, 0) - 3.0) < 1e-10);
 
     return 0;
 }

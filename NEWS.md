@@ -1,6 +1,12 @@
-# libqe (development version)
+# libqe 0.2.0
 
-- Julia: `ena_correlation` returns one row per dimension (`n_dims × 3`), as in R and Python; it reshaped to `n_units` rows and threw unless the two counts matched. `directed_node_positions_combine_pairs` no longer throws `UndefVarError` (it read the points' size before computing it). Both moved to ENA.jl as part of the split; this fixes the LibQE.jl copies kept until 0.2.0.
+Breaking: the ENA model code and all accumulation have moved out of libqe, finishing the split started in 0.1.9. libqe keeps the generic numerics (adjacency, normalization, statistics, linear-algebra fallbacks, lasso, door, trajectory, stability, validation).
+
+- The ENA model code — `ena_svd`, `deflate`, `orthogonal_svd`, `complete_rotation`, `means_rotation`, `generalized_means_rotation`, `node_positions`, `directed_node_positions`, `directed_node_positions_combine_pairs`, `ena_correlation` and `ccd_window` — is in rENA (C++ `libena`, Python qe-ena, `@qe-libs/rena-wasm`, ENA.jl, Conan `libena`).
+- All accumulation — `connection_matrix`, `accumulate_stanza`, `rolling_window_sum`, `row_connections`, `accumulate_unit`, `accumulate_unit_with_rows`, `apply_tensor`, `apply_tensor_members`, `flat_index`, `finalize_row_connections` and `aggregate_row_connections` — is in tma (C++ `libtma`, Python qe-tma, `@qe-libs/tma-wasm`, TMA.jl, Conan `libtma`).
+- Removed from every binding: the R exports above; Python's `qe.accumulation`, `qe.rotation` and `qe.ccd` submodules, `qe.modeling`'s node-position functions and `ena_correlation`, and the `NodePositions`, `UnitNetworks`, `TensorNetworks` and `RotationResult` types; the same functions from libqe-wasm and LibQE.jl.
+- C++: `include/libena/` and `include/libtma/` are gone, and `<libqe/libqe.hpp>` no longer includes them. The Conan package ships `include/libqe/` only (0.1.x packages also shipped stale copies of the other two trees). Include `<libena/libena.hpp>` or `<libtma/libtma.hpp>` from the rENA or tma packages instead.
+- Works with rENA >= 0.4.13, tma >= 0.3.6 and ona >= 0.1.3; earlier versions of those call the removed functions.
 
 # libqe 0.1.9
 

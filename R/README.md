@@ -63,23 +63,10 @@ All exported R functions are prefixed ``.
 | `mean_ci(points, conf_level)` | t-based confidence interval for the mean of a group of ENA unit points. Returns an `n_dims × 3` matrix with columns `[mean, ci_lower, ci_upper]`. Uses `n-1` degrees of freedom; default `conf_level = 0.95`. Bounds match rENA's `t.test(points[,d])$conf.int` exactly — see shape note below. When `n == 1` the CI bounds are `±Inf`. |
 | `outlier_ci(points, iqr_factor)` | Outlier interval using IQR × `iqr_factor` (Tukey fence; default `iqr_factor = 1.5`). Returns an `n_dims × 2` matrix with columns `[lower, upper]` where `lower = -iqr_factor × IQR` and `upper = +iqr_factor × IQR`. Symmetric around 0. Matches rENA's IQR-based formula exactly. |
 | `center_points(values)` | Subtract column means (center each dimension). |
-| `ena_correlation(points, centroids, conf_level)` | Pearson correlation with confidence interval between ENA unit points and group centroids. Returns a matrix with columns `r`, `lower`, `upper`. Default `conf_level = 0.95`. |
-| `node_positions(adj_mats, t, num_dims)` | Least-squares node positions for **undirected** ENA. Returns a list with `nodes`, `centroids`, `weights`, `points`. |
-| `directed_node_positions(line_weights, points, num_dims)` | Least-squares node positions for **directed** ENA. Same return structure. |
-| `directed_node_positions_combine_pairs(line_weights, points, num_dims)` | Directed node positions where paired ground+response rows are combined before solving. Same return structure. |
 
-### Accumulation
-
-| Function | Description |
-|----------|-------------|
-| `connection_matrix(ground, response, response_weight, ordered)` | Core adjacency math for one ground+response event pair. `ordered = TRUE` → directed; `FALSE` → undirected. |
-| `accumulate_stanza(codes, window_back, window_forward, binary, ordered=FALSE)` | Stanza-window accumulation. `ordered=FALSE` (default): undirected upper-tri, returns `n_rows × choose(n_codes, 2)`. `ordered=TRUE`: directed — focal row as response, prior window rows as ground, returns `n_rows × n_codes²`. Use `.Machine$integer.max` for an infinite back window.| Traditional stanza-window accumulation (rENA model). `codes` is the code matrix for **one conversation**. Returns a matrix with `choose(n_codes, 2)` columns. Use `.Machine$integer.max` for an infinite window. |
-| `row_connections(codes, binary)` | Per-row upper-triangle co-occurrence matrix without windowing. |
-| `rolling_window_sum(codes, window_size)` | Rolling backward sum of raw code values (no upper-tri transform). |
-| `accumulate_unit(codes, unit_rows, decay_fn, ordered)` | Ground/response accumulation for one unit (tma model). `decay_fn` is an R function mapping a distance vector to weights. `unit_rows` are **0-based**. |
-| `accumulate_unit_with_rows(codes, unit_rows, decay_fn, ordered)` | Like `accumulate_unit` but also returns per-response-row connection data. Returns a list with `networks` and `row_networks`. |
-| `flat_index(indices, dims)` | Column-major linear index into a multi-dimensional array. `indices` and `dims` are **0-based** integer vectors. |
-| `apply_tensor(tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered)` | Tensor-based multi-modal accumulation (tma model). Returns a list with `connection_counts` and `row_connection_counts`. |
+The ENA model code (rotations, node positions, `ena_correlation`, CCD) moved
+to rENA and all accumulation (`accumulate_stanza`, `apply_tensor`, …) to tma
+in libqe 0.2.0.
 
 ### Door, trajectory, and stability
 
@@ -130,12 +117,9 @@ library(libqe)
 connection_names(c("A", "B", "C", "D"))
 # [1] "A & B" "A & C" "A & D" "B & C" "B & D" "C & D"
 
-# Stanza-window accumulation (infinite back window)
-codes <- matrix(c(1,1,0, 1,0,1, 0,1,1), nrow = 3, byrow = TRUE)
-accumulate_stanza(codes, window_back = .Machine$integer.max, binary = TRUE)
-
 # Sphere normalization
-normalize_networks(codes)
+lw <- matrix(c(1,1,0, 1,0,1, 0,1,1), nrow = 3, byrow = TRUE)
+normalize_networks(lw)
 
 # Group confidence interval (matches R's t.test per dimension)
 group_pts <- matrix(rnorm(20), nrow = 10, ncol = 2)
@@ -145,10 +129,6 @@ mean_ci(group_pts, conf_level = 0.95)
 # Outlier interval (matches rENA's IQR * 1.5 formula)
 outlier_ci(group_pts, iqr_factor = 1.5)
 # n_dims × 2:  cols = [lower, upper]  (symmetric: lower = -1.5*IQR, upper = +1.5*IQR)
-
-# tma-style accumulation with a simple decay function
-decay <- function(distances) rep(1, length(distances))
-accumulate_unit(codes, unit_rows = c(0L, 1L, 2L), decay_fn = decay, ordered = FALSE)
 ```
 
 ## Running tests

@@ -18,27 +18,18 @@
 #ifndef LIBQE_HPP
 #define LIBQE_HPP
 
-// TRANSITIONAL: the <libena/...> and <libtma/...> includes below keep every
-// existing consumer of <libqe/libqe.hpp> compiling while the ENA and
-// accumulation headers move out to rENA (libena) and tma (libtma).  They are
-// removed in libqe 0.2.0; new code should include <libena/libena.hpp> or
-// <libtma/libtma.hpp> directly.  Include order is unchanged from before the
-// split.
+// The ENA model code (libena) lives in rENA and accumulation (libtma) in tma;
+// include <libena/libena.hpp> or <libtma/libtma.hpp> for those.
 #include "adjacency.hpp"
 #include "normalization.hpp"
 #include "stats.hpp"
-#include <libena/positions.hpp>
-#include <libtma/accumulation.hpp>
 #include "linalg_fallback.hpp"
-#include <libena/rotation.hpp>
 #include "lasso.hpp"
-#include <libena/generalized_rotation.hpp>
 #include "door.hpp"
 #include "trajectory.hpp"
 #include "trajectory_distance.hpp"
 #include "trajectory_following.hpp"
 #include "stability.hpp"
-#include <libena/ccd.hpp>
 #include "validate.hpp"
 // bind/*.hpp (nanobind, Emscripten, CxxWrap helpers) are deliberately not
 // included: they need third-party headers and are for binding code only.

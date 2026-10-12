@@ -7,7 +7,7 @@ import os
 class LibqeConan(ConanFile):
     name         = "libqe"
     version      = "0.0.0"   # placeholder — set_version() always overrides this
-    description  = "Header-only C++ core for Quantitative Ethnography packages (rENA, tma)"
+    description  = "Header-only C++ numerics shared by Quantitative Ethnography packages (rENA, tma)"
     license      = "GPL-3.0-only"
     url          = "https://github.com/epistemic-analytics/libqe"
     homepage     = url
@@ -16,12 +16,8 @@ class LibqeConan(ConanFile):
 
     # Export the canonical headers into the Conan recipe cache so they are
     # available to package() regardless of where conan create is invoked from.
-    # libena and libtma ship here too while libqe.hpp still includes them
-    # (transitional, until libqe 0.2.0 — they then get their own recipes in
-    # rENA and tma).
-    exports_sources = ("include/libqe/*.hpp",
-                       "include/libena/*.hpp",
-                       "include/libtma/*.hpp")
+    # libena and libtma have their own recipes in rENA and tma (libqe 0.2.0).
+    exports_sources = "include/libqe/*.hpp"   # fnmatch: also include/libqe/bind/
 
     # No source files need copying to the build folder — headers are read
     # directly from the exported source tree.

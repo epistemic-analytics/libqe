@@ -1,7 +1,6 @@
 #!/bin/sh
-# check-headers-in-sync.sh — CI gate: fail if include/<lib>/ and
-#                            R/inst/include/<lib>/ differ, for <lib> in
-#                            libqe, libena, libtma.
+# check-headers-in-sync.sh — CI gate: fail if include/libqe/ and
+#                            R/inst/include/libqe/ differ.
 #
 # The bind/ helpers are never copied to R (see R/configure), so they are
 # excluded from the comparison.
@@ -13,7 +12,7 @@ set -e
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 STATUS=0
 
-for LIB in libqe libena libtma; do
+for LIB in libqe; do
     SRC="${REPO_ROOT}/include/${LIB}"
     DST="${REPO_ROOT}/R/inst/include/${LIB}"
 

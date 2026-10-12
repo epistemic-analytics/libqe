@@ -25,11 +25,6 @@ const qe = await loadLibQE();
 qe.connection_names(['Concept A', 'Concept B', 'Concept C']);
 // → ['Concept A & Concept B', 'Concept A & Concept C', 'Concept B & Concept C']
 
-// Stanza-window accumulation
-const codes = new Float64Array([1,1,0,  1,0,1,  0,1,1]);  // 3×3 row-major
-const out   = qe.accumulate_stanza(codes, 3, 3, /*back=*/2, /*forward=*/0, /*binary=*/true, /*ordered=*/false);
-// out → { data: Float64Array, rows: 3, cols: 3 }
-
 // Group confidence interval
 const points = new Float64Array([0.1,0.2, 0.3,0.4, 0.5,0.6]);  // 3 units × 2 dims
 const ci = qe.mean_ci(points, 3, 2, 0.95);
@@ -52,6 +47,10 @@ All matrix inputs are **flat `Float64Array` in row-major order** with explicit
 Access a cell: `data[row * cols + col]`
 
 ## API reference
+
+The ENA model code (rotations, node positions, `ena_correlation`, CCD) is in
+`@qe-libs/rena-wasm` and all accumulation in `@qe-libs/tma-wasm`; both were
+removed from this package in 0.2.0.
 
 ### Adjacency
 
@@ -77,25 +76,6 @@ Access a cell: `data[row * cols + col]`
 | `center_points(data, rows, cols)` | Subtract column means |
 | `mean_ci(data, rows, cols, conf_level)` | t-based CI → `n_dims × 3` `[mean, lower, upper]` |
 | `outlier_ci(data, rows, cols, iqr_factor)` | IQR-based interval → `n_dims × 2` `[lower, upper]` |
-| `ena_correlation(pts, pr, pc, cen, cr, cc, conf_level)` | Pearson r + CI → `n_units × 3` `[r, lower, upper]` |
-| `node_positions(adj, ar, ac, t, tr, tc, dims)` | Undirected ENA node positions. `dims` may be omitted or `0` to use all columns of `t` |
-| `directed_node_positions(lw, lr, lc, pt, pr, pc, dims)` | Directed ENA node positions. `dims` may be omitted or `0` to use all columns of `pt` |
-| `directed_node_positions_combine_pairs(lw, lr, lc, pt, pr, pc, dims)` | Directed ENA — ground+response rows averaged before solve. `dims` may be omitted or `0` |
-
-### Accumulation
-
-| Function | Description |
-|----------|-------------|
-| `connection_matrix(ground, gn, response, rn, weight, ordered)` | Core adjacency math for one ground+response pair → `n_codes × n_codes` matrix |
-| `accumulate_stanza(data, rows, cols, back, forward, binary, ordered)` | Stanza-window. `ordered=false`: upper-tri `choose(n,2)` cols. `ordered=true`: directed `n²` cols |
-| `row_connections(data, rows, cols, binary)` | Per-row co-occurrence |
-| `rolling_window_sum(data, rows, cols, window_size)` | Rolling backward sum |
-| `flat_index(indices, dims)` | Column-major linear index |
-| `accumulate_unit(codes, rows, cols, unit_rows, decay_fn, ordered)` | Ground/response accumulation for one unit (tma). `decay_fn(Float64Array) → Float64Array` |
-| `accumulate_unit_with_rows(codes, rows, cols, unit_rows, decay_fn, ordered)` | Like `accumulate_unit` but also returns per-response-row networks → `{ networks, row_networks }` |
-| `accumulate_tensor_unit(tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, cl_rows, cl_cols, unit_rows, codes, rows, cols, times, ordered)` | tma tensor accumulation for one unit → `{ connection_counts: Float64Array, row_connection_counts: matObj }`. All index arrays are **0-based Int32Array**; `tensor` is flat column-major `Float64Array`; `context_lookup` is row-major `Int32Array (n_context_rows × n_factors)` |
-| `aggregate_row_connections(row_conn, rows, cols, n_codes, ordered, weight)` | Aggregate `accumulate_tensor_unit`'s `row_connection_counts` into a unit vector, matching tma's R aggregation. Each row is folded (unordered, to `choose(n,2)`) or kept directed (`ordered`, `n²`), then `weight` is applied per row before the sum: `'binary'` (unordered: clamp to 1; ordered: raw counts), `'product'` (raw counts), `'sqrt'`, `'log1p'` (alias `'log'`). A boolean `weight` is the legacy binary flag (`true` = `'binary'`, `false` = `'product'`). `row_conn` is row-major `Float64Array (rows × n_codes²)` |
-| `finalize_row_connections(row_conn, rows, cols, n_codes, ordered, weight)` | The per-row step of `aggregate_row_connections` (fold + weight) without the sum → `matObj` (rows × `choose(n,2)` or `n²`); its rows sum to `aggregate_row_connections` |
 
 ### Door
 
@@ -115,17 +95,6 @@ Access a cell: `data[row * cols + col]`
 | `lagged_trajectory_distance(...)` | Normalized lagged follower/leader curve distance. |
 | `signed_turn_lag(...)` / `sweep_signed_turn_lags(...)` | Discrete signed turn-lag distance metrics. |
 | `dist_dist_correlation(X, xr, xc, Y, yr, yc)` | Correlation between pairwise distance structures. |
-
-### Rotation
-
-| Function | Description |
-|----------|-------------|
-| `ena_svd(data, rows, cols)` | SVD rotation → `{ rotation, eigenvalues, column_names }` |
-| `deflate(data, rows, cols, axis)` | Project out a given axis → `{ data, rows, cols }` |
-| `orthogonal_svd(data, rows, cols, weights, wr, wc, labels)` | Weighted SVD with orthogonalization |
-| `complete_rotation(data, rows, cols, axes, ax_rows, ax_cols, labels)` | Fix named axes then fill remaining with SVD |
-| `means_rotation(data, rows, cols, group_pairs)` | Group-means rotation. `group_pairs`: `Array<{a: Int32Array, b: Int32Array}>` (0-based row indices) |
-| `generalized_means_rotation(V, vr, vc, xm, xr, xc, x_target, x1_cols, x_categorical, x_n_groups, x_subset, has_y, ym, yr, yc, y_target, y1_cols, y_categorical, y_n_groups, n_lambda, k_folds, lasso_eps)` | Lasso-based GMR. Index arrays are `Int32Array` (0-based); pass zero-length `Int32Array` for `x_subset` to use all rows. Returns `{ rotation, eigenvalues, column_names }` with labels `GMR1`, `GMR2`\|`SVD2`, … |
 
 ## Building from source
 

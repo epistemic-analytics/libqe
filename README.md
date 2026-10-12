@@ -10,11 +10,13 @@ downstream C++ consumers.
 
 ## Modules
 
-The headers are being split into three layers. `libqe` keeps the generic
-numerics; the ENA model code (`libena`) is moving to rENA and all accumulation
-(`libtma`) to tma. Until then all three trees ship from this repo.
-
-**libqe** — `include/libqe/`
+`libqe` holds the generic numerics. Since 0.2.0 the ENA model code
+(rotations, node positions, CCD — `libena`) lives in
+[rENA](https://gitlab.com/epistemic-analytics/qe-packages/rENA) and all
+accumulation (`libtma`) in
+[tma](https://gitlab.com/epistemic-analytics/qe-packages/tma); each ships its
+own R package, Python, WASM and Julia bindings and Conan recipe, built on this
+one.
 
 | Module | Header | Contents |
 |--------|--------|----------|
@@ -28,45 +30,22 @@ numerics; the ENA model code (`libena`) is moving to rENA and all accumulation
 | **validation** | `validate.hpp` | Shared input checks (`require_finite`, `require_dims`) |
 | **binding helpers** | `bind/nanobind.hpp`, `bind/emscripten.hpp`, `bind/cxxwrap.hpp` | Armadillo ↔ numpy / JavaScript / Julia array conversion for the language bindings; need the respective binding library, so not included by `libqe.hpp` |
 
-**libena** — `include/libena/` (moving to rENA)
-
-| Module | Header | Contents |
-|--------|--------|----------|
-| **rotation** | `rotation.hpp`, `generalized_rotation.hpp` | ENA SVD, means rotation, generalized means rotation (GMR) |
-| **positions** | `positions.hpp` | Least-squares node positions (undirected, directed), points-to-centroids correlation with CI |
-| **ccd** | `ccd.hpp` | Moving-window size estimate from cross-covariance decay |
-
-**libtma** — `include/libtma/` (moving to tma)
-
-| Module | Header | Contents |
-|--------|--------|----------|
-| **accumulation** | `accumulation.hpp` | Connection-matrix kernel, stanza-window accumulation (rENA), ground/response accumulation with decay, tensor-based multi-modal accumulation, weight models, rolling window sum, per-row co-occurrence |
-
-Each layer has an umbrella header: `<libena/libena.hpp>` and
-`<libtma/libtma.hpp>` include `<libqe/libqe.hpp>` plus their own modules.
-For now `<libqe/libqe.hpp>` still includes the libena and libtma headers too,
-so existing code keeps compiling; that goes away in libqe 0.2.0.
+`<libena/libena.hpp>` and `<libtma/libtma.hpp>` include `<libqe/libqe.hpp>`
+plus their own modules.
 
 ## Repository layout
 
 ```
 libqe/
 ├── include/            ← canonical C++ headers (single source of truth)
-│   ├── libqe/          ← generic numerics
-│   │   ├── libqe.hpp
-│   │   ├── adjacency.hpp, normalization.hpp, stats.hpp
-│   │   ├── linalg_fallback.hpp, lasso.hpp
-│   │   ├── door.hpp, stability.hpp
-│   │   ├── trajectory.hpp, trajectory_distance.hpp, trajectory_following.hpp
-│   │   ├── validate.hpp
-│   │   └── bind/       ← nanobind / Emscripten / CxxWrap array helpers
-│   ├── libena/         ← ENA model code (moving to rENA)
-│   │   ├── libena.hpp
-│   │   ├── rotation.hpp, generalized_rotation.hpp
-│   │   └── positions.hpp, ccd.hpp
-│   └── libtma/         ← accumulation (moving to tma)
-│       ├── libtma.hpp
-│       └── accumulation.hpp
+│   └── libqe/
+│       ├── libqe.hpp
+│       ├── adjacency.hpp, normalization.hpp, stats.hpp
+│       ├── linalg_fallback.hpp, lasso.hpp
+│       ├── door.hpp, stability.hpp
+│       ├── trajectory.hpp, trajectory_distance.hpp, trajectory_following.hpp
+│       ├── validate.hpp
+│       └── bind/       ← nanobind / Emscripten / CxxWrap array helpers
 ├── R/                  ← R package (Rcpp wrappers + LinkingTo mechanism)
 │   ├── DESCRIPTION
 │   ├── configure       ← copies headers into inst/include/ at install time
@@ -91,9 +70,9 @@ libqe/
 │   ├── profiles/wasm   ← Conan cross-compilation profile for Emscripten
 │   ├── js/index.js
 │   └── test/basic.test.js
-├── conanfile.py        ← Conan recipe (header-only, exports include/{libqe,libena,libtma}/)
+├── conanfile.py        ← Conan recipe (header-only, exports include/libqe/)
 ├── conan-test/         ← Conan test_package consumer
-├── docs/split-plan.md  ← plan and status for moving libena / libtma out
+├── docs/split-plan.md  ← how libena / libtma moved out (0.2.0)
 └── scripts/
     ├── sync-headers.sh          ← copy include/ → R/inst/include/ and python/include/
     └── check-headers-in-sync.sh ← verify the two trees match
@@ -102,8 +81,8 @@ libqe/
 Edit headers under `include/` only. The R `configure` script and
 `scripts/sync-headers.sh` propagate them.
 
-`include/libena/` and `include/libtma/` are moving to the rENA and tma repos;
-see [docs/split-plan.md](docs/split-plan.md) for the plan and its status.
+[docs/split-plan.md](docs/split-plan.md) records how `libena` and `libtma`
+moved to rENA and tma.
 
 ## Installing the R package
 
@@ -229,9 +208,8 @@ conan create . --test-folder=conan-test --build=missing
 
 ## Header sync
 
-The R package's `configure` script copies `include/<lib>/*.hpp` into
-`R/inst/include/<lib>/` for `libqe`, `libena` and `libtma` at install time,
-clearing previously copied headers first. Only top-level headers are copied —
+The R package's `configure` script copies `include/libqe/*.hpp` into
+`R/inst/include/libqe/` at install time, clearing previously copied headers first. Only top-level headers are copied —
 `bind/` is for the language bindings and never reaches R. To sync manually
 (e.g. before `R CMD build`, or before building a Python sdist, which also
 gets `bind/`):
@@ -245,8 +223,8 @@ bash scripts/check-headers-in-sync.sh  # verify
 
 | Package | Language | Description |
 |---------|----------|-------------|
-| [rENA](https://gitlab.com/epistemic-analytics/qe-packages/rENA) | R | Epistemic Network Analysis |
-| [tma](https://gitlab.com/epistemic-analytics/qe-packages/tma) | R | Temporal / multi-modal accumulation |
+| [rENA](https://gitlab.com/epistemic-analytics/qe-packages/rENA) | R | Epistemic Network Analysis; ships `libena` (qe-ena, rena-wasm, ENA.jl) |
+| [tma](https://gitlab.com/epistemic-analytics/qe-packages/tma) | R | Temporal / multi-modal accumulation; ships `libtma` (qe-tma, tma-wasm, TMA.jl) |
 | [@qe-libs/libqe-wasm](wasm/) | JS/WASM | Browser and Node.js bindings (lives in `wasm/`) |
 
 ## License

@@ -107,10 +107,10 @@ candidates for phase 7.
 | 1 | Baseline: all suites green, rotation parity fixtures recorded | ✅ Done |
 | 2 | Split inside libqe (no repo moves) | ✅ Done — `6c4a20b`, `391fd0b`, `9c84a54`, `9ed8cf6` (+ fixes `c0ad788`, `7125a16`) |
 | 3 | Release libqe 0.1.9 (additive) | ✅ Done — tag `v0.1.9` at `740dba2`; R, Python, Conan, npm, Julia published |
-| 4a | libena → rENA | 🟡 On rENA `develop` (`ac93dd4`…`52737cb`, rENA CI green) + cranqe `main` (`9d1fba31`, `69a37d6c`, pushed). **Held from rENA `main`** until verified against the converted tma/libqe |
-| 4b | libtma → tma | 🟡 On tma `develop` (`c8fc081`…`9db2c8a`, pushed, CI green) + cranqe `fd7a5240` (tma targets; push only with tma merged) and `25894ff4` (Julia skip fix, pushed). Held from tma `main` with rENA |
-| 5 | Switch rENA and ona callers to `tma::` | 🟡 rENA `develop` `3874496`, `e6c8b95`; tma `develop` `c197f6f`, `69e30d5`; ona `develop` `98f937c`. Pushed; CI green (rENA 2928965796, tma 2928969688, ona 2928965873) |
-| 6 | Release libqe 0.2.0 (drop ENA and accumulation code) | ⬜ |
+| 4a | libena → rENA | ✅ Released 2026-10-09: rENA `v0.4.13`, qe-ena 0.1.6, rena-wasm 0.1.12, ENA.jl 0.1.0, libena 0.4.13 |
+| 4b | libtma → tma | ✅ Released 2026-10-09: tma `v0.3.6`, qe-tma 0.1.3, tma-wasm 0.1.0, TMA.jl 0.1.0, libtma 0.3.6 |
+| 5 | Switch rENA and ona callers to `tma::` | ✅ Released with rENA 0.4.13 and ona 0.1.3 (2026-10-12) |
+| 6 | Release libqe 0.2.0 (drop ENA and accumulation code) | 🟡 Built on libqe `main`, not pushed; see "Phase 6 as built" |
 | 7 | Cleanup | ⬜ |
 
 ### 1. Baseline
@@ -252,13 +252,36 @@ Decided with the user: rENA's non-R products **compile the libtma they use**
    (rena-wasm), `julia/v0.1.0` (ENA.jl, registered as `ENA`),
    `conan/v0.4.13` (libena). Windows R binaries and wheels for rENA and tma
    built on GitHub; the nightly publishes them.
-3. **ona**: on hold (user decision 2026-10-09). Its `develop` (`98f937c`,
-   pushed, CI green: `tma::accumulate_stanza`, ona 0.1.3) stays unmerged; ona's
-   `main` still calls `libqe::accumulate_stanza`, which keeps working until
-   libqe 0.2.0 -- so ona must merge (or pin `libqe (< 0.2.0)`) before phase 6.
-   Local `main` also holds the unpushed `fd04d92`.
-4. Remove the temporary `develop` installs from rENA's, tma's and ona's CI.
+3. **ona**: ✅ merged `develop` → `main` (2026-10-12; with CI installing tma
+   and rENA from qe-libs.org instead of `develop`) and released `v0.1.3`
+   (Imports tma, no longer libqe).
+4. Remove the temporary `develop` installs from rENA's and tma's CI (ona's:
+   done).
 5. Then phase 6 (libqe 0.2.0).
+
+## Phase 6 as built
+
+- **Removed:** `include/libena/`, `include/libtma/` and their includes in
+  `libqe.hpp`; from every binding the ENA functions (rotations, node
+  positions, `ena_correlation`, `ccd_window`) and accumulation functions,
+  with their tests, R man pages, Python stubs (`qe.accumulation`,
+  `qe.rotation`, `qe.ccd`; `NodePositions`, `UnitNetworks`,
+  `TensorNetworks`, `RotationResult`) and README/demo entries. R exports
+  drop from 47 to 25. The Conan package ships `include/libqe/` only.
+- **Kept:** `qe.modeling` (center_points, mean_ci, outlier_ci, group_stats —
+  qe-ena uses it), `stats.hpp`'s `normal_quantile` and the linalg/lasso
+  helpers libena needs.
+- **Header sync:** `sync-headers.sh`, `check-headers-in-sync.sh` and
+  `R/configure` handle `libqe` only (the sync script deletes leftover
+  `libena`/`libtma` copies from older checkouts).
+- **Versions:** 0.2.0 in R, Python, wasm and Julia manifests.
+- **Verified locally** against libqe 0.2.0: libqe R 113, Python 72, wasm 7,
+  Julia, Conan test package; rENA R 568, tma R 199, ona R 1921 (its libqe
+  parity test now skips — its guard needed `inherits = FALSE`, ona
+  `develop`); libena and libtma Conan test packages; qe-ena 155 and qe-tma 86
+  (installed `--no-deps`: both pin `qe-lib<0.2`).
+- **Still to do:** lift qe-ena's and qe-tma's `qe-lib<0.2` pins (new
+  releases), so pip can install them next to qe-lib 0.2.0.
 
 ## Open items
 

@@ -5,7 +5,7 @@
  *        tests (Welch t-test, Wilcoxon rank-sum).
  *
  * Split out of the former modeling.hpp; the ENA node-position solvers and
- * ena_correlation() moved to libena/positions.hpp.
+ * ena_correlation() are in rENA's libena (positions.hpp).
  */
 #ifndef LIBQE_STATS_HPP
 #define LIBQE_STATS_HPP
@@ -43,7 +43,7 @@ inline arma::mat center_points(arma::mat values) {
 // ---------------------------------------------------------------------------
 // Normal quantile (probit) — pure C++, no R dependency
 // Rational approximation by Peter Acklam; max abs error < 1.15e-9.
-// Used internally by ena_correlation() so we don't need Rcpp::qnorm.
+// Used by libena's ena_correlation() (rENA) so it doesn't need Rcpp::qnorm.
 // ---------------------------------------------------------------------------
 
 inline double normal_quantile(double p) {

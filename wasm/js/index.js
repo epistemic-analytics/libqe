@@ -7,13 +7,16 @@
  *   const qe = await loadLibQE();
  *
  *   // Adjacency
- *   const pairs = qe.svector_to_upper_tri(['A', 'B', 'C']);
+ *   const pairs = qe.connection_names(['A', 'B', 'C']);
  *   // → ['A & B', 'A & C', 'B & C']
  *
- *   // Accumulation
- *   const codes = new Float64Array([1,1,0, 1,0,1, 0,1,1]);
- *   const out   = qe.stanza_window(codes, 3, 3, 2, 0, true);
- *   // out → { data: Float64Array, rows: 3, cols: 3 }
+ *   // Normalization
+ *   const lw  = new Float64Array([1,1,0, 1,0,1]);
+ *   const out = qe.normalize_networks(lw, 2, 3);
+ *   // out → { data: Float64Array, rows: 2, cols: 3 }
+ *
+ * The ENA model code (rotations, node positions, CCD) is in
+ * @qe-libs/rena-wasm and all accumulation in @qe-libs/tma-wasm.
  *
  * Matrix convention
  * -----------------

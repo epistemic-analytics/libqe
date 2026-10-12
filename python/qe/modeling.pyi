@@ -1,4 +1,4 @@
-"""ENA modeling: centering, correlation, node-position solvers"""
+"""Centering, confidence intervals and two-group statistics"""
 
 from typing import Annotated
 
@@ -6,40 +6,8 @@ import numpy
 from numpy.typing import NDArray
 
 
-class NodePositions:
-    """
-    Result struct returned by node-position solvers.
-
-    Attributes
-    ----------
-    nodes     : ndarray (n_codes × n_dims)   — solved node coordinates
-    centroids : ndarray (n_units × n_dims)   — unit centroid positions
-    weights   : ndarray (n_units × n_codes)  — half-edge weight per node
-    points    : ndarray (n_units × n_dims)   — input rotated points (echo)
-    """
-
-    @property
-    def nodes(self) -> object: ...
-
-    @property
-    def centroids(self) -> object: ...
-
-    @property
-    def weights(self) -> object: ...
-
-    @property
-    def points(self) -> object: ...
-
-    def __repr__(self) -> str: ...
-
 def center_points(values: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')]) -> Annotated[NDArray[numpy.float64], dict(shape=(None, None))]:
     """Subtract column means (center each column to zero)."""
-
-def ena_correlation(points: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], centroids: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], conf_level: float = 0.95) -> Annotated[NDArray[numpy.float64], dict(shape=(None, None))]:
-    """
-    Pearson correlation + CI between unit points and centroids.
-    Returns (n_dims × 3) array: columns are [r, ci_lower, ci_upper].
-    """
 
 def mean_ci(points: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], conf_level: float = 0.95) -> Annotated[NDArray[numpy.float64], dict(shape=(None, None))]:
     """
@@ -161,15 +129,4 @@ def group_stats(g1: Annotated[NDArray[numpy.float64], dict(shape=(None, None), o
     Wilcoxon p-values use the normal approximation (tie + continuity
     correction), matching R's wilcox.test(..., exact=FALSE, correct=TRUE).
     Equivalent to rENA-api's group.stats().
-    """
-
-def node_positions(adj_mats: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], t: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], num_dims: int) -> NodePositions:
-    """Multiobjective least-squares node positions for undirected ENA."""
-
-def directed_node_positions(line_weights: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], points: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], num_dims: int) -> NodePositions:
-    """Least-squares node positions for directed (ordered) ENA."""
-
-def directed_node_positions_combine_pairs(line_weights: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], points: Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C', device='cpu')], num_dims: int) -> NodePositions:
-    """
-    Directed node positions with paired ground+response rows combined before solving.
     """

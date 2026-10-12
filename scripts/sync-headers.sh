@@ -1,6 +1,6 @@
 #!/bin/sh
 # sync-headers.sh — copy canonical headers into R/inst/include/<lib>/ and
-#                   python/include/<lib>/ for <lib> in libqe, libena, libtma
+#                   python/include/libqe/
 #
 # R's LinkingTo mechanism requires headers in inst/include/ of the installed
 # package.  The configure script handles this automatically when installing
@@ -18,9 +18,9 @@
 #        sh scripts/sync-headers.sh && python -m build --sdist python/
 #      cranqe runs this script before building, when the repo provides it.
 #
-# libena and libtma are synced while libqe.hpp still includes them
-# (transitional, until libqe 0.2.0).  R gets only the top-level *.hpp files;
-# Python also gets the bind/ helpers its extension compiles against.
+# R gets only the top-level *.hpp files; Python also gets the bind/ helpers
+# its extension compiles against.  (libena and libtma moved to rENA and tma in
+# libqe 0.2.0; copies an older checkout left behind are removed.)
 #
 # Usage (from repo root):  sh scripts/sync-headers.sh
 
@@ -29,7 +29,11 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 # Both destinations are generated (git-ignored) copies: clear them before
 # copying so a header that moved or was removed upstream is not left behind.
-for LIB in libqe libena libtma; do
+for LIB in libena libtma; do
+    rm -rf "${REPO_ROOT}/R/inst/include/${LIB}" "${REPO_ROOT}/python/include/${LIB}"
+done
+
+for LIB in libqe; do
     SRC="${REPO_ROOT}/include/${LIB}"
 
     DST="${REPO_ROOT}/R/inst/include/${LIB}"

@@ -17,11 +17,6 @@ using LibQE
 connection_names(["A", "B", "C"])
 # → ["A & B", "A & C", "B & C"]
 
-# Stanza-window accumulation
-codes = Float64[1 1 0; 1 0 1; 0 1 1]   # 3 rows × 3 codes
-accumulate_stanza(codes; window_back=2, binary=true)
-# → 3×3 Matrix{Float64}  (choose_two(3) = 3 connection columns)
-
 # Group confidence interval (matches rENA's t.test per dimension)
 pts = randn(15, 2)
 mean_ci(pts)
@@ -37,6 +32,10 @@ r = group_stats(g1, g2)
 ```
 
 ## API reference
+
+The ENA model code (rotations, node positions, `ena_correlation`) is in ENA.jl
+(rENA) and all accumulation in TMA.jl (tma); both were removed from LibQE.jl
+in 0.2.0.
 
 ### Adjacency
 
@@ -62,10 +61,6 @@ r = group_stats(g1, g2)
 | `center_points(m)` | `Matrix{Float64}` | Subtract column means |
 | `mean_ci(pts; conf_level=0.95)` | `n_dims × 3 Matrix` | `[mean, ci_lower, ci_upper]` — matches rENA `t.test` exactly |
 | `outlier_ci(pts; iqr_factor=1.5)` | `n_dims × 2 Matrix` | `[lower, upper]` symmetric around 0 — matches rENA IQR formula |
-| `ena_correlation(pts, centroids; conf_level=0.95)` | `n_dims × 3 Matrix` | Pearson r with CI: `[r, ci_lower, ci_upper]` |
-| `node_positions(adj, t, dims)` | `NamedTuple` | Undirected ENA node positions → `(nodes, centroids, weights, points)` |
-| `directed_node_positions(lw, pts, dims)` | `NamedTuple` | Directed ENA node positions → same structure |
-| `directed_node_positions_combine_pairs(lw, pts, dims)` | `NamedTuple` | Directed ENA — ground/response rows averaged before solve |
 | `group_stats(g1, g2)` | `GroupStatsJ` | Per-dimension Welch t-test + Wilcoxon rank-sum. See fields below |
 
 #### `GroupStatsJ` fields
@@ -83,30 +78,6 @@ r = group_stats(g1, g2)
 | `pvalue_u` | `Vector{Float64}` | Two-tailed p-values (normal approx, tie + continuity correction) |
 | `effect_r` | `Vector{Float64}` | Rank-biserial: 1 − 2·U / (n1·n2) |
 | `medians` | `2 × n_dims Matrix` | Row 0 = group1, row 1 = group2 |
-
-### Accumulation
-
-| Function | Returns | Notes |
-|----------|---------|-------|
-| `connection_matrix(ground, response; response_weight=1.0, ordered=true)` | `Matrix{Float64}` | Core adjacency math for one ground+response event pair |
-| `accumulate_stanza(codes; window_back=1, window_forward=0, binary=true, ordered=false)` | `Matrix{Float64}` | rENA stanza-window. `ordered=false` → `n_rows × choose_two(n_codes)`; `ordered=true` → `n_rows × n_codes²` |
-| `row_connections(codes; binary=true)` | `Matrix{Float64}` | Per-row upper-tri co-occurrence without windowing |
-| `rolling_window_sum(codes; window_size=1)` | `Matrix{Float64}` | Rolling backward sum of raw code values |
-| `flat_index(indices, dims)` | `Int` | Column-major linear index; `indices` and `dims` are **0-based** |
-| `accumulate_unit(codes, unit_rows, decay_fn; ordered=false)` | `Vector{Float64}` | tma ground/response accumulation; `unit_rows` are **0-based** `Vector{Int32}` |
-| `accumulate_unit_with_rows(codes, unit_rows, decay_fn; ordered=false)` | `NamedTuple` | Like `accumulate_unit` + per-response-row networks → `(networks, row_networks)` |
-| `accumulate_tensor_unit(codes, tensor, dims, ...)` | `NamedTuple` | tma tensor accumulation → `(connection_counts, row_connection_counts)` |
-
-### Rotation
-
-| Function | Returns | Notes |
-|----------|---------|-------|
-| `ena_svd(points)` | `NamedTuple` | SVD rotation → `(rotation, eigenvalues, column_names)` |
-| `deflate(data, axis)` | `Matrix{Float64}` | Project out a unit axis from `data` |
-| `orthogonal_svd(data, weights, labels)` | `NamedTuple` | Weighted SVD with orthogonalization against fixed axes |
-| `complete_rotation(data, named_axes, labels)` | `NamedTuple` | Fix named axes first, fill remaining dims with SVD |
-| `means_rotation(data, group_pairs)` | `NamedTuple` | Group-means rotation; `group_pairs` = `Vector{Tuple{Vector{Int32},Vector{Int32}}}` (0-based) |
-| `generalized_means_rotation(V, x_model, x_target, ...)` | `NamedTuple` | GMR with Lasso covariate adjustment — mirrors rENA's `ena.rotate.by.generalized()` |
 
 ## Running tests
 

@@ -10,14 +10,9 @@
 #'     \code{\link{code_connections}}, and \code{\link{fold_directed_network}}.}
 #'   \item{Normalization}{Row-wise L2 sphere norm and max-norm scaling.
 #'     See \code{\link{normalize_networks}} and \code{\link{scale_networks}}.}
-#'   \item{Modeling}{Column centering, ENA correlation, and least-squares node
-#'     positions (undirected and directed).
-#'     See \code{\link{center_points}}, \code{\link{ena_correlation}},
-#'     \code{\link{node_positions}}, and \code{\link{directed_node_positions}}.}
-#'   \item{Accumulation}{Stanza-window (rENA) and ground/response/tensor (tma)
-#'     accumulation primitives.
-#'     See \code{\link{accumulate_stanza}}, \code{\link{accumulate_unit}},
-#'     and \code{\link{apply_tensor}}.}
+#'   \item{Statistics}{Column centering, confidence intervals and two-group
+#'     tests. See \code{\link{center_points}}, \code{\link{mean_ci}},
+#'     \code{\link{outlier_ci}}, and \code{\link{group_stats}}.}
 #'   \item{Door}{Temporal pooling transforms for lookback and EMA-smoothed
 #'     event streams. See \code{\link{door_lookback}} and
 #'     \code{\link{door_ema}}.}
@@ -26,6 +21,9 @@
 #'     \code{\link{eval_trajectory_curve}}, and
 #'     \code{\link{integrated_trajectory_distance}}.}
 #' }
+#'
+#' The ENA model code (rotations, node positions, CCD) is in rENA and all
+#' accumulation is in tma.
 #'
 #' \strong{Using libqe headers in your own R package:}
 #'

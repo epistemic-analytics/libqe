@@ -10,6 +10,12 @@ All matrix arguments are 2-D `numpy.ndarray` with `dtype=float64`, C-contiguous.
 All vector arguments are 1-D `numpy.ndarray` with `dtype=float64`.
 Return values are always freshly allocated numpy arrays owned by Python.
 
+The ENA model code (rotations, node positions, `ena_correlation`, CCD) is in
+[qe-ena](https://qe-libs.org/py/project/qe-ena/) (`import ena`) and all
+accumulation in [qe-tma](https://qe-libs.org/py/project/qe-tma/)
+(`import tma`); the `qe.accumulation`, `qe.rotation` and `qe.ccd` submodules
+were removed in 0.2.0.
+
 ### `qe.adjacency`
 
 | Function | Returns | Notes |
@@ -35,13 +41,7 @@ Return values are always freshly allocated numpy arrays owned by Python.
 | `center_points(values)` | `2-D ndarray` | Subtract column means. |
 | `mean_ci(points, conf_level=0.95)` | `n_dims × 3 ndarray` | `[mean, ci_lower, ci_upper]` — matches rENA `t.test` exactly. |
 | `outlier_ci(points, iqr_factor=1.5)` | `n_dims × 2 ndarray` | `[lower, upper]` symmetric around 0 — matches rENA IQR formula. |
-| `ena_correlation(points, centroids, conf_level=0.95)` | `n_units × 3 ndarray` | Pearson r with CI: `[r, ci_lower, ci_upper]`. |
-| `node_positions(adj_mats, t, num_dims)` | `NodePositions` | Undirected ENA node positions. |
-| `directed_node_positions(line_weights, points, num_dims)` | `NodePositions` | Directed ENA node positions. |
-| `directed_node_positions_combine_pairs(line_weights, points, num_dims)` | `NodePositions` | Directed positions — paired ground+response rows combined before solve. |
 | `group_stats(g1, g2)` | `GroupStatsResult` | Per-dimension Welch t-test + Wilcoxon rank-sum. See fields below. |
-
-`NodePositions` fields: `.nodes`, `.centroids`, `.weights`, `.points` (all 2-D ndarray).
 
 #### `GroupStatsResult` fields
 
@@ -58,35 +58,6 @@ Return values are always freshly allocated numpy arrays owned by Python.
 | `pvalue_u` | `ndarray (n_dims,)` | Two-tailed p-values (normal approx, tie + continuity correction) |
 | `effect_r` | `ndarray (n_dims,)` | Rank-biserial: 1 − 2·U / (n1·n2) |
 | `medians` | `2 × n_dims ndarray` | Row 0 = group1, row 1 = group2 |
-
-### `qe.accumulation`
-
-| Function | Returns | Notes |
-|----------|---------|-------|
-| `connection_matrix(ground, response, response_weight=1.0, ordered=True)` | `2-D ndarray` | Core adjacency math for one ground+response event pair. |
-| `accumulate_stanza(codes, window_back=1, window_forward=0, binary=True, ordered=False)` | `2-D ndarray` | Stanza-window accumulation. `ordered=False`: undirected upper-tri → `n_rows × choose_two(n_codes)`. `ordered=True`: directed → `n_rows × n_codes²`. |
-| `row_connections(codes, binary=True)` | `2-D ndarray` | Per-row upper-tri co-occurrence without windowing. |
-| `rolling_window_sum(codes, window_size=1)` | `2-D ndarray` | Rolling backward sum of raw code values. |
-| `flat_index(indices, dims)` | `int` | Column-major linear index. `indices` and `dims` are **0-based**. |
-| `accumulate_unit(codes, unit_rows, decay_fn, ordered=False)` | `UnitNetworks` | tma ground/response accumulation. `unit_rows` 0-based int list. `decay_fn(dists) -> weights`. |
-| `accumulate_unit_with_rows(codes, unit_rows, decay_fn, ordered=False)` | `UnitNetworks` | Like `accumulate_unit` + per-response-row networks. |
-| `apply_tensor_unit(tensor, dims, ...)` | `TensorNetworks` | Tensor-based multi-modal accumulation (tma). |
-
-`UnitNetworks` fields: `.networks`, `.row_networks`.
-`TensorNetworks` fields: `.connection_counts`, `.row_connection_counts`.
-
-### `qe.rotation`
-
-| Function | Returns | Notes |
-|----------|---------|-------|
-| `ena_svd(points)` | `RotationResult` | SVD-based ENA rotation. |
-| `deflate(data, axis)` | `2-D ndarray` | Project out a single unit axis from `data`. |
-| `orthogonal_svd(points, fixed_axes)` | `RotationResult` | SVD constrained to be orthogonal to fixed axes. |
-| `complete_rotation(points, axes)` | `RotationResult` | Fix named axes first, fill remaining dims with SVD. |
-| `means_rotation(points, groups)` | `RotationResult` | Means rotation (MR) — rotate toward group mean difference. |
-| `generalized_means_rotation(V, x_model, x_target, ...)` | `RotationResult` | GMR with Lasso covariate adjustment — mirrors rENA's `ena.rotate.by.generalized()`. |
-
-`RotationResult` fields: `.rotation`, `.eigenvalues`, `.column_names`.
 
 ### `qe.door`
 
@@ -140,19 +111,15 @@ pytest tests/
 
 ```python
 import numpy as np
-from qe import adjacency, normalization, modeling, accumulation
+from qe import adjacency, normalization, modeling
 
 # Pair names for 3 codes
 print(adjacency.connection_names(["X", "Y", "Z"]))
 # ['X & Y', 'X & Z', 'Y & Z']
 
-# Stanza-window accumulation
-codes = np.array([[1,1,0],[1,0,1],[0,1,1]], dtype=float)
-co = accumulation.accumulate_stanza(codes, window_back=2, binary=True)
-print(co)
-
 # Sphere normalization
-normed = normalization.normalize_networks(codes)
+lw = np.array([[1,1,0],[1,0,1],[0,1,1]], dtype=float)
+normed = normalization.normalize_networks(lw)
 
 # Two-group comparison
 g1 = np.random.randn(20, 2)
