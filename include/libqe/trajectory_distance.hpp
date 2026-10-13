@@ -9,6 +9,7 @@
 #include <cmath>
 #include <algorithm>
 #include "trajectory.hpp"
+#include "linalg_fallback.hpp"
 
 namespace qe {
 
@@ -29,7 +30,7 @@ inline const GaussLegendreRule& get_gl_rule_32() {
         }
         arma::vec evals;
         arma::mat evecs;
-        arma::eig_sym(evals, evecs, J);
+        qe::linalg::eig_sym(evals, evecs, J);   // LAPACK-free in WASM builds
         arma::vec w = 2.0 * arma::square(evecs.row(0).t());
         return GaussLegendreRule{evals, w};
     }();

@@ -347,6 +347,31 @@ inline arma::mat solve_spd(const arma::mat& A, const arma::mat& b,
 #endif
 }
 
+// ── inv_sym ───────────────────────────────────────────────────────────────────
+
+/// @brief Inverse of a symmetric positive (semi-)definite matrix, falling back
+///        to the pseudo-inverse when it is singular.
+///
+/// @param[in] A    Real symmetric positive (semi-)definite n×n matrix.
+/// @param[in] tol  Without LAPACK: relative eigenvalue threshold, as in
+///                 @c solve_spd.  Default: 1e-12.
+/// @returns  n×n matrix: @c A^-1, or the pseudo-inverse when @p A is singular.
+///
+/// @warning With @c ARMA_USE_LAPACK defined this calls @c arma::inv and, when
+///          that reports a singular matrix, @c arma::pinv.  Without LAPACK it
+///          is the eigendecomposition-based pseudo-inverse (@c solve_spd with
+///          the identity), which equals the inverse for a non-singular @p A.
+inline arma::mat inv_sym(const arma::mat& A, double tol = 1e-12) {
+#if defined(ARMA_USE_LAPACK)
+    arma::mat out;
+    if (!arma::inv(out, A))
+        out = arma::pinv(A);
+    return out;
+#else
+    return solve_spd(A, arma::eye(A.n_rows, A.n_rows), tol);
+#endif
+}
+
 /// @}
 
 } // namespace linalg

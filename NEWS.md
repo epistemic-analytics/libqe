@@ -1,5 +1,7 @@
 # libqe (development version)
 
+- WASM: the trajectory functions no longer throw "use of LAPACK must be enabled". `integrated_trajectory_distance` and `lagged_trajectory_distance` (Gauss-Legendre rule: `eig_sym`) always threw, and `fit_trajectory_poly` threw for any fit above degree 1 (`inv`). They now use libqe's LAPACK-free fallbacks (new `qe::linalg::inv_sym`); results match the LAPACK builds to about 1e-12. R, Python and Julia, which have LAPACK, run the same code as before.
+
 # libqe 0.2.0
 
 Breaking: the ENA model code and all accumulation have moved out of libqe, finishing the split started in 0.1.9. libqe keeps the generic numerics (adjacency, normalization, statistics, linear-algebra fallbacks, lasso, door, trajectory, stability, validation).

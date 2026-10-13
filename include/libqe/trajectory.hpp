@@ -12,6 +12,8 @@
 #include <algorithm>
 #include <limits>
 
+#include "linalg_fallback.hpp"
+
 namespace qe {
 
 /** @brief Polynomial curve fit result in 2D epistemic space. */
@@ -324,12 +326,8 @@ inline PolyCurveFit fit_poly_loocv2d(
 
         // Solve least squares: beta = (X^T X)^(-1) X^T y
         arma::mat XtX = X.t() * X;
-        arma::mat XtX_inv;
-        bool inv_ok = arma::inv(XtX_inv, XtX);
-        if (!inv_ok) {
-            // Pseudo-inverse fallback
-            XtX_inv = arma::pinv(XtX);
-        }
+        // Pseudo-inverse when singular; LAPACK-free in WASM builds.
+        arma::mat XtX_inv = qe::linalg::inv_sym(XtX);
 
         arma::vec beta_x = XtX_inv * (X.t() * x);
         arma::vec beta_y = XtX_inv * (X.t() * y);

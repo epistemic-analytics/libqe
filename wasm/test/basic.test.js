@@ -83,3 +83,40 @@ test('fit_trajectory_poly: JS wrapper supplies orthogonal basis default', () => 
     expect(evaluated.data[2]).toBeCloseTo(3, 10);
     expect(evaluated.data[3]).toBeCloseTo(6, 10);
 });
+
+// ── Trajectory without LAPACK ─────────────────────────────────────────────────
+// This build has no LAPACK: the Gauss-Legendre rule and the least-squares
+// inverse go through libqe's linalg fallbacks (they threw "use of LAPACK must
+// be enabled" before).  Expected values are libqe's R build (LAPACK).
+
+const CA = [[0, 1, 0.5], [0, 0.5, 0.2]];
+const CB = [[0.1, 0.9, 0.4], [0, 0.4, 0.3]];
+
+test('integrated_trajectory_distance matches the LAPACK build', () => {
+    expect(qe.integrated_trajectory_distance(CA[0], CA[1], CB[0], CB[1], 0, 1))
+        .toBeCloseTo(0.0584806531795148, 12);
+});
+
+test('lagged_trajectory_distance matches the LAPACK build', () => {
+    expect(qe.lagged_trajectory_distance(CA[0], CA[1], CB[0], CB[1], 0.1))
+        .toBeCloseTo(0.15513691840393, 12);
+});
+
+test('fit_trajectory_poly: cubic and LOOCV degree match the LAPACK build', () => {
+    // 20 points; a cubic needs a 4×4 inverse (only 2×2 worked without LAPACK).
+    const n = 20, pts = new Float64Array(2 * n), t = [];
+    for (let i = 0; i < n; i++) {
+        const s = i / (n - 1);
+        t.push(s);
+        pts[2 * i]     = Math.sin(3 * s) + 0.01 * ((i * 7) % 5);
+        pts[2 * i + 1] = Math.cos(2 * s) + 0.01 * ((i * 3) % 4);
+    }
+    const fit = qe.fit_trajectory_poly(pts, n, 2, t, 3, 3, 'loocv', 'orthogonal');
+    expect(fit.degree).toBe(3);
+    const want_x = [-0.0186102489407905, 3.83212702497795, -3.51864879577555, -0.157025311602699];
+    const want_y = [1.00837644921008, 0.134759749353767, -2.63244076984793, 1.08653110032508];
+    want_x.forEach((v, i) => expect(fit.coeffs_x[i]).toBeCloseTo(v, 10));
+    want_y.forEach((v, i) => expect(fit.coeffs_y[i]).toBeCloseTo(v, 10));
+
+    expect(qe.fit_trajectory_poly(pts, n, 2, t, 5, 0, 'loocv', 'orthogonal').degree).toBe(4);
+});
