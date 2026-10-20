@@ -1,5 +1,6 @@
-# libqe (development version)
+# libqe 0.2.1
 
+- Adjacency helpers can include self-connections (the diagonal): `connection_indices()`, `connection_names()`, `fold_directed_network()` and `network_to_vector()` take `diagonal` (default `FALSE`), and new `n_connections(n, diagonal)` counts the columns (`choose(n, 2)`, or `n(n+1)/2`). The layout is the column-major upper triangle with the diagonal -- `A & A`, `A & B`, `B & B`, `A & C`, `B & C`, `C & C` -- and folding keeps each self-connection once while pairs sum (A->B + B->A). Without `diagonal`, results are unchanged. In every binding: R and Python (`diagonal=`), WASM (an optional trailing argument), Julia (`diagonal` keyword).
 - WASM: the trajectory functions no longer throw "use of LAPACK must be enabled". `integrated_trajectory_distance` and `lagged_trajectory_distance` (Gauss-Legendre rule: `eig_sym`) always threw, and `fit_trajectory_poly` threw for any fit above degree 1 (`inv`). They now use libqe's LAPACK-free fallbacks (new `qe::linalg::inv_sym`); results match the LAPACK builds to about 1e-12. R, Python and Julia, which have LAPACK, run the same code as before.
 
 # libqe 0.2.0
