@@ -1,3 +1,5 @@
+# libqe (development version)
+
 # libqe 0.2.1
 
 - Adjacency helpers can include self-connections (the diagonal): `connection_indices()`, `connection_names()`, `fold_directed_network()` and `network_to_vector()` take `diagonal` (default `FALSE`), and new `n_connections(n, diagonal)` counts the columns (`choose(n, 2)`, or `n(n+1)/2`). The layout is the column-major upper triangle with the diagonal -- `A & A`, `A & B`, `B & B`, `A & C`, `B & C`, `C & C` -- and folding keeps each self-connection once while pairs sum (A->B + B->A). Without `diagonal`, results are unchanged. In every binding: R and Python (`diagonal=`), WASM (an optional trailing argument), Julia (`diagonal` keyword).
