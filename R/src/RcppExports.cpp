@@ -22,15 +22,28 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// n_connections
+int n_connections(int n, bool diagonal);
+RcppExport SEXP _libqe_n_connections(SEXP nSEXP, SEXP diagonalSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< bool >::type diagonal(diagonalSEXP);
+    rcpp_result_gen = Rcpp::wrap(n_connections(n, diagonal));
+    return rcpp_result_gen;
+END_RCPP
+}
 // connection_indices
-arma::umat connection_indices(int len, int row);
-RcppExport SEXP _libqe_connection_indices(SEXP lenSEXP, SEXP rowSEXP) {
+arma::umat connection_indices(int len, int row, bool diagonal);
+RcppExport SEXP _libqe_connection_indices(SEXP lenSEXP, SEXP rowSEXP, SEXP diagonalSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< int >::type len(lenSEXP);
     Rcpp::traits::input_parameter< int >::type row(rowSEXP);
-    rcpp_result_gen = Rcpp::wrap(connection_indices(len, row));
+    Rcpp::traits::input_parameter< bool >::type diagonal(diagonalSEXP);
+    rcpp_result_gen = Rcpp::wrap(connection_indices(len, row, diagonal));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -46,36 +59,39 @@ BEGIN_RCPP
 END_RCPP
 }
 // fold_directed_network
-arma::rowvec fold_directed_network(arma::vec v);
-RcppExport SEXP _libqe_fold_directed_network(SEXP vSEXP) {
+arma::rowvec fold_directed_network(arma::vec v, bool diagonal);
+RcppExport SEXP _libqe_fold_directed_network(SEXP vSEXP, SEXP diagonalSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::vec >::type v(vSEXP);
-    rcpp_result_gen = Rcpp::wrap(fold_directed_network(v));
+    Rcpp::traits::input_parameter< bool >::type diagonal(diagonalSEXP);
+    rcpp_result_gen = Rcpp::wrap(fold_directed_network(v, diagonal));
     return rcpp_result_gen;
 END_RCPP
 }
 // network_to_vector
-arma::rowvec network_to_vector(arma::mat x, bool full);
-RcppExport SEXP _libqe_network_to_vector(SEXP xSEXP, SEXP fullSEXP) {
+arma::rowvec network_to_vector(arma::mat x, bool full, bool diagonal);
+RcppExport SEXP _libqe_network_to_vector(SEXP xSEXP, SEXP fullSEXP, SEXP diagonalSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type x(xSEXP);
     Rcpp::traits::input_parameter< bool >::type full(fullSEXP);
-    rcpp_result_gen = Rcpp::wrap(network_to_vector(x, full));
+    Rcpp::traits::input_parameter< bool >::type diagonal(diagonalSEXP);
+    rcpp_result_gen = Rcpp::wrap(network_to_vector(x, full, diagonal));
     return rcpp_result_gen;
 END_RCPP
 }
 // connection_names
-std::vector<std::string> connection_names(std::vector<std::string> v);
-RcppExport SEXP _libqe_connection_names(SEXP vSEXP) {
+std::vector<std::string> connection_names(std::vector<std::string> v, bool diagonal);
+RcppExport SEXP _libqe_connection_names(SEXP vSEXP, SEXP diagonalSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< std::vector<std::string> >::type v(vSEXP);
-    rcpp_result_gen = Rcpp::wrap(connection_names(v));
+    Rcpp::traits::input_parameter< bool >::type diagonal(diagonalSEXP);
+    rcpp_result_gen = Rcpp::wrap(connection_names(v, diagonal));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -336,11 +352,12 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_libqe_choose_two", (DL_FUNC) &_libqe_choose_two, 1},
-    {"_libqe_connection_indices", (DL_FUNC) &_libqe_connection_indices, 2},
+    {"_libqe_n_connections", (DL_FUNC) &_libqe_n_connections, 2},
+    {"_libqe_connection_indices", (DL_FUNC) &_libqe_connection_indices, 3},
     {"_libqe_code_connections", (DL_FUNC) &_libqe_code_connections, 1},
-    {"_libqe_fold_directed_network", (DL_FUNC) &_libqe_fold_directed_network, 1},
-    {"_libqe_network_to_vector", (DL_FUNC) &_libqe_network_to_vector, 2},
-    {"_libqe_connection_names", (DL_FUNC) &_libqe_connection_names, 1},
+    {"_libqe_fold_directed_network", (DL_FUNC) &_libqe_fold_directed_network, 2},
+    {"_libqe_network_to_vector", (DL_FUNC) &_libqe_network_to_vector, 3},
+    {"_libqe_connection_names", (DL_FUNC) &_libqe_connection_names, 2},
     {"_libqe_normalize_networks", (DL_FUNC) &_libqe_normalize_networks, 1},
     {"_libqe_scale_networks", (DL_FUNC) &_libqe_scale_networks, 1},
     {"_libqe_center_points", (DL_FUNC) &_libqe_center_points, 1},

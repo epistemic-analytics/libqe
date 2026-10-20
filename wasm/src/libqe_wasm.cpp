@@ -41,9 +41,9 @@ using namespace qe::bind::js;
 
 // ── Adjacency ─────────────────────────────────────────────────────────────────
 
-// connection_indices(len) → { rows: Int32Array, cols: Int32Array }
-static val connection_indices(int len) {
-    arma::umat idx = qe::connection_indices(len, -1);
+// connection_indices(len[, diagonal]) → { rows: Int32Array, cols: Int32Array }
+static val connection_indices_d(int len, bool diagonal) {
+    arma::umat idx = qe::connection_indices(len, -1, diagonal);
     std::vector<int> rows_v(idx.n_cols), cols_v(idx.n_cols);
     for (arma::uword i = 0; i < idx.n_cols; ++i) {
         rows_v[i] = static_cast<int>(idx(0, i));
@@ -54,6 +54,11 @@ static val connection_indices(int len) {
     result.set("cols", val::array(cols_v.begin(), cols_v.end()));
     return result;
 }
+static val connection_indices(int len) { return connection_indices_d(len, false); }
+
+// n_connections(n[, diagonal]) → number
+static int n_connections_d(int n, bool diagonal) { return qe::n_connections(n, diagonal); }
+static int n_connections(int n) { return qe::n_connections(n, false); }
 
 // code_connections(data, n_codes) → Float64Array
 static val code_connections(const val& data, int n_codes) {
@@ -61,28 +66,33 @@ static val code_connections(const val& data, int n_codes) {
     return rowvec_to_js(qe::code_connections(v));
 }
 
-// fold_directed_network(data) → Float64Array  (data.length == n*n)
-static val fold_directed_network(const val& data) {
+// fold_directed_network(data[, diagonal]) → Float64Array  (data.length == n*n)
+static val fold_directed_network_d(const val& data, bool diagonal) {
     std::vector<double> v = vecFromJSArray<double>(data);
     arma::vec av(v.data(), v.size());
-    return rowvec_to_js(qe::fold_directed_network(av));
+    return rowvec_to_js(qe::fold_directed_network(av, diagonal));
 }
+static val fold_directed_network(const val& data) { return fold_directed_network_d(data, false); }
 
-// network_to_vector(data, rows, cols, full) → Float64Array
-static val network_to_vector(const val& data, int rows, int cols, bool full) {
+// network_to_vector(data, rows, cols, full[, diagonal]) → Float64Array
+static val network_to_vector_d(const val& data, int rows, int cols, bool full, bool diagonal) {
     arma::mat m = js_to_mat(data, rows, cols);
-    return rowvec_to_js(qe::network_to_vector(m, full));
+    return rowvec_to_js(qe::network_to_vector(m, full, diagonal));
+}
+static val network_to_vector(const val& data, int rows, int cols, bool full) {
+    return network_to_vector_d(data, rows, cols, full, false);
 }
 
-// connection_names(names) → string[]
-static val connection_names(const val& names) {
+// connection_names(names[, diagonal]) → string[]
+static val connection_names_d(const val& names, bool diagonal) {
     std::vector<std::string> v = vecFromJSArray<std::string>(names);
-    auto pairs = qe::connection_names(v);
+    auto pairs = qe::connection_names(v, diagonal);
     val result = val::array();
     for (size_t i = 0; i < pairs.size(); ++i)
         result.call<void>("push", val(pairs[i]));
     return result;
 }
+static val connection_names(const val& names) { return connection_names_d(names, false); }
 
 // ── Normalization ─────────────────────────────────────────────────────────────
 
@@ -361,11 +371,18 @@ static double dist_dist_correlation(
 EMSCRIPTEN_BINDINGS(libqe) {
     // Adjacency
     function("choose_two",                            &choose_two);
+    // Each takes an optional trailing `diagonal` (Embind overloads by argument count).
     function("connection_indices",                    &connection_indices);
+    function("connection_indices",                    &connection_indices_d);
+    function("n_connections",                         &n_connections);
+    function("n_connections",                         &n_connections_d);
     function("code_connections",                      &code_connections);
     function("fold_directed_network",                 &fold_directed_network);
+    function("fold_directed_network",                 &fold_directed_network_d);
     function("network_to_vector",                     &network_to_vector);
+    function("network_to_vector",                     &network_to_vector_d);
     function("connection_names",                      &connection_names);
+    function("connection_names",                      &connection_names_d);
 
     // Normalization
     function("normalize_networks",                    &normalize_networks);

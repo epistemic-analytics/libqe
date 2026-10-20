@@ -4,12 +4,15 @@
 \alias{connection_indices}
 \title{Upper-triangle index pairs}
 \usage{
-connection_indices(len, row = -1L)
+connection_indices(len, row = -1L, diagonal = FALSE)
 }
 \arguments{
 \item{len}{Number of codes (side length of square matrix)}
 
 \item{row}{-1 = both rows, 0 = row indices only, 1 = col indices only}
+
+\item{diagonal}{Include the diagonal (self-connections), in column-major
+order: (0,0), (0,1), (1,1), (0,2), ...}
 }
 \description{
 Upper-triangle index pairs

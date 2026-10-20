@@ -4,12 +4,14 @@
 \alias{network_to_vector}
 \title{Flatten an adjacency matrix to a connection vector}
 \usage{
-network_to_vector(x, full = TRUE)
+network_to_vector(x, full = TRUE, diagonal = FALSE)
 }
 \arguments{
 \item{x}{Numeric matrix}
 
 \item{full}{TRUE = full n*n (directed); FALSE = upper triangle (undirected)}
+
+\item{diagonal}{With full = FALSE: include the diagonal (A & A, A & B, B & B, ...)}
 }
 \description{
 Flatten an adjacency matrix to a connection vector

@@ -4,10 +4,12 @@
 \alias{connection_names}
 \title{Code-name pairs for upper-triangle positions ("A & B")}
 \usage{
-connection_names(v)
+connection_names(v, diagonal = FALSE)
 }
 \arguments{
 \item{v}{Character vector of code names}
+
+\item{diagonal}{Include self-connections: "A & A", "A & B", "B & B", ...}
 }
 \description{
 Code-name pairs for upper-triangle positions ("A & B")

@@ -120,3 +120,20 @@ test('fit_trajectory_poly: cubic and LOOCV degree match the LAPACK build', () =>
 
     expect(qe.fit_trajectory_poly(pts, n, 2, t, 5, 0, 'loocv', 'orthogonal').degree).toBe(4);
 });
+
+test('diagonal layout (optional trailing argument)', () => {
+    expect(qe.n_connections(3)).toBe(3);
+    expect(qe.n_connections(3, true)).toBe(6);
+    expect(qe.connection_names(['A', 'B', 'C'], true))
+        .toEqual(['A & A', 'A & B', 'B & B', 'A & C', 'B & C', 'C & C']);
+    expect(qe.connection_names(['A', 'B', 'C'])).toEqual(['A & B', 'A & C', 'B & C']);
+    const idx = qe.connection_indices(3, true);
+    expect(Array.from(idx.rows)).toEqual([0, 0, 1, 0, 1, 2]);
+    expect(Array.from(idx.cols)).toEqual([0, 1, 1, 2, 2, 2]);
+    const v = [1, 2, 3, 4, 5, 6, 7, 8, 9];          // directed 3x3, column-major
+    expect(Array.from(qe.fold_directed_network(v, true))).toEqual([1, 6, 5, 10, 14, 9]);
+    expect(Array.from(qe.fold_directed_network(v))).toEqual([6, 10, 14]);
+    // network_to_vector takes row-major data: row-major of the same matrix
+    const rowMajor = [1, 4, 7, 2, 5, 8, 3, 6, 9];
+    expect(Array.from(qe.network_to_vector(rowMajor, 3, 3, false, true))).toEqual([1, 4, 5, 7, 8, 9]);
+});

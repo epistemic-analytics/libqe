@@ -49,13 +49,17 @@ NB_MODULE(_qe, m) {
     adj.def("choose_two", &qe::choose_two, "n"_a,
         "Return n*(n-1)/2 (number of unique pairs in a set of n elements).");
 
-    adj.def("connection_indices", [](int len, int row) {
-        return from_umat(qe::connection_indices(len, row));
-    }, "len"_a, "row"_a = -1,
+    adj.def("n_connections", &qe::n_connections, "n"_a, "diagonal"_a = false,
+        "Number of undirected connection columns: n*(n-1)/2, or n*(n+1)/2 with diagonal.");
+
+    adj.def("connection_indices", [](int len, int row, bool diagonal) {
+        return from_umat(qe::connection_indices(len, row, diagonal));
+    }, "len"_a, "row"_a = -1, "diagonal"_a = false,
         "Upper-triangle index pairs for an len×len matrix.\n"
         "row=-1: 2×k array of [row_idx; col_idx]  "
         "row=0: row indices only  "
-        "row=1: col indices only");
+        "row=1: col indices only\n"
+        "diagonal=True includes (i, i): (0,0), (0,1), (1,1), (0,2), ...");
 
     adj.def("code_connections", [](NpVec v) {
         // wrap 1-D input as a 1×n row vector for code_connections
@@ -65,23 +69,25 @@ NB_MODULE(_qe, m) {
     }, "v"_a,
         "Compute pairwise products v[j]*v[i] for all j < i (upper-triangle vector).");
 
-    adj.def("fold_directed_network", [](NpVec v) {
-        return from_rowvec(qe::fold_directed_network(to_vec(v)));
-    }, "v"_a,
-        "Fold a directed n*n flat vector to upper-triangle by summing A→B + B→A.");
+    adj.def("fold_directed_network", [](NpVec v, bool diagonal) {
+        return from_rowvec(qe::fold_directed_network(to_vec(v), diagonal));
+    }, "v"_a, "diagonal"_a = false,
+        "Fold a directed n*n flat vector to upper-triangle by summing A→B + B→A.\n"
+        "diagonal=True keeps each self-connection (A→A) once: A & A, A & B, B & B, ...");
 
-    adj.def("network_to_vector", [](NpMat x, bool full) {
-        return from_rowvec(qe::network_to_vector(to_mat(x), full));
-    }, "x"_a, "full"_a = true,
+    adj.def("network_to_vector", [](NpMat x, bool full, bool diagonal) {
+        return from_rowvec(qe::network_to_vector(to_mat(x), full, diagonal));
+    }, "x"_a, "full"_a = true, "diagonal"_a = false,
         "Flatten an adjacency matrix to a vector.\n"
         "full=True: full n*n vector (directed)  "
-        "full=False: upper-triangle only (undirected)");
+        "full=False: upper-triangle only (undirected); diagonal=True includes A & A");
 
-    adj.def("connection_names", [](std::vector<std::string> v) {
-        return qe::connection_names(v);
-    }, "v"_a,
+    adj.def("connection_names", [](std::vector<std::string> v, bool diagonal) {
+        return qe::connection_names(v, diagonal);
+    }, "v"_a, "diagonal"_a = false,
         "Return 'A & B' pair names for every upper-triangle position.\n"
-        "Example: ['X','Y','Z'] → ['X & Y', 'X & Z', 'Y & Z']");
+        "Example: ['X','Y','Z'] → ['X & Y', 'X & Z', 'Y & Z']; with diagonal=True\n"
+        "['X & X', 'X & Y', 'Y & Y', 'X & Z', 'Y & Z', 'Z & Z']");
 
     // ── normalization ─────────────────────────────────────────────────────────
     auto nrm = m.def_submodule("normalization",

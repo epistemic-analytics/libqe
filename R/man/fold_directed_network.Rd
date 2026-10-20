@@ -4,10 +4,12 @@
 \alias{fold_directed_network}
 \title{Fold a directed (n*n) vector into an undirected upper-triangle vector}
 \usage{
-fold_directed_network(v)
+fold_directed_network(v, diagonal = FALSE)
 }
 \arguments{
 \item{v}{Numeric vector of length n*n}
+
+\item{diagonal}{Keep the diagonal (self-connections, each once): A & A, A & B, B & B, ...}
 }
 \description{
 Fold a directed (n*n) vector into an undirected upper-triangle vector

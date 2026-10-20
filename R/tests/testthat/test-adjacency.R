@@ -74,3 +74,27 @@ test_that("svector_to_upper_tri: length matches choose_two(n)", {
     codes <- c("A", "B", "C", "D")
     expect_length(connection_names(codes), 6L)
 })
+
+test_that("diagonal layout: A & A, A & B, B & B, A & C, B & C, C & C", {
+  codes <- c("A", "B", "C")
+  expect_equal(n_connections(3L), 3L)
+  expect_equal(n_connections(3L, TRUE), 6L)
+  expect_equal(connection_names(codes, TRUE),
+               c("A & A", "A & B", "B & B", "A & C", "B & C", "C & C"))
+  expect_equal(connection_names(codes), c("A & B", "A & C", "B & C"))   # unchanged
+  idx <- connection_indices(3L, -1L, TRUE)
+  expect_equal(idx[1, ], c(0, 0, 1, 0, 1, 2))
+  expect_equal(idx[2, ], c(0, 1, 1, 2, 2, 2))
+  # directed 3x3, column-major 1..9: self kept once, pairs summed
+  v <- as.numeric(1:9)
+  expect_equal(as.vector(fold_directed_network(v, TRUE)), c(1, 6, 5, 10, 14, 9))
+  expect_equal(as.vector(fold_directed_network(v)), c(6, 10, 14))             # unchanged
+  m <- matrix(v, 3)
+  expect_equal(as.vector(network_to_vector(m, FALSE, TRUE)), c(1, 4, 5, 7, 8, 9))
+  # fold positions line up with the names: (i, j) at column k
+  f <- as.vector(fold_directed_network(v, TRUE))
+  for (k in seq_along(f)) {
+    i <- idx[1, k] + 1; j <- idx[2, k] + 1
+    expect_equal(f[k], if (i == j) m[i, i] else m[i, j] + m[j, i])
+  }
+})

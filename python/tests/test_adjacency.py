@@ -123,3 +123,26 @@ class TestConnectionNames:
         codes = ["c1", "c2", "c3", "c4"]
         result = adjacency.connection_names(codes)
         assert len(result) == adjacency.choose_two(len(codes))
+
+
+class TestDiagonal:
+    """With diagonal: A & A, A & B, B & B, A & C, B & C, C & C."""
+
+    def test_names_and_counts(self):
+        assert adjacency.n_connections(3) == 3
+        assert adjacency.n_connections(3, True) == 6
+        assert adjacency.connection_names(["A", "B", "C"], True) == \
+            ["A & A", "A & B", "B & B", "A & C", "B & C", "C & C"]
+        assert adjacency.connection_names(["A", "B", "C"]) == ["A & B", "A & C", "B & C"]
+
+    def test_indices(self):
+        idx = adjacency.connection_indices(3, -1, True)
+        np.testing.assert_array_equal(idx[0], [0, 0, 1, 0, 1, 2])
+        np.testing.assert_array_equal(idx[1], [0, 1, 1, 2, 2, 2])
+
+    def test_fold_and_vector(self):
+        v = np.arange(1.0, 10.0)                       # directed 3x3, column-major
+        np.testing.assert_allclose(adjacency.fold_directed_network(v, True), [1, 6, 5, 10, 14, 9])
+        np.testing.assert_allclose(adjacency.fold_directed_network(v), [6, 10, 14])
+        m = np.ascontiguousarray(v.reshape(3, 3, order="F"))
+        np.testing.assert_allclose(adjacency.network_to_vector(m, False, True), [1, 4, 5, 7, 8, 9])

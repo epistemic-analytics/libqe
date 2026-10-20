@@ -6,6 +6,20 @@ using LibQE
 
 # ── Adjacency ─────────────────────────────────────────────────────────────────
 
+@testset "diagonal layout" begin
+    @test n_connections(3) == 3
+    @test n_connections(3; diagonal = true) == 6
+    @test connection_names(["A", "B", "C"]; diagonal = true) ==
+          ["A & A", "A & B", "B & B", "A & C", "B & C", "C & C"]
+    @test connection_names(["A", "B", "C"]) == ["A & B", "A & C", "B & C"]
+    idx = connection_indices(3; diagonal = true)
+    @test idx[1, :] == Int32[0, 0, 1, 0, 1, 2]
+    @test idx[2, :] == Int32[0, 1, 1, 2, 2, 2]
+    v = collect(1.0:9.0)                          # directed 3x3, column-major
+    @test fold_directed_network(v; diagonal = true) == [1.0, 6.0, 5.0, 10.0, 14.0, 9.0]
+    @test fold_directed_network(v) == [6.0, 10.0, 14.0]
+end
+
 @testset "connection_names" begin
     pairs = connection_names(["A", "B", "C"])
     @test pairs == ["A & B", "A & C", "B & C"]

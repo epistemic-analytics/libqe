@@ -9,12 +9,22 @@ choose_two <- function(n) {
     .Call(`_libqe_choose_two`, n)
 }
 
+#' Number of undirected connection columns
+#' @param n Number of codes
+#' @param diagonal Include self-connections (A & A): n(n+1)/2 instead of choose(n, 2)
+#' @export
+n_connections <- function(n, diagonal = FALSE) {
+    .Call(`_libqe_n_connections`, n, diagonal)
+}
+
 #' Upper-triangle index pairs
 #' @param len Number of codes (side length of square matrix)
 #' @param row -1 = both rows, 0 = row indices only, 1 = col indices only
+#' @param diagonal Include the diagonal (self-connections), in column-major
+#'   order: (0,0), (0,1), (1,1), (0,2), ...
 #' @export
-connection_indices <- function(len, row = -1L) {
-    .Call(`_libqe_connection_indices`, len, row)
+connection_indices <- function(len, row = -1L, diagonal = FALSE) {
+    .Call(`_libqe_connection_indices`, len, row, diagonal)
 }
 
 #' Pairwise products → upper-triangle vector
@@ -26,24 +36,27 @@ code_connections <- function(v) {
 
 #' Fold a directed (n*n) vector into an undirected upper-triangle vector
 #' @param v Numeric vector of length n*n
+#' @param diagonal Keep the diagonal (self-connections, each once): A & A, A & B, B & B, ...
 #' @export
-fold_directed_network <- function(v) {
-    .Call(`_libqe_fold_directed_network`, v)
+fold_directed_network <- function(v, diagonal = FALSE) {
+    .Call(`_libqe_fold_directed_network`, v, diagonal)
 }
 
 #' Flatten an adjacency matrix to a connection vector
 #' @param x Numeric matrix
 #' @param full TRUE = full n*n (directed); FALSE = upper triangle (undirected)
+#' @param diagonal With full = FALSE: include the diagonal (A & A, A & B, B & B, ...)
 #' @export
-network_to_vector <- function(x, full = TRUE) {
-    .Call(`_libqe_network_to_vector`, x, full)
+network_to_vector <- function(x, full = TRUE, diagonal = FALSE) {
+    .Call(`_libqe_network_to_vector`, x, full, diagonal)
 }
 
 #' Code-name pairs for upper-triangle positions ("A & B")
 #' @param v Character vector of code names
+#' @param diagonal Include self-connections: "A & A", "A & B", "B & B", ...
 #' @export
-connection_names <- function(v) {
-    .Call(`_libqe_connection_names`, v)
+connection_names <- function(v, diagonal = FALSE) {
+    .Call(`_libqe_connection_names`, v, diagonal)
 }
 
 #' Row-wise L2 (sphere) normalization

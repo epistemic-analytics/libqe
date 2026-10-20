@@ -17,13 +17,24 @@ int choose_two(int n) {
     return qe::choose_two(n);
 }
 
+//' Number of undirected connection columns
+//' @param n Number of codes
+//' @param diagonal Include self-connections (A & A): n(n+1)/2 instead of choose(n, 2)
+//' @export
+// [[Rcpp::export]]
+int n_connections(int n, bool diagonal = false) {
+    return qe::n_connections(n, diagonal);
+}
+
 //' Upper-triangle index pairs
 //' @param len Number of codes (side length of square matrix)
 //' @param row -1 = both rows, 0 = row indices only, 1 = col indices only
+//' @param diagonal Include the diagonal (self-connections), in column-major
+//'   order: (0,0), (0,1), (1,1), (0,2), ...
 //' @export
 // [[Rcpp::export]]
-arma::umat connection_indices(int len, int row = -1) {
-    return qe::connection_indices(len, row);
+arma::umat connection_indices(int len, int row = -1, bool diagonal = false) {
+    return qe::connection_indices(len, row, diagonal);
 }
 
 //' Pairwise products → upper-triangle vector
@@ -36,27 +47,30 @@ arma::rowvec code_connections(arma::mat v) {
 
 //' Fold a directed (n*n) vector into an undirected upper-triangle vector
 //' @param v Numeric vector of length n*n
+//' @param diagonal Keep the diagonal (self-connections, each once): A & A, A & B, B & B, ...
 //' @export
 // [[Rcpp::export]]
-arma::rowvec fold_directed_network(arma::vec v) {
-    return qe::fold_directed_network(v);
+arma::rowvec fold_directed_network(arma::vec v, bool diagonal = false) {
+    return qe::fold_directed_network(v, diagonal);
 }
 
 //' Flatten an adjacency matrix to a connection vector
 //' @param x Numeric matrix
 //' @param full TRUE = full n*n (directed); FALSE = upper triangle (undirected)
+//' @param diagonal With full = FALSE: include the diagonal (A & A, A & B, B & B, ...)
 //' @export
 // [[Rcpp::export]]
-arma::rowvec network_to_vector(arma::mat x, bool full = true) {
-    return qe::network_to_vector(x, full);
+arma::rowvec network_to_vector(arma::mat x, bool full = true, bool diagonal = false) {
+    return qe::network_to_vector(x, full, diagonal);
 }
 
 //' Code-name pairs for upper-triangle positions ("A & B")
 //' @param v Character vector of code names
+//' @param diagonal Include self-connections: "A & A", "A & B", "B & B", ...
 //' @export
 // [[Rcpp::export]]
-std::vector<std::string> connection_names(std::vector<std::string> v) {
-    return qe::connection_names(v);
+std::vector<std::string> connection_names(std::vector<std::string> v, bool diagonal = false) {
+    return qe::connection_names(v, diagonal);
 }
 
 // =============================================================================

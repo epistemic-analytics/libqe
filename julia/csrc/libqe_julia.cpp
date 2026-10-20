@@ -152,6 +152,34 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
             return qe::connection_names(names);
         });
 
+    // With the diagonal (self-connections): overloads taking a trailing bool,
+    // in the A & A, A & B, B & B, ... order.
+    mod.method("n_connections", [](int32_t n, bool diagonal) -> int32_t {
+        return static_cast<int32_t>(qe::n_connections(n, diagonal));
+    });
+    mod.method("connection_indices",
+        [](int32_t len, int32_t row, bool diagonal) -> std::vector<int32_t> {
+            arma::umat idx = qe::connection_indices(len, row, diagonal);
+            std::vector<int32_t> v(idx.n_elem);
+            for (arma::uword i = 0; i < idx.n_elem; ++i)
+                v[i] = static_cast<int32_t>(idx(i));
+            return v;
+        });
+    mod.method("fold_directed_network",
+        [](jlcxx::ArrayRef<double> v, bool diagonal) -> std::vector<double> {
+            arma::vec av(v.data(), v.size(), false, true);
+            return pack(qe::fold_directed_network(av, diagonal));
+        });
+    mod.method("network_to_vector",
+        [](jlcxx::ArrayRef<double> m, int32_t rows, int32_t cols, bool full, bool diagonal)
+         -> std::vector<double> {
+            return pack(qe::network_to_vector(view_mat(m, rows, cols), full, diagonal));
+        });
+    mod.method("connection_names",
+        [](const std::vector<std::string>& names, bool diagonal) -> std::vector<std::string> {
+            return qe::connection_names(names, diagonal);
+        });
+
     // ── Normalization ─────────────────────────────────────────────────────────
 
     mod.method("normalize_networks",

@@ -45,7 +45,7 @@ using CxxWrap
 # ── Public API ────────────────────────────────────────────────────────────────
 export
     # Adjacency
-    choose_two, connection_indices, code_connections,
+    choose_two, n_connections, connection_indices, code_connections,
     fold_directed_network, network_to_vector, connection_names,
     # Normalization
     normalize_networks, scale_networks,
@@ -90,15 +90,24 @@ end
 # ── Adjacency ─────────────────────────────────────────────────────────────────
 
 """
-    connection_indices(len; row=-1) -> Matrix{Int32}
+    n_connections(n; diagonal=false) -> Int
+
+Number of undirected connection columns: `choose_two(n)`, or `n(n+1)/2` with
+`diagonal` (self-connections, A & A).
+"""
+n_connections(n::Integer; diagonal::Bool = false) = Int(n_connections(Int32(n), diagonal))
+
+"""
+    connection_indices(len; row=-1, diagonal=false) -> Matrix{Int32}
 
 Upper-triangle (i, j) index pairs for a matrix of side `len`.
 `row = -1` returns both rows, `0` row indices only, `1` col indices only.
-Result is a `2 × choose_two(len)` matrix.
+Result is a `2 × n_connections(len; diagonal)` matrix; with `diagonal` the
+pairs include (i, i), in the order (0,0), (0,1), (1,1), (0,2), ...
 """
-function connection_indices(len::Integer; row::Integer = -1)
-    n_pairs = len * (len - 1) ÷ 2
-    flat = connection_indices(Int32(len), Int32(row))
+function connection_indices(len::Integer; row::Integer = -1, diagonal::Bool = false)
+    n_pairs = n_connections(len; diagonal = diagonal)
+    flat = connection_indices(Int32(len), Int32(row), diagonal)
     reshape(flat, 2, n_pairs)
 end
 
@@ -111,19 +120,24 @@ function code_connections(v::Vector{Float64})
     code_connections(v, Int32(length(v)))
 end
 
-# fold_directed_network(v::Vector{Float64}) -> Vector{Float64}
-# CxxWrap maps this directly (C++ binding takes only the vector; length is
-# derived internally). No Julia wrapper needed — call it directly.
-#   fold_directed_network(v) → upper-triangle Vector{Float64}
+"""
+    fold_directed_network(v; diagonal=false) -> Vector{Float64}
+
+Fold a directed n² vector to the upper triangle, summing A→B + B→A. With
+`diagonal`, each self-connection (A→A) is kept once: A & A, A & B, B & B, ...
+"""
+fold_directed_network(v::Vector{Float64}; diagonal::Bool = false) =
+    collect(Float64, fold_directed_network(v, diagonal))
 
 """
-    connection_names(names) -> Vector{String}
+    connection_names(names; diagonal=false) -> Vector{String}
 
-`"A & B"` pair labels for every upper-tri position.
+`"A & B"` pair labels for every upper-tri position; with `diagonal`,
+`"A & A", "A & B", "B & B", ...`.
 """
-function connection_names(names::AbstractVector{<:AbstractString})
-    # CxxWrap exposes connection_names(StdVector{StdString}); convert both ways.
-    raw = connection_names(_sv_str(names))   # C++ binding; returns StdVector{StdString}
+function connection_names(names::AbstractVector{<:AbstractString}; diagonal::Bool = false)
+    # CxxWrap exposes connection_names(StdVector{StdString}[, Bool]); convert both ways.
+    raw = connection_names(_sv_str(names), diagonal)   # C++ binding; returns StdVector{StdString}
     String[String(raw[i]) for i in 1:length(raw)]
 end
 
