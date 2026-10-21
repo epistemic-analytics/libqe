@@ -8,6 +8,11 @@ All functions accept standard Julia `Matrix{Float64}` / `Vector{Float64}` argume
 Matrix inputs are **zero-copy** across the C++ boundary (Julia and Armadillo are both
 column-major).
 
+The C++ library comes prebuilt from **LibQE_jll** (built by cranqe with
+BinaryBuilder for Linux x86_64 / aarch64 and Windows x86_64), so
+`Pkg.add("LibQE")` needs no compiler there. Elsewhere (macOS for now) LibQE
+loads a local CMake build from `julia/lib/` (see Development).
+
 ## Quick start
 
 ```julia
@@ -79,9 +84,15 @@ in 0.2.0.
 | `effect_r` | `Vector{Float64}` | Rank-biserial: 1 − 2·U / (n1·n2) |
 | `medians` | `2 × n_dims Matrix` | Row 0 = group1, row 1 = group2 |
 
-## Running tests
+## Development
 
-```julia
+LibQE pins `LibQE_jll` to its own version, which is registered only at
+release, so a checkout first builds the library with CMake and develops a
+local stand-in for the JLL (once; `dev/LibQE_jll/` is git-ignored):
+
+```sh
 cd julia
+cmake -B build -DCMAKE_BUILD_TYPE=Release . && cmake --build build && cmake --install build
+julia --project=. dev/local_jll.jl
 julia --project=. -e 'using Pkg; Pkg.test()'
 ```

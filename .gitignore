@@ -36,3 +36,4 @@ julia/Manifest.toml
 .DS_Store
 **/.DS_Store
 
+julia/dev/*_jll/
