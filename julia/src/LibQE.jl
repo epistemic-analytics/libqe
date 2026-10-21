@@ -53,21 +53,24 @@ export
     center_points, mean_ci, outlier_ci, group_stats
 
 # ── Load shared library ───────────────────────────────────────────────────────
-# The .so/.dylib built by CMake is installed into julia/lib/ (one level up
-# from this file's julia/src/ directory).  cranqe runs the build step before
-# invoking Pkg.test(); for local testing build it manually first:
+# From LibQE_jll (built by cranqe with BinaryBuilder, installed by Pkg) when it
+# has a build for this platform. Otherwise (macOS for now, or another Julia
+# version) from a local CMake build in julia/lib/:
 #   cd julia && cmake -B build -DCMAKE_BUILD_TYPE=Release . \
 #               && cmake --build build && cmake --install build
+using LibQE_jll
+
 const _lib_dir  = joinpath(@__DIR__, "..", "lib")
 const _lib_name = "libqe_julia"
 
 function _lib_path()
+    LibQE_jll.is_available() && return LibQE_jll.libqe_julia
     for ext in ("", ".so", ".dylib", ".dll")
         p = joinpath(_lib_dir, _lib_name * ext)
         isfile(p) && return p
     end
-    error("libqe_julia shared library not found in $(_lib_dir). " *
-          "Build it first: cd julia && cmake -B build -DCMAKE_BUILD_TYPE=Release . " *
+    error("LibQE_jll has no build for this platform and libqe_julia was not found in " *
+          "$(_lib_dir). Build it: cd julia && cmake -B build -DCMAKE_BUILD_TYPE=Release . " *
           "&& cmake --build build && cmake --install build")
 end
 
