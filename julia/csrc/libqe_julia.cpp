@@ -132,13 +132,6 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
         return pack(qe::code_connections(row));
     });
 
-    // directed_to_upper_tri(v) → Vector{Float64}
-    mod.method("fold_directed_network", [](jlcxx::ArrayRef<double> v)
-                                            -> std::vector<double> {
-        arma::vec av(v.data(), v.size(), false, true);
-        return pack(qe::fold_directed_network(av));
-    });
-
     // adjacency_matrix_to_vector(m, rows, cols, full) → Vector{Float64}
     mod.method("network_to_vector",
         [](jlcxx::ArrayRef<double> m, int32_t rows, int32_t cols, bool full)
