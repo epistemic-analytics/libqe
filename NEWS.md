@@ -1,5 +1,7 @@
 # libqe (development version)
 
+- Julia: loading LibQE.jl no longer warns that `fold_directed_network(::Vector{Float64})` is overwritten. The C++ library registered a one-argument method with the same signature as LibQE.jl's `fold_directed_network(v; diagonal = false)`; it is removed, and the Julia method calls the two-argument one. Results are unchanged.
+
 # libqe 0.2.2
 
 - Julia: LibQE.jl loads its C++ library from **LibQE_jll**, built by cranqe with BinaryBuilder for Linux (x86_64, aarch64) and Windows (x86_64), so `Pkg.add("LibQE")` needs no compiler there. LibQE.jl pins `LibQE_jll` to its own version (`=0.2.2`). Where LibQE_jll has no build (macOS for now), LibQE.jl loads a local CMake build from `julia/lib/` as before. In a checkout, `julia/dev/local_jll.jl` develops a stand-in LibQE_jll that points at that local build (README: Development). No changes to the C++, R, Python or WASM code.
