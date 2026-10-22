@@ -1,15 +1,16 @@
 # julia/dev/local_jll.jl — develop this package against a local C++ build.
 #
 # The package depends on <Name>_jll pinned to its own version (=X.Y.Z), which
-# is registered only when that version is released. In a checkout, run once
+# is registered only when that version is released. In a checkout, run once,
+# before the CMake build (CMake asks Julia for CxxWrap, which this installs):
 #
 #     cd julia
-#     cmake -B build -DCMAKE_BUILD_TYPE=Release . && cmake --build build && cmake --install build
 #     julia --project=. dev/local_jll.jl
+#     cmake -B build -DCMAKE_BUILD_TYPE=Release . && cmake --build build && cmake --install build
 #
-# to generate a stub <Name>_jll in dev/ (git-ignored) that points at the CMake
-# build in lib/, and `Pkg.develop` it; `Pkg.test()` etc. then work as before.
-# Rebuilding the library needs no re-run. Everything is read from
+# It generates a stub <Name>_jll in dev/ (git-ignored) that points at the
+# CMake build in lib/, and `Pkg.develop`s it; `Pkg.test()` etc. then work as
+# before. Rebuilding the library needs no re-run. Everything is read from
 # Project.toml and src/: the JLL's name, UUID and pinned version, and the
 # library name the package loads (<Name>_jll.<library>).
 using Pkg, TOML
@@ -46,4 +47,4 @@ write(joinpath(stub, "src", "$jll.jl"), """
 Pkg.activate(ROOT)
 Pkg.develop(PackageSpec(path = stub))
 println("$jll $version → local build: ", joinpath(ROOT, "lib", library * ext),
-        isfile(joinpath(ROOT, "lib", library * ext)) ? "" : "  (not built yet: run the cmake steps above)")
+        isfile(joinpath(ROOT, "lib", library * ext)) ? "" : "  (not built yet: build it with CMake next; see the comment at the top)")

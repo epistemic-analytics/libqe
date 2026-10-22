@@ -87,12 +87,13 @@ in 0.2.0.
 ## Development
 
 LibQE pins `LibQE_jll` to its own version, which is registered only at
-release, so a checkout first builds the library with CMake and develops a
-local stand-in for the JLL (once; `dev/LibQE_jll/` is git-ignored):
+release, so a checkout develops a local stand-in for the JLL (once;
+`dev/LibQE_jll/` is git-ignored) that points at the CMake build in `lib/`.
+Run it before CMake: it also installs CxxWrap, which CMake asks for.
 
 ```sh
 cd julia
-cmake -B build -DCMAKE_BUILD_TYPE=Release . && cmake --build build && cmake --install build
 julia --project=. dev/local_jll.jl
+cmake -B build -DCMAKE_BUILD_TYPE=Release . && cmake --build build && cmake --install build
 julia --project=. -e 'using Pkg; Pkg.test()'
 ```
