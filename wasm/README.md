@@ -16,23 +16,50 @@ npm install @qe-libs/libqe-wasm
 
 ## Usage
 
-```js
+On [qe-libs.org/npm/qe-libs-libqe-wasm/](https://qe-libs.org/npm/qe-libs-libqe-wasm/)
+the `js run` examples have a **Run** button: they run in your browser on this
+WebAssembly build, with `console.log` printed under the example.
+
+```js run
 import loadLibQE from '@qe-libs/libqe-wasm';
 
 const qe = await loadLibQE();
 
 // Code-pair labels
-qe.connection_names(['Concept A', 'Concept B', 'Concept C']);
+console.log(qe.connection_names(['Concept A', 'Concept B', 'Concept C']));
 // → ['Concept A & Concept B', 'Concept A & Concept C', 'Concept B & Concept C']
 
 // Group confidence interval
 const points = new Float64Array([0.1,0.2, 0.3,0.4, 0.5,0.6]);  // 3 units × 2 dims
 const ci = qe.mean_ci(points, 3, 2, 0.95);
 // ci → { data: Float64Array, rows: 2, cols: 3 }  — [mean, lower, upper] per dim
+console.log('mean CI:', ci);
 
 // Outlier interval (IQR × 1.5)
 const oi = qe.outlier_ci(points, 3, 2, 1.5);
 // oi → { data: Float64Array, rows: 2, cols: 2 }  — [lower, upper] per dim
+console.log('outlier interval:', oi);
+```
+
+A 2D trajectory: fit a polynomial through noisy points and evaluate it.
+
+```js run
+import loadLibQE from '@qe-libs/libqe-wasm';
+
+const qe = await loadLibQE();
+
+const n = 12, t = Float64Array.from({ length: n }, (_, i) => i / (n - 1));
+const xy = new Float64Array(n * 2);   // n × 2, row-major
+t.forEach((ti, i) => {
+  xy[2 * i]     = Math.cos(Math.PI * ti) + 0.05 * Math.sin(17 * i);
+  xy[2 * i + 1] = Math.sin(Math.PI * ti) + 0.05 * Math.cos(11 * i);
+});
+
+// Degree chosen by leave-one-out CV, up to 4
+const fit = qe.fit_trajectory_poly(xy, n, 2, t, 4);
+console.log('degree:', fit.degree, ' CV error:', fit.cv_error);
+console.log('x coefficients:', fit.coeffs_x);
+console.log('y coefficients:', fit.coeffs_y);
 ```
 
 ## Matrix convention
