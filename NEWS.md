@@ -1,6 +1,9 @@
 # libqe (development version)
 
+# libqe 0.2.3
+
 - Julia: loading LibQE.jl no longer warns that `fold_directed_network(::Vector{Float64})` is overwritten. The C++ library registered a one-argument method with the same signature as LibQE.jl's `fold_directed_network(v; diagonal = false)`; it is removed, and the Julia method calls the two-argument one. Results are unchanged.
+- Documentation: runnable examples in the WASM README, a Doxygen main page for the Conan package's C++ API, and LibQE.jl's README runs `dev/local_jll.jl` before the CMake build. libqe's C++ headers and its R, Python and WASM code are unchanged.
 
 # libqe 0.2.2
 
