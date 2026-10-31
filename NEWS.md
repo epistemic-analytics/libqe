@@ -1,5 +1,9 @@
 # libqe (development version)
 
+# libqe 0.2.4
+
+- WASM: `@qe-libs/libqe-wasm` is linked with `-sDYNAMIC_EXECUTION=0`, so its Embind glue no longer builds function invokers with `new Function`. It now loads under Cloudflare Workers and any Content Security Policy without `unsafe-eval` (the ENA MCP server's Worker build needs this). Results are unchanged; the generic invokers are marginally slower per call. The C++ headers and the R, Python and Julia bindings are unchanged.
+
 # libqe 0.2.3
 
 - Julia: loading LibQE.jl no longer warns that `fold_directed_network(::Vector{Float64})` is overwritten. The C++ library registered a one-argument method with the same signature as LibQE.jl's `fold_directed_network(v; diagonal = false)`; it is removed, and the Julia method calls the two-argument one. Results are unchanged.
