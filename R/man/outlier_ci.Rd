@@ -7,7 +7,7 @@
 outlier_ci(points, iqr_factor = 1.5)
 }
 \arguments{
-\item{points}{Numeric matrix (units x dims) — one row per unit in the group}
+\item{points}{Numeric matrix (units x dims), one row per unit in the group}
 
 \item{iqr_factor}{Multiplier applied to the IQR (default 1.5, the Tukey fence)}
 }
@@ -22,4 +22,8 @@ Equivalent to rENA's:
   matrix(rep(oi, 2), ncol = n_dims, byrow = TRUE) * c(-1, 1)
 }
 IQR uses R's default \code{type = 7} quantile.
+}
+\examples{
+pts <- matrix(c(1, 2, 3, 4, 10, 12, 11, 13), ncol = 2)
+outlier_ci(pts)  # rows = dimensions; columns = -1.5 * IQR, +1.5 * IQR
 }

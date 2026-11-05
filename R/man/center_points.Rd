@@ -12,3 +12,7 @@ center_points(values)
 \description{
 Center points (subtract column means)
 }
+\examples{
+pts <- matrix(c(1, 2, 3, 10, 20, 30), ncol = 2)
+center_points(pts)  # column means are now 0
+}

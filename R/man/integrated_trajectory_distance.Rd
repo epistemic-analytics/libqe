@@ -29,3 +29,8 @@ integrated_trajectory_distance(
 \description{
 Integrated Euclidean distance between two trajectory polynomial curves
 }
+\examples{
+cx <- c(0, 1); cy <- c(0, 2)
+integrated_trajectory_distance(cx, cy, cx, cy)              # 0: same curve
+integrated_trajectory_distance(cx, cy, cx + c(3, 0), cy + c(4, 0))  # 5: parallel offset
+}

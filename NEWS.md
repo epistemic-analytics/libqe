@@ -1,5 +1,12 @@
 # libqe (development version)
 
+# libqe 0.2.5
+
+Packaging only, in preparation for the first CRAN submission of the R package; the C++ headers and every binding behave as before.
+
+- R: the headers in `inst/include/libqe/` are now a committed copy of `include/libqe/` and the `configure` script is gone, so the package builds the same way from a git checkout, a `devtools` install and a source tarball. `scripts/check-headers-in-sync.sh` still fails CI when the two copies differ; run `scripts/sync-headers.sh` after editing a header and commit the result.
+- R: `DESCRIPTION` derives `Author`/`Maintainer` from `Authors@R`, and its `Description` is rewritten for CRAN users; the unused OpenMP flags are dropped from `src/Makevars` and `src/Makevars.win`; every exported function has a runnable `\examples` section; `cran-comments.md` added.
+
 # libqe 0.2.4
 
 - WASM: `@qe-libs/libqe-wasm` is linked with `-sDYNAMIC_EXECUTION=0`, so its Embind glue no longer builds function invokers with `new Function`. It now loads under Cloudflare Workers and any Content Security Policy without `unsafe-eval` (the ENA MCP server's Worker build needs this). Results are unchanged; the generic invokers are marginally slower per call. The C++ headers and the R, Python and Julia bindings are unchanged.

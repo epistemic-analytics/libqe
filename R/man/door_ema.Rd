@@ -18,3 +18,10 @@ door_ema(conn_counts, unit_row_indices, alpha = 0.1, segment_ids = integer())
 \description{
 Door EMA smoothing across units
 }
+\examples{
+counts <- matrix(c(10, 0,
+                    0, 10,
+                   10, 0,
+                    0, 10), nrow = 4, byrow = TRUE)
+door_ema(counts, list(c(0L, 1L), c(2L, 3L)), alpha = 0.5)
+}

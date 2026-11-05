@@ -29,3 +29,11 @@ fit_trajectory_poly(
 \description{
 Fit 2D parametric polynomial curve with LOOCV-2D or AIC degree selection
 }
+\examples{
+t <- seq(0, 1, length.out = 6)
+pts <- cbind(1 + 2 * t, 4 - 3 * t)  # a straight line
+fit <- fit_trajectory_poly(pts, t = t, fixed_degree = 1L, basis = "raw")
+fit$degree
+fit$coeffs_x  # intercept 1, slope 2
+fit$coeffs_y  # intercept 4, slope -3
+}

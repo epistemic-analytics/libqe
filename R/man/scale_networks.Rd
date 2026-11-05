@@ -12,3 +12,8 @@ scale_networks(m)
 \description{
 Max-norm scaling (divide all rows by the largest row L2 norm)
 }
+\examples{
+m <- matrix(c(3, 4,
+              1, 0), nrow = 2, byrow = TRUE)
+scale_networks(m)  # divided by 5, the largest row norm
+}

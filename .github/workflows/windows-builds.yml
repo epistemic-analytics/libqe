@@ -110,10 +110,10 @@ jobs:
           print(list.files("out"))
 
       # -- push: build the checkout --------------------------------------------
-      - name: Sync headers into R/inst/include
+      - name: Check R/inst/include matches include/
         if: github.event_name == 'push'
         shell: bash
-        run: sh scripts/sync-headers.sh
+        run: bash scripts/check-headers-in-sync.sh
 
       - name: Install R deps + generate Rcpp exports
         if: github.event_name == 'push'

@@ -16,3 +16,10 @@ network_to_vector(x, full = TRUE, diagonal = FALSE)
 \description{
 Flatten an adjacency matrix to a connection vector
 }
+\examples{
+m <- matrix(c(0, 1, 2,
+              1, 0, 3,
+              2, 3, 0), nrow = 3)
+network_to_vector(m, full = FALSE)  # upper triangle: 1 2 3
+network_to_vector(m, full = TRUE)   # all 9 entries
+}

@@ -20,3 +20,12 @@ sweep_signed_turn_lags(pts_a, pts_b, times_a, times_b, max_lag = 15L)
 \description{
 Sweep signed turn lags to find optimal leader-follower lag
 }
+\examples{
+times_b <- c(1, 2, 3, 4, 5)
+pts_b <- cbind(1:5, 1:5)
+times_a <- times_b + 2  # A follows B by two turns
+pts_a <- pts_b
+res <- sweep_signed_turn_lags(pts_a, pts_b, times_a, times_b, max_lag = 4L)
+res$best_lag  # 2
+res$mean_distances
+}

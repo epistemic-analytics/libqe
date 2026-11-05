@@ -16,3 +16,7 @@ eval_trajectory_curve(coeffs_x, coeffs_y, t_eval)
 \description{
 Evaluate 2D parametric polynomial curve at specified time points
 }
+\examples{
+# x(t) = 1 + 2 t, y(t) = 4 - 3 t (raw polynomial coefficients)
+eval_trajectory_curve(c(1, 2), c(4, -3), c(0, 0.5, 1))
+}

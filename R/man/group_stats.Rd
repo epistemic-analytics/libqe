@@ -7,9 +7,9 @@
 group_stats(g1, g2)
 }
 \arguments{
-\item{g1}{Numeric matrix (n1 × n_dims) — unit points for group 1}
+\item{g1}{Numeric matrix (n1 x n_dims), unit points for group 1}
 
-\item{g2}{Numeric matrix (n2 × n_dims) — unit points for group 2}
+\item{g2}{Numeric matrix (n2 x n_dims), unit points for group 2}
 }
 \value{
 Named list with \code{N}, \code{parametric}, and \code{nonparametric}
@@ -23,22 +23,30 @@ moved to the C++ layer so all language bindings share a single implementation.
 \details{
 \strong{Parametric (Welch two-sample t-test):}
 \itemize{
-  \item \code{t}        — Welch t-statistics
-  \item \code{parameter}— Welch–Satterthwaite degrees of freedom
-  \item \code{pvalue}   — two-tailed p-values
-  \item \code{effect}   — Cohen's d (pooled-SD: \code{(μ1−μ2)/pooled_sd})
-  \item \code{mean}     — 2×n_dims matrix, row 1 = group1, row 2 = group2
-  \item \code{std.dev}  — 2×n_dims matrix of sample standard deviations
+  \item \code{t}        - Welch t-statistics
+  \item \code{parameter} - Welch-Satterthwaite degrees of freedom
+  \item \code{pvalue}   - two-tailed p-values
+  \item \code{effect}   - Cohen's d (pooled SD: \code{(mean1 - mean2) / pooled_sd})
+  \item \code{mean}     - 2 x n_dims matrix, row 1 = group1, row 2 = group2
+  \item \code{std.dev}  - 2 x n_dims matrix of sample standard deviations
 }
 
 \strong{Non-parametric (Wilcoxon rank-sum):}
 \itemize{
-  \item \code{U}        — rank-sum U for group 1 (= R's \code{wilcox.test} W)
-  \item \code{pvalue}   — two-tailed p-values (normal approx, tie + continuity correction)
-  \item \code{effect}   — rank-biserial: \code{1 − 2·U / (n1·n2)}
-  \item \code{median}   — 2×n_dims matrix of medians
+  \item \code{U}        - rank-sum U for group 1 (= R's \code{wilcox.test} W)
+  \item \code{pvalue}   - two-tailed p-values (normal approx, tie + continuity correction)
+  \item \code{effect}   - rank-biserial: \code{1 - 2 * U / (n1 * n2)}
+  \item \code{median}   - 2 x n_dims matrix of medians
 }
 
 Entries are \code{NA} when a statistic is undefined (e.g. n < 2 for
 parametric tests).
+}
+\examples{
+g1 <- matrix(c(1, 2, 3, 4, 10, 11, 12, 13), ncol = 2)
+g2 <- matrix(c(2, 3, 5, 6, 9, 9, 10, 12), ncol = 2)
+s <- group_stats(g1, g2)
+s$N
+s$parametric$t
+s$nonparametric$U
 }

@@ -2,13 +2,16 @@
 % Please edit documentation in R/RcppExports.R
 \name{code_connections}
 \alias{code_connections}
-\title{Pairwise products → upper-triangle vector}
+\title{Pairwise products as an upper-triangle vector}
 \usage{
 code_connections(v)
 }
 \arguments{
-\item{v}{Numeric vector of code values}
+\item{v}{Numeric matrix with one row of code values}
 }
 \description{
-Pairwise products → upper-triangle vector
+Pairwise products as an upper-triangle vector
+}
+\examples{
+code_connections(matrix(c(1, 0, 1), nrow = 1))  # A&B = 0, A&C = 1, B&C = 0
 }

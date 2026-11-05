@@ -48,7 +48,7 @@ libqe/
 │       └── bind/       ← nanobind / Emscripten / CxxWrap array helpers
 ├── R/                  ← R package (Rcpp wrappers + LinkingTo mechanism)
 │   ├── DESCRIPTION
-│   ├── configure       ← copies headers into inst/include/ at install time
+│   ├── inst/include/libqe/  ← committed copy of include/libqe/ (LinkingTo)
 │   ├── src/
 │   │   └── libqe_rcpp.cpp
 │   └── tests/testthat/
@@ -78,8 +78,8 @@ libqe/
     └── check-headers-in-sync.sh ← verify the two trees match
 ```
 
-Edit headers under `include/` only. The R `configure` script and
-`scripts/sync-headers.sh` propagate them.
+Edit headers under `include/` only, then run `scripts/sync-headers.sh` and
+commit the updated copy in `R/inst/include/libqe/`.
 
 [docs/split-plan.md](docs/split-plan.md) records how `libena` and `libtma`
 moved to rENA and tma.
@@ -208,11 +208,13 @@ conan create . --test-folder=conan-test --build=missing
 
 ## Header sync
 
-The R package's `configure` script copies `include/libqe/*.hpp` into
-`R/inst/include/libqe/` at install time, clearing previously copied headers first. Only top-level headers are copied —
-`bind/` is for the language bindings and never reaches R. To sync manually
-(e.g. before `R CMD build`, or before building a Python sdist, which also
-gets `bind/`):
+`R/inst/include/libqe/` is a committed copy of `include/libqe/*.hpp`, so the
+R package builds the same way from a checkout, a `devtools` install and a CRAN
+source tarball (it has no `configure` script). Only top-level headers are
+copied — `bind/` is for the language bindings and never reaches R. After
+editing a header, sync and commit (the same script also fills the git-ignored
+`python/include/` for a Python sdist, which does get `bind/`); CI fails when
+the copies differ:
 
 ```bash
 bash scripts/sync-headers.sh

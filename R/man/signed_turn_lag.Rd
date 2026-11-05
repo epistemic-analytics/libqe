@@ -20,3 +20,12 @@ signed_turn_lag(pts_a, pts_b, times_a, times_b, delta)
 \description{
 Signed turn-lag distance between two agents at specific lag delta
 }
+\examples{
+times_b <- c(1, 2, 3, 4, 5)
+pts_b <- cbind(1:5, 1:5)
+# agent A repeats B's positions two turns later
+times_a <- times_b + 2
+pts_a <- pts_b
+signed_turn_lag(pts_a, pts_b, times_a, times_b, delta = 2L)  # mean distance 0
+signed_turn_lag(pts_a, pts_b, times_a, times_b, delta = 0L)
+}

@@ -14,3 +14,8 @@ pairwise_trajectory_distance(all_coeffs_x, all_coeffs_y)
 \description{
 Pairwise integrated trajectory distance matrix
 }
+\examples{
+cx <- list(c(0, 1), c(3, 1), c(0, 1))
+cy <- list(c(0, 2), c(4, 2), c(0, 2))
+pairwise_trajectory_distance(cx, cy)  # 3 x 3; curves 1 and 3 coincide
+}

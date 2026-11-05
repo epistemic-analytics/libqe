@@ -17,3 +17,8 @@ order: (0,0), (0,1), (1,1), (0,2), ...}
 \description{
 Upper-triangle index pairs
 }
+\examples{
+connection_indices(3L)                      # 2 x 3, 0-based (i, j) pairs
+connection_indices(3L, row = 0L)            # row indices only
+connection_indices(3L, diagonal = TRUE)     # includes (0,0), (1,1), (2,2)
+}
