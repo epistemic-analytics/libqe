@@ -10,7 +10,9 @@ function for direct use and testing in R.
 install.packages("libqe", repos = c("https://cran.qe-libs.org", "https://cran.rstudio.com"))
 ```
 
-From source (within the repo root):
+From source (within the repo root; `inst/include/libqe/` is a committed copy
+of the repo-level `include/libqe/` headers, kept in sync by
+`scripts/sync-headers.sh`):
 
 ```r
 R CMD INSTALL R/

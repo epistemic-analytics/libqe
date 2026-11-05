@@ -2,8 +2,10 @@
 # check-headers-in-sync.sh — CI gate: fail if include/libqe/ and
 #                            R/inst/include/libqe/ differ.
 #
-# The bind/ helpers are never copied to R (see R/configure), so they are
-# excluded from the comparison.
+# R/inst/include/libqe/ is a committed copy of include/libqe/ (there is no
+# configure script); this check fails when a header was edited without
+# running scripts/sync-headers.sh and committing the result.  The bind/
+# helpers are never copied to R, so they are excluded from the comparison.
 #
 # Usage (from repo root):  ./scripts/check-headers-in-sync.sh
 # Exit code 0 = in sync, 1 = out of sync (CI should fail the build).
