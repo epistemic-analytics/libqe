@@ -7,17 +7,17 @@
 mean_ci(points, conf_level = 0.95)
 }
 \arguments{
-\item{points}{Numeric matrix (units x dims) — one row per unit in the group}
+\item{points}{Numeric matrix (units x dims), one row per unit in the group}
 
 \item{conf_level}{Confidence level (default 0.95)}
 }
 \value{
 Numeric matrix (n_dims x 3): columns are [mean, ci_lower, ci_upper].
-  When \code{nrow(points) == 1} the CI bounds are \code{±Inf}.
+  When \code{nrow(points) == 1} the CI bounds are \code{-Inf} and \code{Inf}.
 }
 \description{
 For each dimension computes a t-based CI:
-\code{mean ± t(α/2, n-1) × (SD / sqrt(n))} where \code{α = 1 - conf_level}.
+\code{mean +/- t(alpha/2, n-1) * (SD / sqrt(n))} where \code{alpha = 1 - conf_level}.
 }
 \examples{
 pts <- matrix(c(1, 2, 3, 4, 10, 12, 11, 13), ncol = 2)

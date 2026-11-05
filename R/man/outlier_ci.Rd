@@ -7,7 +7,7 @@
 outlier_ci(points, iqr_factor = 1.5)
 }
 \arguments{
-\item{points}{Numeric matrix (units x dims) — one row per unit in the group}
+\item{points}{Numeric matrix (units x dims), one row per unit in the group}
 
 \item{iqr_factor}{Multiplier applied to the IQR (default 1.5, the Tukey fence)}
 }

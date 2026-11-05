@@ -36,7 +36,7 @@ connection_indices <- function(len, row = -1L, diagonal = FALSE) {
     .Call(`_libqe_connection_indices`, len, row, diagonal)
 }
 
-#' Pairwise products → upper-triangle vector
+#' Pairwise products as an upper-triangle vector
 #' @param v Numeric matrix with one row of code values
 #' @examples
 #' code_connections(matrix(c(1, 0, 1), nrow = 1))  # A&B = 0, A&C = 1, B&C = 0
@@ -121,12 +121,12 @@ center_points <- function(values) {
 #' Confidence interval for the mean of a group of ENA unit points
 #'
 #' For each dimension computes a t-based CI:
-#' \code{mean ± t(α/2, n-1) × (SD / sqrt(n))} where \code{α = 1 - conf_level}.
+#' \code{mean +/- t(alpha/2, n-1) * (SD / sqrt(n))} where \code{alpha = 1 - conf_level}.
 #'
-#' @param points     Numeric matrix (units x dims) — one row per unit in the group
+#' @param points     Numeric matrix (units x dims), one row per unit in the group
 #' @param conf_level Confidence level (default 0.95)
 #' @return Numeric matrix (n_dims x 3): columns are [mean, ci_lower, ci_upper].
-#'   When \code{nrow(points) == 1} the CI bounds are \code{±Inf}.
+#'   When \code{nrow(points) == 1} the CI bounds are \code{-Inf} and \code{Inf}.
 #' @examples
 #' pts <- matrix(c(1, 2, 3, 4, 10, 12, 11, 13), ncol = 2)
 #' mean_ci(pts)  # rows = dimensions; columns = mean, lower, upper
@@ -146,7 +146,7 @@ mean_ci <- function(points, conf_level = 0.95) {
 #' }
 #' IQR uses R's default \code{type = 7} quantile.
 #'
-#' @param points     Numeric matrix (units x dims) — one row per unit in the group
+#' @param points     Numeric matrix (units x dims), one row per unit in the group
 #' @param iqr_factor Multiplier applied to the IQR (default 1.5, the Tukey fence)
 #' @return Numeric matrix (n_dims x 2): columns are [lower, upper].
 #' @examples
@@ -165,27 +165,27 @@ outlier_ci <- function(points, iqr_factor = 1.5) {
 #'
 #' \strong{Parametric (Welch two-sample t-test):}
 #' \itemize{
-#'   \item \code{t}        — Welch t-statistics
-#'   \item \code{parameter}— Welch–Satterthwaite degrees of freedom
-#'   \item \code{pvalue}   — two-tailed p-values
-#'   \item \code{effect}   — Cohen's d (pooled-SD: \code{(μ1−μ2)/pooled_sd})
-#'   \item \code{mean}     — 2×n_dims matrix, row 1 = group1, row 2 = group2
-#'   \item \code{std.dev}  — 2×n_dims matrix of sample standard deviations
+#'   \item \code{t}        - Welch t-statistics
+#'   \item \code{parameter} - Welch-Satterthwaite degrees of freedom
+#'   \item \code{pvalue}   - two-tailed p-values
+#'   \item \code{effect}   - Cohen's d (pooled SD: \code{(mean1 - mean2) / pooled_sd})
+#'   \item \code{mean}     - 2 x n_dims matrix, row 1 = group1, row 2 = group2
+#'   \item \code{std.dev}  - 2 x n_dims matrix of sample standard deviations
 #' }
 #'
 #' \strong{Non-parametric (Wilcoxon rank-sum):}
 #' \itemize{
-#'   \item \code{U}        — rank-sum U for group 1 (= R's \code{wilcox.test} W)
-#'   \item \code{pvalue}   — two-tailed p-values (normal approx, tie + continuity correction)
-#'   \item \code{effect}   — rank-biserial: \code{1 − 2·U / (n1·n2)}
-#'   \item \code{median}   — 2×n_dims matrix of medians
+#'   \item \code{U}        - rank-sum U for group 1 (= R's \code{wilcox.test} W)
+#'   \item \code{pvalue}   - two-tailed p-values (normal approx, tie + continuity correction)
+#'   \item \code{effect}   - rank-biserial: \code{1 - 2 * U / (n1 * n2)}
+#'   \item \code{median}   - 2 x n_dims matrix of medians
 #' }
 #'
 #' Entries are \code{NA} when a statistic is undefined (e.g. n < 2 for
 #' parametric tests).
 #'
-#' @param g1 Numeric matrix (n1 × n_dims) — unit points for group 1
-#' @param g2 Numeric matrix (n2 × n_dims) — unit points for group 2
+#' @param g1 Numeric matrix (n1 x n_dims), unit points for group 1
+#' @param g2 Numeric matrix (n2 x n_dims), unit points for group 2
 #' @return Named list with \code{N}, \code{parametric}, and \code{nonparametric}
 #'   sub-lists, matching the structure of rENA-api's \code{group.stats()}.
 #' @examples
