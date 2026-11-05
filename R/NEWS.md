@@ -1,5 +1,12 @@
 # libqe (development version)
 
+# libqe 0.2.5
+
+Packaging only, in preparation for the first CRAN submission of the R package; the C++ headers and every binding behave as before.
+
+- R: the headers in `inst/include/libqe/` are now a committed copy of `include/libqe/` and the `configure` script is gone, so the package builds the same way from a git checkout, a `devtools` install and a source tarball. `scripts/check-headers-in-sync.sh` still fails CI when the two copies differ; run `scripts/sync-headers.sh` after editing a header and commit the result.
+- R: `DESCRIPTION` derives `Author`/`Maintainer` from `Authors@R`, and its `Description` is rewritten for CRAN users; the unused OpenMP flags are dropped from `src/Makevars` and `src/Makevars.win`; every exported function has a runnable `\examples` section; `cran-comments.md` added.
+
 # libqe 0.2.3
 
 - Julia: loading LibQE.jl no longer warns that `fold_directed_network(::Vector{Float64})` is overwritten. The C++ library registered a one-argument method with the same signature as LibQE.jl's `fold_directed_network(v; diagonal = false)`; it is removed, and the Julia method calls the two-argument one. Results are unchanged.
