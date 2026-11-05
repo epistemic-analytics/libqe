@@ -23,3 +23,7 @@ Equivalent to rENA's:
 }
 IQR uses R's default \code{type = 7} quantile.
 }
+\examples{
+pts <- matrix(c(1, 2, 3, 4, 10, 12, 11, 13), ncol = 2)
+outlier_ci(pts)  # rows = dimensions; columns = -1.5 * IQR, +1.5 * IQR
+}

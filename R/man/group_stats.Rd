@@ -42,3 +42,11 @@ moved to the C++ layer so all language bindings share a single implementation.
 Entries are \code{NA} when a statistic is undefined (e.g. n < 2 for
 parametric tests).
 }
+\examples{
+g1 <- matrix(c(1, 2, 3, 4, 10, 11, 12, 13), ncol = 2)
+g2 <- matrix(c(2, 3, 5, 6, 9, 9, 10, 12), ncol = 2)
+s <- group_stats(g1, g2)
+s$N
+s$parametric$t
+s$nonparametric$U
+}

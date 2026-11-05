@@ -11,6 +11,8 @@ using namespace Rcpp;
 //' Number of upper-triangle pairs for n codes
 //' @param n Number of codes
 //' @return Integer: n*(n-1)/2
+//' @examples
+//' choose_two(4L)  # 6 code pairs
 //' @export
 // [[Rcpp::export]]
 int choose_two(int n) {
@@ -20,6 +22,9 @@ int choose_two(int n) {
 //' Number of undirected connection columns
 //' @param n Number of codes
 //' @param diagonal Include self-connections (A & A): n(n+1)/2 instead of choose(n, 2)
+//' @examples
+//' n_connections(4L)                   # 6: choose(4, 2)
+//' n_connections(4L, diagonal = TRUE)  # 10: 4 * 5 / 2
 //' @export
 // [[Rcpp::export]]
 int n_connections(int n, bool diagonal = false) {
@@ -31,6 +36,10 @@ int n_connections(int n, bool diagonal = false) {
 //' @param row -1 = both rows, 0 = row indices only, 1 = col indices only
 //' @param diagonal Include the diagonal (self-connections), in column-major
 //'   order: (0,0), (0,1), (1,1), (0,2), ...
+//' @examples
+//' connection_indices(3L)                      # 2 x 3, 0-based (i, j) pairs
+//' connection_indices(3L, row = 0L)            # row indices only
+//' connection_indices(3L, diagonal = TRUE)     # includes (0,0), (1,1), (2,2)
 //' @export
 // [[Rcpp::export]]
 arma::umat connection_indices(int len, int row = -1, bool diagonal = false) {
@@ -38,7 +47,9 @@ arma::umat connection_indices(int len, int row = -1, bool diagonal = false) {
 }
 
 //' Pairwise products → upper-triangle vector
-//' @param v Numeric vector of code values
+//' @param v Numeric matrix with one row of code values
+//' @examples
+//' code_connections(matrix(c(1, 0, 1), nrow = 1))  # A&B = 0, A&C = 1, B&C = 0
 //' @export
 // [[Rcpp::export]]
 arma::rowvec code_connections(arma::mat v) {
@@ -48,6 +59,12 @@ arma::rowvec code_connections(arma::mat v) {
 //' Fold a directed (n*n) vector into an undirected upper-triangle vector
 //' @param v Numeric vector of length n*n
 //' @param diagonal Keep the diagonal (self-connections, each once): A & A, A & B, B & B, ...
+//' @examples
+//' m <- matrix(c(0, 1, 2,
+//'               3, 0, 4,
+//'               5, 6, 0), nrow = 3, byrow = TRUE)
+//' fold_directed_network(as.vector(m))                   # A&B, A&C, B&C
+//' fold_directed_network(as.vector(m), diagonal = TRUE)
 //' @export
 // [[Rcpp::export]]
 arma::rowvec fold_directed_network(arma::vec v, bool diagonal = false) {
@@ -58,6 +75,12 @@ arma::rowvec fold_directed_network(arma::vec v, bool diagonal = false) {
 //' @param x Numeric matrix
 //' @param full TRUE = full n*n (directed); FALSE = upper triangle (undirected)
 //' @param diagonal With full = FALSE: include the diagonal (A & A, A & B, B & B, ...)
+//' @examples
+//' m <- matrix(c(0, 1, 2,
+//'               1, 0, 3,
+//'               2, 3, 0), nrow = 3)
+//' network_to_vector(m, full = FALSE)  # upper triangle: 1 2 3
+//' network_to_vector(m, full = TRUE)   # all 9 entries
 //' @export
 // [[Rcpp::export]]
 arma::rowvec network_to_vector(arma::mat x, bool full = true, bool diagonal = false) {
@@ -67,6 +90,9 @@ arma::rowvec network_to_vector(arma::mat x, bool full = true, bool diagonal = fa
 //' Code-name pairs for upper-triangle positions ("A & B")
 //' @param v Character vector of code names
 //' @param diagonal Include self-connections: "A & A", "A & B", "B & B", ...
+//' @examples
+//' connection_names(c("A", "B", "C"))
+//' connection_names(c("A", "B", "C"), diagonal = TRUE)
 //' @export
 // [[Rcpp::export]]
 std::vector<std::string> connection_names(std::vector<std::string> v, bool diagonal = false) {
@@ -79,6 +105,11 @@ std::vector<std::string> connection_names(std::vector<std::string> v, bool diago
 
 //' Row-wise L2 (sphere) normalization
 //' @param m Numeric matrix
+//' @examples
+//' m <- matrix(c(3, 4, 0,
+//'               0, 0, 0,
+//'               1, 1, 1), nrow = 3, byrow = TRUE)
+//' normalize_networks(m)  # rows have unit length; the zero row is unchanged
 //' @export
 // [[Rcpp::export]]
 arma::mat normalize_networks(arma::mat m) {
@@ -87,6 +118,10 @@ arma::mat normalize_networks(arma::mat m) {
 
 //' Max-norm scaling (divide all rows by the largest row L2 norm)
 //' @param m Numeric matrix
+//' @examples
+//' m <- matrix(c(3, 4,
+//'               1, 0), nrow = 2, byrow = TRUE)
+//' scale_networks(m)  # divided by 5, the largest row norm
 //' @export
 // [[Rcpp::export]]
 arma::mat scale_networks(arma::mat m) {
@@ -99,6 +134,9 @@ arma::mat scale_networks(arma::mat m) {
 
 //' Center points (subtract column means)
 //' @param values Numeric matrix
+//' @examples
+//' pts <- matrix(c(1, 2, 3, 10, 20, 30), ncol = 2)
+//' center_points(pts)  # column means are now 0
 //' @export
 // [[Rcpp::export]]
 arma::mat center_points(arma::mat values) {
@@ -114,6 +152,10 @@ arma::mat center_points(arma::mat values) {
 //' @param conf_level Confidence level (default 0.95)
 //' @return Numeric matrix (n_dims x 3): columns are [mean, ci_lower, ci_upper].
 //'   When \code{nrow(points) == 1} the CI bounds are \code{±Inf}.
+//' @examples
+//' pts <- matrix(c(1, 2, 3, 4, 10, 12, 11, 13), ncol = 2)
+//' mean_ci(pts)  # rows = dimensions; columns = mean, lower, upper
+//' t.test(pts[, 1])$conf.int  # same bounds as row 1
 //' @export
 // [[Rcpp::export]]
 arma::mat mean_ci(arma::mat points, double conf_level = 0.95) {
@@ -133,6 +175,9 @@ arma::mat mean_ci(arma::mat points, double conf_level = 0.95) {
 //' @param points     Numeric matrix (units x dims) — one row per unit in the group
 //' @param iqr_factor Multiplier applied to the IQR (default 1.5, the Tukey fence)
 //' @return Numeric matrix (n_dims x 2): columns are [lower, upper].
+//' @examples
+//' pts <- matrix(c(1, 2, 3, 4, 10, 12, 11, 13), ncol = 2)
+//' outlier_ci(pts)  # rows = dimensions; columns = -1.5 * IQR, +1.5 * IQR
 //' @export
 // [[Rcpp::export]]
 arma::mat outlier_ci(arma::mat points, double iqr_factor = 1.5) {
@@ -170,6 +215,13 @@ arma::mat outlier_ci(arma::mat points, double iqr_factor = 1.5) {
 //' @param g2 Numeric matrix (n2 × n_dims) — unit points for group 2
 //' @return Named list with \code{N}, \code{parametric}, and \code{nonparametric}
 //'   sub-lists, matching the structure of rENA-api's \code{group.stats()}.
+//' @examples
+//' g1 <- matrix(c(1, 2, 3, 4, 10, 11, 12, 13), ncol = 2)
+//' g2 <- matrix(c(2, 3, 5, 6, 9, 9, 10, 12), ncol = 2)
+//' s <- group_stats(g1, g2)
+//' s$N
+//' s$parametric$t
+//' s$nonparametric$U
 //' @export
 // [[Rcpp::export]]
 List group_stats(arma::mat g1, arma::mat g2) {
@@ -203,6 +255,13 @@ List group_stats(arma::mat g1, arma::mat g2) {
 //' @param aggregate_mean Logical: TRUE = mean, FALSE = sum
 //' @param weighting_linear Logical: TRUE = linear weights, FALSE = equal
 //' @param segment_ids Integer vector of segment IDs (0-indexed or 1-indexed)
+//' @examples
+//' block <- matrix(c(1, 0,
+//'                   2, 1,
+//'                   3, 0,
+//'                   4, 2), nrow = 4, byrow = TRUE)
+//' door_lookback_block(block, lookback_size = 2L)                        # sums
+//' door_lookback_block(block, lookback_size = 2L, aggregate_mean = TRUE) # means
 //' @export
 // [[Rcpp::export]]
 arma::mat door_lookback_block(
@@ -220,6 +279,11 @@ arma::mat door_lookback_block(
 //' @param block Numeric matrix of connection counts
 //' @param alpha Smoothing factor in (0, 1]
 //' @param segment_ids Integer vector of segment IDs
+//' @examples
+//' block <- matrix(c(10, 0,
+//'                    0, 10,
+//'                    0,  0), nrow = 3, byrow = TRUE)
+//' door_ema_block(block, alpha = 0.5)
 //' @export
 // [[Rcpp::export]]
 arma::mat door_ema_block(
@@ -238,6 +302,13 @@ arma::mat door_ema_block(
 //' @param aggregate_mean Logical: TRUE = mean, FALSE = sum
 //' @param weighting_linear Logical: TRUE = linear weights, FALSE = equal
 //' @param segment_ids Optional integer vector of segment IDs
+//' @examples
+//' counts <- matrix(c(1, 0,
+//'                    2, 1,
+//'                    5, 5,
+//'                    6, 5), nrow = 4, byrow = TRUE)
+//' # two units, rows given 0-based; each unit pools within its own rows
+//' door_lookback(counts, list(c(0L, 1L), c(2L, 3L)), lookback_sizes = c(2L, 2L))
 //' @export
 // [[Rcpp::export]]
 arma::mat door_lookback(
@@ -265,6 +336,12 @@ arma::mat door_lookback(
 //' @param unit_row_indices List of integer vectors of row indices
 //' @param alpha Smoothing factor
 //' @param segment_ids Optional integer vector of segment IDs
+//' @examples
+//' counts <- matrix(c(10, 0,
+//'                     0, 10,
+//'                    10, 0,
+//'                     0, 10), nrow = 4, byrow = TRUE)
+//' door_ema(counts, list(c(0L, 1L), c(2L, 3L)), alpha = 0.5)
 //' @export
 // [[Rcpp::export]]
 arma::mat door_ema(
@@ -295,6 +372,13 @@ arma::mat door_ema(
 //' @param fixed_degree Exact degree to use when >= 1
 //' @param criterion Criterion for degree selection: "loocv" or "aic"
 //' @param basis Polynomial basis used for fitting: "orthogonal" or "raw"
+//' @examples
+//' t <- seq(0, 1, length.out = 6)
+//' pts <- cbind(1 + 2 * t, 4 - 3 * t)  # a straight line
+//' fit <- fit_trajectory_poly(pts, t = t, fixed_degree = 1L, basis = "raw")
+//' fit$degree
+//' fit$coeffs_x  # intercept 1, slope 2
+//' fit$coeffs_y  # intercept 4, slope -3
 //' @export
 // [[Rcpp::export]]
 List fit_trajectory_poly(
@@ -329,6 +413,9 @@ List fit_trajectory_poly(
 //' @param coeffs_x Polynomial coefficients for X
 //' @param coeffs_y Polynomial coefficients for Y
 //' @param t_eval Numeric vector of time evaluation points
+//' @examples
+//' # x(t) = 1 + 2 t, y(t) = 4 - 3 t (raw polynomial coefficients)
+//' eval_trajectory_curve(c(1, 2), c(4, -3), c(0, 0.5, 1))
 //' @export
 // [[Rcpp::export]]
 arma::mat eval_trajectory_curve(
@@ -343,6 +430,11 @@ arma::mat eval_trajectory_curve(
 //' @param coeffs_x Polynomial coefficients for X
 //' @param coeffs_y Polynomial coefficients for Y
 //' @param t_eval Numeric vector of time evaluation points
+//' @examples
+//' # x(t) = t, y(t) = t^2
+//' d <- eval_trajectory_derivatives(c(0, 1), c(0, 0, 1), c(0, 0.5, 1))
+//' d$speed
+//' d$curvature
 //' @export
 // [[Rcpp::export]]
 List eval_trajectory_derivatives(
@@ -374,6 +466,10 @@ List eval_trajectory_derivatives(
 //' @param coeffs_by Polynomial coeffs for Curve B Y
 //' @param t_start Integration start (default 0.0)
 //' @param t_end Integration end (default 1.0)
+//' @examples
+//' cx <- c(0, 1); cy <- c(0, 2)
+//' integrated_trajectory_distance(cx, cy, cx, cy)              # 0: same curve
+//' integrated_trajectory_distance(cx, cy, cx + c(3, 0), cy + c(4, 0))  # 5: parallel offset
 //' @export
 // [[Rcpp::export]]
 double integrated_trajectory_distance(
@@ -393,6 +489,10 @@ double integrated_trajectory_distance(
 //' @param coeffs_ldr_x Polynomial coeffs for Leader X
 //' @param coeffs_ldr_y Polynomial coeffs for Leader Y
 //' @param lag Time lag in [0, 1)
+//' @examples
+//' cx <- c(0, 1); cy <- c(0, 2)
+//' lagged_trajectory_distance(cx, cy, cx, cy, lag = 0)
+//' lagged_trajectory_distance(cx, cy, cx, cy, lag = 0.25)
 //' @export
 // [[Rcpp::export]]
 double lagged_trajectory_distance(
@@ -408,6 +508,10 @@ double lagged_trajectory_distance(
 //' Pairwise integrated trajectory distance matrix
 //' @param all_coeffs_x List of X coefficient vectors
 //' @param all_coeffs_y List of Y coefficient vectors
+//' @examples
+//' cx <- list(c(0, 1), c(3, 1), c(0, 1))
+//' cy <- list(c(0, 2), c(4, 2), c(0, 2))
+//' pairwise_trajectory_distance(cx, cy)  # 3 x 3; curves 1 and 3 coincide
 //' @export
 // [[Rcpp::export]]
 arma::mat pairwise_trajectory_distance(
@@ -433,6 +537,14 @@ arma::mat pairwise_trajectory_distance(
 //' @param times_a Turn times for agent A
 //' @param times_b Turn times for agent B
 //' @param delta Signed lag in turns
+//' @examples
+//' times_b <- c(1, 2, 3, 4, 5)
+//' pts_b <- cbind(1:5, 1:5)
+//' # agent A repeats B's positions two turns later
+//' times_a <- times_b + 2
+//' pts_a <- pts_b
+//' signed_turn_lag(pts_a, pts_b, times_a, times_b, delta = 2L)  # mean distance 0
+//' signed_turn_lag(pts_a, pts_b, times_a, times_b, delta = 0L)
 //' @export
 // [[Rcpp::export]]
 List signed_turn_lag(
@@ -455,6 +567,14 @@ List signed_turn_lag(
 //' @param times_a Turn times for agent A
 //' @param times_b Turn times for agent B
 //' @param max_lag Maximum turn lag to evaluate (default 15)
+//' @examples
+//' times_b <- c(1, 2, 3, 4, 5)
+//' pts_b <- cbind(1:5, 1:5)
+//' times_a <- times_b + 2  # A follows B by two turns
+//' pts_a <- pts_b
+//' res <- sweep_signed_turn_lags(pts_a, pts_b, times_a, times_b, max_lag = 4L)
+//' res$best_lag  # 2
+//' res$mean_distances
 //' @export
 // [[Rcpp::export]]
 List sweep_signed_turn_lags(
@@ -477,6 +597,10 @@ List sweep_signed_turn_lags(
 //' Distance-distance matrix correlation for stability analysis
 //' @param X Numeric matrix
 //' @param Y Numeric matrix
+//' @examples
+//' X <- matrix(c(0, 1, 0, 1, 0, 0, 1, 1), ncol = 2)
+//' Y <- 2 * X  # a uniform scaling keeps the distance structure
+//' dist_dist_correlation(X, Y)  # 1
 //' @export
 // [[Rcpp::export]]
 double dist_dist_correlation(

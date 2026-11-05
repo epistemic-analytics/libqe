@@ -4,6 +4,8 @@
 #' Number of upper-triangle pairs for n codes
 #' @param n Number of codes
 #' @return Integer: n*(n-1)/2
+#' @examples
+#' choose_two(4L)  # 6 code pairs
 #' @export
 choose_two <- function(n) {
     .Call(`_libqe_choose_two`, n)
@@ -12,6 +14,9 @@ choose_two <- function(n) {
 #' Number of undirected connection columns
 #' @param n Number of codes
 #' @param diagonal Include self-connections (A & A): n(n+1)/2 instead of choose(n, 2)
+#' @examples
+#' n_connections(4L)                   # 6: choose(4, 2)
+#' n_connections(4L, diagonal = TRUE)  # 10: 4 * 5 / 2
 #' @export
 n_connections <- function(n, diagonal = FALSE) {
     .Call(`_libqe_n_connections`, n, diagonal)
@@ -22,13 +27,19 @@ n_connections <- function(n, diagonal = FALSE) {
 #' @param row -1 = both rows, 0 = row indices only, 1 = col indices only
 #' @param diagonal Include the diagonal (self-connections), in column-major
 #'   order: (0,0), (0,1), (1,1), (0,2), ...
+#' @examples
+#' connection_indices(3L)                      # 2 x 3, 0-based (i, j) pairs
+#' connection_indices(3L, row = 0L)            # row indices only
+#' connection_indices(3L, diagonal = TRUE)     # includes (0,0), (1,1), (2,2)
 #' @export
 connection_indices <- function(len, row = -1L, diagonal = FALSE) {
     .Call(`_libqe_connection_indices`, len, row, diagonal)
 }
 
 #' Pairwise products → upper-triangle vector
-#' @param v Numeric vector of code values
+#' @param v Numeric matrix with one row of code values
+#' @examples
+#' code_connections(matrix(c(1, 0, 1), nrow = 1))  # A&B = 0, A&C = 1, B&C = 0
 #' @export
 code_connections <- function(v) {
     .Call(`_libqe_code_connections`, v)
@@ -37,6 +48,12 @@ code_connections <- function(v) {
 #' Fold a directed (n*n) vector into an undirected upper-triangle vector
 #' @param v Numeric vector of length n*n
 #' @param diagonal Keep the diagonal (self-connections, each once): A & A, A & B, B & B, ...
+#' @examples
+#' m <- matrix(c(0, 1, 2,
+#'               3, 0, 4,
+#'               5, 6, 0), nrow = 3, byrow = TRUE)
+#' fold_directed_network(as.vector(m))                   # A&B, A&C, B&C
+#' fold_directed_network(as.vector(m), diagonal = TRUE)
 #' @export
 fold_directed_network <- function(v, diagonal = FALSE) {
     .Call(`_libqe_fold_directed_network`, v, diagonal)
@@ -46,6 +63,12 @@ fold_directed_network <- function(v, diagonal = FALSE) {
 #' @param x Numeric matrix
 #' @param full TRUE = full n*n (directed); FALSE = upper triangle (undirected)
 #' @param diagonal With full = FALSE: include the diagonal (A & A, A & B, B & B, ...)
+#' @examples
+#' m <- matrix(c(0, 1, 2,
+#'               1, 0, 3,
+#'               2, 3, 0), nrow = 3)
+#' network_to_vector(m, full = FALSE)  # upper triangle: 1 2 3
+#' network_to_vector(m, full = TRUE)   # all 9 entries
 #' @export
 network_to_vector <- function(x, full = TRUE, diagonal = FALSE) {
     .Call(`_libqe_network_to_vector`, x, full, diagonal)
@@ -54,6 +77,9 @@ network_to_vector <- function(x, full = TRUE, diagonal = FALSE) {
 #' Code-name pairs for upper-triangle positions ("A & B")
 #' @param v Character vector of code names
 #' @param diagonal Include self-connections: "A & A", "A & B", "B & B", ...
+#' @examples
+#' connection_names(c("A", "B", "C"))
+#' connection_names(c("A", "B", "C"), diagonal = TRUE)
 #' @export
 connection_names <- function(v, diagonal = FALSE) {
     .Call(`_libqe_connection_names`, v, diagonal)
@@ -61,6 +87,11 @@ connection_names <- function(v, diagonal = FALSE) {
 
 #' Row-wise L2 (sphere) normalization
 #' @param m Numeric matrix
+#' @examples
+#' m <- matrix(c(3, 4, 0,
+#'               0, 0, 0,
+#'               1, 1, 1), nrow = 3, byrow = TRUE)
+#' normalize_networks(m)  # rows have unit length; the zero row is unchanged
 #' @export
 normalize_networks <- function(m) {
     .Call(`_libqe_normalize_networks`, m)
@@ -68,6 +99,10 @@ normalize_networks <- function(m) {
 
 #' Max-norm scaling (divide all rows by the largest row L2 norm)
 #' @param m Numeric matrix
+#' @examples
+#' m <- matrix(c(3, 4,
+#'               1, 0), nrow = 2, byrow = TRUE)
+#' scale_networks(m)  # divided by 5, the largest row norm
 #' @export
 scale_networks <- function(m) {
     .Call(`_libqe_scale_networks`, m)
@@ -75,6 +110,9 @@ scale_networks <- function(m) {
 
 #' Center points (subtract column means)
 #' @param values Numeric matrix
+#' @examples
+#' pts <- matrix(c(1, 2, 3, 10, 20, 30), ncol = 2)
+#' center_points(pts)  # column means are now 0
 #' @export
 center_points <- function(values) {
     .Call(`_libqe_center_points`, values)
@@ -89,6 +127,10 @@ center_points <- function(values) {
 #' @param conf_level Confidence level (default 0.95)
 #' @return Numeric matrix (n_dims x 3): columns are [mean, ci_lower, ci_upper].
 #'   When \code{nrow(points) == 1} the CI bounds are \code{±Inf}.
+#' @examples
+#' pts <- matrix(c(1, 2, 3, 4, 10, 12, 11, 13), ncol = 2)
+#' mean_ci(pts)  # rows = dimensions; columns = mean, lower, upper
+#' t.test(pts[, 1])$conf.int  # same bounds as row 1
 #' @export
 mean_ci <- function(points, conf_level = 0.95) {
     .Call(`_libqe_mean_ci`, points, conf_level)
@@ -107,6 +149,9 @@ mean_ci <- function(points, conf_level = 0.95) {
 #' @param points     Numeric matrix (units x dims) — one row per unit in the group
 #' @param iqr_factor Multiplier applied to the IQR (default 1.5, the Tukey fence)
 #' @return Numeric matrix (n_dims x 2): columns are [lower, upper].
+#' @examples
+#' pts <- matrix(c(1, 2, 3, 4, 10, 12, 11, 13), ncol = 2)
+#' outlier_ci(pts)  # rows = dimensions; columns = -1.5 * IQR, +1.5 * IQR
 #' @export
 outlier_ci <- function(points, iqr_factor = 1.5) {
     .Call(`_libqe_outlier_ci`, points, iqr_factor)
@@ -143,6 +188,13 @@ outlier_ci <- function(points, iqr_factor = 1.5) {
 #' @param g2 Numeric matrix (n2 × n_dims) — unit points for group 2
 #' @return Named list with \code{N}, \code{parametric}, and \code{nonparametric}
 #'   sub-lists, matching the structure of rENA-api's \code{group.stats()}.
+#' @examples
+#' g1 <- matrix(c(1, 2, 3, 4, 10, 11, 12, 13), ncol = 2)
+#' g2 <- matrix(c(2, 3, 5, 6, 9, 9, 10, 12), ncol = 2)
+#' s <- group_stats(g1, g2)
+#' s$N
+#' s$parametric$t
+#' s$nonparametric$U
 #' @export
 group_stats <- function(g1, g2) {
     .Call(`_libqe_group_stats`, g1, g2)
@@ -154,6 +206,13 @@ group_stats <- function(g1, g2) {
 #' @param aggregate_mean Logical: TRUE = mean, FALSE = sum
 #' @param weighting_linear Logical: TRUE = linear weights, FALSE = equal
 #' @param segment_ids Integer vector of segment IDs (0-indexed or 1-indexed)
+#' @examples
+#' block <- matrix(c(1, 0,
+#'                   2, 1,
+#'                   3, 0,
+#'                   4, 2), nrow = 4, byrow = TRUE)
+#' door_lookback_block(block, lookback_size = 2L)                        # sums
+#' door_lookback_block(block, lookback_size = 2L, aggregate_mean = TRUE) # means
 #' @export
 door_lookback_block <- function(block, lookback_size = 20L, aggregate_mean = FALSE, weighting_linear = FALSE, segment_ids = integer()) {
     .Call(`_libqe_door_lookback_block`, block, lookback_size, aggregate_mean, weighting_linear, segment_ids)
@@ -163,6 +222,11 @@ door_lookback_block <- function(block, lookback_size = 20L, aggregate_mean = FAL
 #' @param block Numeric matrix of connection counts
 #' @param alpha Smoothing factor in (0, 1]
 #' @param segment_ids Integer vector of segment IDs
+#' @examples
+#' block <- matrix(c(10, 0,
+#'                    0, 10,
+#'                    0,  0), nrow = 3, byrow = TRUE)
+#' door_ema_block(block, alpha = 0.5)
 #' @export
 door_ema_block <- function(block, alpha = 0.1, segment_ids = integer()) {
     .Call(`_libqe_door_ema_block`, block, alpha, segment_ids)
@@ -175,6 +239,13 @@ door_ema_block <- function(block, alpha = 0.1, segment_ids = integer()) {
 #' @param aggregate_mean Logical: TRUE = mean, FALSE = sum
 #' @param weighting_linear Logical: TRUE = linear weights, FALSE = equal
 #' @param segment_ids Optional integer vector of segment IDs
+#' @examples
+#' counts <- matrix(c(1, 0,
+#'                    2, 1,
+#'                    5, 5,
+#'                    6, 5), nrow = 4, byrow = TRUE)
+#' # two units, rows given 0-based; each unit pools within its own rows
+#' door_lookback(counts, list(c(0L, 1L), c(2L, 3L)), lookback_sizes = c(2L, 2L))
 #' @export
 door_lookback <- function(conn_counts, unit_row_indices, lookback_sizes, aggregate_mean = FALSE, weighting_linear = FALSE, segment_ids = integer()) {
     .Call(`_libqe_door_lookback`, conn_counts, unit_row_indices, lookback_sizes, aggregate_mean, weighting_linear, segment_ids)
@@ -185,6 +256,12 @@ door_lookback <- function(conn_counts, unit_row_indices, lookback_sizes, aggrega
 #' @param unit_row_indices List of integer vectors of row indices
 #' @param alpha Smoothing factor
 #' @param segment_ids Optional integer vector of segment IDs
+#' @examples
+#' counts <- matrix(c(10, 0,
+#'                     0, 10,
+#'                    10, 0,
+#'                     0, 10), nrow = 4, byrow = TRUE)
+#' door_ema(counts, list(c(0L, 1L), c(2L, 3L)), alpha = 0.5)
 #' @export
 door_ema <- function(conn_counts, unit_row_indices, alpha = 0.1, segment_ids = integer()) {
     .Call(`_libqe_door_ema`, conn_counts, unit_row_indices, alpha, segment_ids)
@@ -197,6 +274,13 @@ door_ema <- function(conn_counts, unit_row_indices, alpha = 0.1, segment_ids = i
 #' @param fixed_degree Exact degree to use when >= 1
 #' @param criterion Criterion for degree selection: "loocv" or "aic"
 #' @param basis Polynomial basis used for fitting: "orthogonal" or "raw"
+#' @examples
+#' t <- seq(0, 1, length.out = 6)
+#' pts <- cbind(1 + 2 * t, 4 - 3 * t)  # a straight line
+#' fit <- fit_trajectory_poly(pts, t = t, fixed_degree = 1L, basis = "raw")
+#' fit$degree
+#' fit$coeffs_x  # intercept 1, slope 2
+#' fit$coeffs_y  # intercept 4, slope -3
 #' @export
 fit_trajectory_poly <- function(points, t = numeric(), max_degree = 3L, fixed_degree = 0L, criterion = "loocv", basis = "orthogonal") {
     .Call(`_libqe_fit_trajectory_poly`, points, t, max_degree, fixed_degree, criterion, basis)
@@ -206,6 +290,9 @@ fit_trajectory_poly <- function(points, t = numeric(), max_degree = 3L, fixed_de
 #' @param coeffs_x Polynomial coefficients for X
 #' @param coeffs_y Polynomial coefficients for Y
 #' @param t_eval Numeric vector of time evaluation points
+#' @examples
+#' # x(t) = 1 + 2 t, y(t) = 4 - 3 t (raw polynomial coefficients)
+#' eval_trajectory_curve(c(1, 2), c(4, -3), c(0, 0.5, 1))
 #' @export
 eval_trajectory_curve <- function(coeffs_x, coeffs_y, t_eval) {
     .Call(`_libqe_eval_trajectory_curve`, coeffs_x, coeffs_y, t_eval)
@@ -215,6 +302,11 @@ eval_trajectory_curve <- function(coeffs_x, coeffs_y, t_eval) {
 #' @param coeffs_x Polynomial coefficients for X
 #' @param coeffs_y Polynomial coefficients for Y
 #' @param t_eval Numeric vector of time evaluation points
+#' @examples
+#' # x(t) = t, y(t) = t^2
+#' d <- eval_trajectory_derivatives(c(0, 1), c(0, 0, 1), c(0, 0.5, 1))
+#' d$speed
+#' d$curvature
 #' @export
 eval_trajectory_derivatives <- function(coeffs_x, coeffs_y, t_eval) {
     .Call(`_libqe_eval_trajectory_derivatives`, coeffs_x, coeffs_y, t_eval)
@@ -227,6 +319,10 @@ eval_trajectory_derivatives <- function(coeffs_x, coeffs_y, t_eval) {
 #' @param coeffs_by Polynomial coeffs for Curve B Y
 #' @param t_start Integration start (default 0.0)
 #' @param t_end Integration end (default 1.0)
+#' @examples
+#' cx <- c(0, 1); cy <- c(0, 2)
+#' integrated_trajectory_distance(cx, cy, cx, cy)              # 0: same curve
+#' integrated_trajectory_distance(cx, cy, cx + c(3, 0), cy + c(4, 0))  # 5: parallel offset
 #' @export
 integrated_trajectory_distance <- function(coeffs_ax, coeffs_ay, coeffs_bx, coeffs_by, t_start = 0.0, t_end = 1.0) {
     .Call(`_libqe_integrated_trajectory_distance`, coeffs_ax, coeffs_ay, coeffs_bx, coeffs_by, t_start, t_end)
@@ -238,6 +334,10 @@ integrated_trajectory_distance <- function(coeffs_ax, coeffs_ay, coeffs_bx, coef
 #' @param coeffs_ldr_x Polynomial coeffs for Leader X
 #' @param coeffs_ldr_y Polynomial coeffs for Leader Y
 #' @param lag Time lag in [0, 1)
+#' @examples
+#' cx <- c(0, 1); cy <- c(0, 2)
+#' lagged_trajectory_distance(cx, cy, cx, cy, lag = 0)
+#' lagged_trajectory_distance(cx, cy, cx, cy, lag = 0.25)
 #' @export
 lagged_trajectory_distance <- function(coeffs_fol_x, coeffs_fol_y, coeffs_ldr_x, coeffs_ldr_y, lag = 0.0) {
     .Call(`_libqe_lagged_trajectory_distance`, coeffs_fol_x, coeffs_fol_y, coeffs_ldr_x, coeffs_ldr_y, lag)
@@ -246,6 +346,10 @@ lagged_trajectory_distance <- function(coeffs_fol_x, coeffs_fol_y, coeffs_ldr_x,
 #' Pairwise integrated trajectory distance matrix
 #' @param all_coeffs_x List of X coefficient vectors
 #' @param all_coeffs_y List of Y coefficient vectors
+#' @examples
+#' cx <- list(c(0, 1), c(3, 1), c(0, 1))
+#' cy <- list(c(0, 2), c(4, 2), c(0, 2))
+#' pairwise_trajectory_distance(cx, cy)  # 3 x 3; curves 1 and 3 coincide
 #' @export
 pairwise_trajectory_distance <- function(all_coeffs_x, all_coeffs_y) {
     .Call(`_libqe_pairwise_trajectory_distance`, all_coeffs_x, all_coeffs_y)
@@ -257,6 +361,14 @@ pairwise_trajectory_distance <- function(all_coeffs_x, all_coeffs_y) {
 #' @param times_a Turn times for agent A
 #' @param times_b Turn times for agent B
 #' @param delta Signed lag in turns
+#' @examples
+#' times_b <- c(1, 2, 3, 4, 5)
+#' pts_b <- cbind(1:5, 1:5)
+#' # agent A repeats B's positions two turns later
+#' times_a <- times_b + 2
+#' pts_a <- pts_b
+#' signed_turn_lag(pts_a, pts_b, times_a, times_b, delta = 2L)  # mean distance 0
+#' signed_turn_lag(pts_a, pts_b, times_a, times_b, delta = 0L)
 #' @export
 signed_turn_lag <- function(pts_a, pts_b, times_a, times_b, delta) {
     .Call(`_libqe_signed_turn_lag`, pts_a, pts_b, times_a, times_b, delta)
@@ -268,6 +380,14 @@ signed_turn_lag <- function(pts_a, pts_b, times_a, times_b, delta) {
 #' @param times_a Turn times for agent A
 #' @param times_b Turn times for agent B
 #' @param max_lag Maximum turn lag to evaluate (default 15)
+#' @examples
+#' times_b <- c(1, 2, 3, 4, 5)
+#' pts_b <- cbind(1:5, 1:5)
+#' times_a <- times_b + 2  # A follows B by two turns
+#' pts_a <- pts_b
+#' res <- sweep_signed_turn_lags(pts_a, pts_b, times_a, times_b, max_lag = 4L)
+#' res$best_lag  # 2
+#' res$mean_distances
 #' @export
 sweep_signed_turn_lags <- function(pts_a, pts_b, times_a, times_b, max_lag = 15L) {
     .Call(`_libqe_sweep_signed_turn_lags`, pts_a, pts_b, times_a, times_b, max_lag)
@@ -276,6 +396,10 @@ sweep_signed_turn_lags <- function(pts_a, pts_b, times_a, times_b, max_lag = 15L
 #' Distance-distance matrix correlation for stability analysis
 #' @param X Numeric matrix
 #' @param Y Numeric matrix
+#' @examples
+#' X <- matrix(c(0, 1, 0, 1, 0, 0, 1, 1), ncol = 2)
+#' Y <- 2 * X  # a uniform scaling keeps the distance structure
+#' dist_dist_correlation(X, Y)  # 1
 #' @export
 dist_dist_correlation <- function(X, Y) {
     .Call(`_libqe_dist_dist_correlation`, X, Y)

@@ -16,3 +16,9 @@ door_ema_block(block, alpha = 0.1, segment_ids = integer())
 \description{
 Door EMA smoothing for a single block
 }
+\examples{
+block <- matrix(c(10, 0,
+                   0, 10,
+                   0,  0), nrow = 3, byrow = TRUE)
+door_ema_block(block, alpha = 0.5)
+}

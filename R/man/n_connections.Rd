@@ -14,3 +14,7 @@ n_connections(n, diagonal = FALSE)
 \description{
 Number of undirected connection columns
 }
+\examples{
+n_connections(4L)                   # 6: choose(4, 2)
+n_connections(4L, diagonal = TRUE)  # 10: 4 * 5 / 2
+}

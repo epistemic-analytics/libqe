@@ -26,3 +26,11 @@ door_lookback_block(
 \description{
 Door lookback window pooling for a single block
 }
+\examples{
+block <- matrix(c(1, 0,
+                  2, 1,
+                  3, 0,
+                  4, 2), nrow = 4, byrow = TRUE)
+door_lookback_block(block, lookback_size = 2L)                        # sums
+door_lookback_block(block, lookback_size = 2L, aggregate_mean = TRUE) # means
+}

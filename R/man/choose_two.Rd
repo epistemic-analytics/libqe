@@ -15,3 +15,6 @@ Integer: n*(n-1)/2
 \description{
 Number of upper-triangle pairs for n codes
 }
+\examples{
+choose_two(4L)  # 6 code pairs
+}

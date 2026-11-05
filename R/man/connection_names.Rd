@@ -14,3 +14,7 @@ connection_names(v, diagonal = FALSE)
 \description{
 Code-name pairs for upper-triangle positions ("A & B")
 }
+\examples{
+connection_names(c("A", "B", "C"))
+connection_names(c("A", "B", "C"), diagonal = TRUE)
+}

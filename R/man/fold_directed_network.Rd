@@ -14,3 +14,10 @@ fold_directed_network(v, diagonal = FALSE)
 \description{
 Fold a directed (n*n) vector into an undirected upper-triangle vector
 }
+\examples{
+m <- matrix(c(0, 1, 2,
+              3, 0, 4,
+              5, 6, 0), nrow = 3, byrow = TRUE)
+fold_directed_network(as.vector(m))                   # A&B, A&C, B&C
+fold_directed_network(as.vector(m), diagonal = TRUE)
+}

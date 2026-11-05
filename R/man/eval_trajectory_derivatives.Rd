@@ -16,3 +16,9 @@ eval_trajectory_derivatives(coeffs_x, coeffs_y, t_eval)
 \description{
 Evaluate trajectory differential geometry (velocities, speed, curvature, turns)
 }
+\examples{
+# x(t) = t, y(t) = t^2
+d <- eval_trajectory_derivatives(c(0, 1), c(0, 0, 1), c(0, 0.5, 1))
+d$speed
+d$curvature
+}

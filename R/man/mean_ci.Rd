@@ -19,3 +19,8 @@ Numeric matrix (n_dims x 3): columns are [mean, ci_lower, ci_upper].
 For each dimension computes a t-based CI:
 \code{mean ± t(α/2, n-1) × (SD / sqrt(n))} where \code{α = 1 - conf_level}.
 }
+\examples{
+pts <- matrix(c(1, 2, 3, 4, 10, 12, 11, 13), ncol = 2)
+mean_ci(pts)  # rows = dimensions; columns = mean, lower, upper
+t.test(pts[, 1])$conf.int  # same bounds as row 1
+}

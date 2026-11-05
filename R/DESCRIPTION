@@ -1,20 +1,16 @@
 Package: libqe
 Title: Shared C++ Core for Quantitative Ethnography Packages
 Type: Package
-Author: Cody L Marquart [aut, cre]
 Authors@R: c(person("Cody L", "Marquart", role = c("aut", "cre"), email = "cody.marquart@wisc.edu", comment = c(ORCID = "0000-0002-3387-6792")))
-Maintainer: Cody L Marquart <cody.marquart@wisc.edu>
-Version: 0.2.4
-Description: Header-only C++ library providing shared computational primitives for
-    quantitative ethnography packages (rENA, tma, and others). Canonical headers
-    live in include/libqe/ at the repository root; the configure script copies them
-    into inst/include/libqe/ at install time so R packages can consume them via
-    LinkingTo. Python and Julia bindings point directly at include/libqe/. Exposes
-    modules for adjacency vector utilities, normalization, group statistics,
-    linear-algebra fallbacks, door temporal pooling, trajectory curve analysis,
-    and stability metrics. The ENA model code is in rENA and accumulation in
-    tma. Also exports Rcpp-wrapped versions of every function for direct use
-    and testing in R.
+Version: 0.2.5
+Description: Shared C++ header library for quantitative ethnography
+    packages such as 'rENA' and 'tma', which use it through 'LinkingTo'. It
+    provides adjacency-vector utilities, network normalization, group
+    statistics (confidence intervals and two-group tests), temporal pooling
+    and smoothing of event streams, polynomial trajectory fitting with
+    derivative and distance measures, and a stability metric for comparing
+    point configurations. Every function is also available from R through
+    'Rcpp' wrappers.
 License: GPL-3
 URL: https://github.com/epistemic-analytics/libqe
 BugReports: https://github.com/epistemic-analytics/libqe/issues

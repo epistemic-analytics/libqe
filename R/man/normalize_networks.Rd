@@ -12,3 +12,9 @@ normalize_networks(m)
 \description{
 Row-wise L2 (sphere) normalization
 }
+\examples{
+m <- matrix(c(3, 4, 0,
+              0, 0, 0,
+              1, 1, 1), nrow = 3, byrow = TRUE)
+normalize_networks(m)  # rows have unit length; the zero row is unchanged
+}

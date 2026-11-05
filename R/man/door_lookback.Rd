@@ -29,3 +29,11 @@ door_lookback(
 \description{
 Door lookback window pooling across units
 }
+\examples{
+counts <- matrix(c(1, 0,
+                   2, 1,
+                   5, 5,
+                   6, 5), nrow = 4, byrow = TRUE)
+# two units, rows given 0-based; each unit pools within its own rows
+door_lookback(counts, list(c(0L, 1L), c(2L, 3L)), lookback_sizes = c(2L, 2L))
+}

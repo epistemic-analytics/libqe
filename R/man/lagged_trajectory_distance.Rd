@@ -26,3 +26,8 @@ lagged_trajectory_distance(
 \description{
 Lagged curve distance between follower and leader
 }
+\examples{
+cx <- c(0, 1); cy <- c(0, 2)
+lagged_trajectory_distance(cx, cy, cx, cy, lag = 0)
+lagged_trajectory_distance(cx, cy, cx, cy, lag = 0.25)
+}

@@ -14,3 +14,8 @@ dist_dist_correlation(X, Y)
 \description{
 Distance-distance matrix correlation for stability analysis
 }
+\examples{
+X <- matrix(c(0, 1, 0, 1, 0, 0, 1, 1), ncol = 2)
+Y <- 2 * X  # a uniform scaling keeps the distance structure
+dist_dist_correlation(X, Y)  # 1
+}
