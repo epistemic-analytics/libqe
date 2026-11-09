@@ -45,11 +45,11 @@ All exported R functions are prefixed ``.
 
 | Function | Description |
 |----------|-------------|
-| `connection_indices(len, row)` | Upper-triangle (i, j) index pairs for a matrix of side `len`. `row = -1` returns both rows, `0` row indices only, `1` col indices only. |
+| `connection_indices(len, row, diagonal)` | Upper-triangle (i, j) index pairs for a matrix of side `len`. `row = -1` returns both rows, `0` row indices only, `1` col indices only. `diagonal = TRUE` adds the (i, i) pairs. |
 | `code_connections(v)` | Pairwise products of a code vector → upper-triangle connection vector. |
-| `fold_directed_network(v)` | Fold a directed (n²) flat vector into an undirected upper-triangle vector by summing symmetric pairs. |
-| `network_to_vector(x, full)` | Flatten an adjacency matrix. `full = TRUE` returns the full n² vector (directed); `full = FALSE` returns the upper triangle. |
-| `connection_names(v)` | Generate code-pair labels (`"A & B"`) for every upper-triangle position from a character vector of code names. |
+| `fold_directed_network(v, diagonal)` | Fold a directed (n²) flat vector into an undirected upper-triangle vector by summing symmetric pairs. `diagonal = TRUE` keeps each self-connection (A→A) once. |
+| `network_to_vector(x, full, diagonal)` | Flatten an adjacency matrix. `full = TRUE` returns the full n² vector (directed); `full = FALSE` returns the upper triangle, with the diagonal when `diagonal = TRUE`. |
+| `connection_names(v, diagonal)` | Generate code-pair labels (`"A & B"`) for every upper-triangle position from a character vector of code names. `diagonal = TRUE` adds `"A & A"`. |
 
 ### Normalization
 

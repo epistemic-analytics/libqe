@@ -83,11 +83,11 @@ removed from this package in 0.2.0.
 
 | Function | Description |
 |----------|-------------|
-| `connection_names(names)` | `string[]` → pair labels `["A & B", ...]` |
-| `connection_indices(len)` | Upper-triangle index pairs `{ rows, cols }` |
+| `connection_names(names[, diagonal])` | `string[]` → pair labels `["A & B", ...]`; `diagonal` adds `"A & A"` |
+| `connection_indices(len[, diagonal])` | Upper-triangle index pairs `{ rows, cols }`; `diagonal` adds (i, i) |
 | `code_connections(data, n_codes)` | Code vector → connection vector |
-| `fold_directed_network(data)` | n² directed vector → upper-tri |
-| `network_to_vector(data, rows, cols, full)` | Matrix → flat vector |
+| `fold_directed_network(data[, diagonal])` | n² directed vector → upper-tri; `diagonal` keeps A→A once |
+| `network_to_vector(data, rows, cols, full[, diagonal])` | Matrix → flat vector; `diagonal` keeps the diagonal in the upper-tri |
 
 ### Normalization
 

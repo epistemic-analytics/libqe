@@ -46,11 +46,11 @@ in 0.2.0.
 
 | Function | Returns | Notes |
 |----------|---------|-------|
-| `connection_names(names)` | `Vector{String}` | `"A & B"` pair labels for every upper-tri position |
-| `connection_indices(len; row=-1)` | `2 × n_pairs Matrix{Int32}` | Upper-tri (i, j) index pairs. `row=-1` both rows, `0` row-indices, `1` col-indices |
+| `connection_names(names; diagonal=false)` | `Vector{String}` | `"A & B"` pair labels for every upper-tri position; `diagonal=true` adds `"A & A"` |
+| `connection_indices(len; row=-1, diagonal=false)` | `2 × n_pairs Matrix{Int32}` | Upper-tri (i, j) index pairs. `row=-1` both rows, `0` row-indices, `1` col-indices. `diagonal=true` adds (i, i) |
 | `code_connections(v)` | `Vector{Float64}` | Pairwise products of a code vector → connection vector |
-| `fold_directed_network(v)` | `Vector{Float64}` | n² directed vector → upper-triangle (symmetric pairs summed) |
-| `network_to_vector(m; full=true)` | `Vector{Float64}` | Flatten adjacency matrix. `full=true` → n²; `false` → upper-tri |
+| `fold_directed_network(v; diagonal=false)` | `Vector{Float64}` | n² directed vector → upper-triangle (symmetric pairs summed); `diagonal=true` keeps A→A once |
+| `network_to_vector(m, rows, cols, full[, diagonal])` | `Vector{Float64}` | Flatten adjacency matrix (positional, as the C++ binding). `full=true` → n²; `false` → upper-tri, with the diagonal if `diagonal=true` |
 
 ### Normalization
 

@@ -21,11 +21,11 @@ were removed in 0.2.0.
 | Function | Returns | Notes |
 |----------|---------|-------|
 | `choose_two(n)` | `int` | n × (n-1) / 2 |
-| `connection_indices(len, row=-1)` | `2 × n_pairs ndarray[int64]` | Upper-tri (i, j) pairs. `row=-1` both rows, `0` row-only, `1` col-only |
+| `connection_indices(len, row=-1, diagonal=False)` | `2 × n_pairs ndarray[int64]` | Upper-tri (i, j) pairs. `row=-1` both rows, `0` row-only, `1` col-only. `diagonal=True` adds (i, i) |
 | `code_connections(v)` | `1-D ndarray` | Pairwise products of a code vector → connection vector |
-| `fold_directed_network(v)` | `1-D ndarray` | n² directed vector → upper-tri (symmetric pairs summed) |
-| `network_to_vector(x, full=True)` | `1-D ndarray` | Matrix → flat vector. `full=True` → n², `False` → upper-tri |
-| `connection_names(names)` | `list[str]` | `"A & B"` pair labels for every upper-tri position |
+| `fold_directed_network(v, diagonal=False)` | `1-D ndarray` | n² directed vector → upper-tri (symmetric pairs summed); `diagonal=True` keeps A→A once |
+| `network_to_vector(x, full=True, diagonal=False)` | `1-D ndarray` | Matrix → flat vector. `full=True` → n², `False` → upper-tri (with the diagonal if `diagonal=True`) |
+| `connection_names(names, diagonal=False)` | `list[str]` | `"A & B"` pair labels for every upper-tri position; `diagonal=True` adds `"A & A"` |
 
 ### `qe.normalization`
 
