@@ -2,7 +2,7 @@ Package: libqe
 Title: Shared C++ Core for Quantitative Ethnography Packages
 Type: Package
 Authors@R: c(person("Cody L", "Marquart", role = c("aut", "cre"), email = "cody.marquart@wisc.edu", comment = c(ORCID = "0000-0002-3387-6792")))
-Version: 0.2.5
+Version: 0.2.6
 Description: Shared C++ header library for quantitative ethnography
     packages such as 'rENA' and 'tma', which use it through 'LinkingTo'. It
     provides adjacency-vector utilities, network normalization, group
